@@ -1,4 +1,4 @@
-package de.familyadmin;
+package de.baier.familyadmin;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

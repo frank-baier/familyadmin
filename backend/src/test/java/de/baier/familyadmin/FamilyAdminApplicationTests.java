@@ -1,4 +1,4 @@
-package de.familyadmin;
+package de.baier.familyadmin;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
