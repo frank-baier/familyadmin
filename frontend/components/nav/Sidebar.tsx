@@ -16,6 +16,7 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ReactNode;
+  children?: { label: string; href: string }[];
 }
 
 const navItems: NavItem[] = [
@@ -60,6 +61,9 @@ const navItems: NavItem[] = [
         />
       </svg>
     ),
+    children: [
+      { label: 'Meal Plan', href: '/recipes/meal-plan' },
+    ],
   },
   {
     label: 'Travel',
@@ -135,16 +139,22 @@ export function Sidebar({ user }: SidebarProps) {
             const isActive =
               pathname === item.href ||
               (item.href !== '/dashboard' && pathname.startsWith(`${item.href}/`));
+            // For items with children, only highlight the top-level link on exact match
+            // (children handle their own active state)
+            const isTopActive = item.children
+              ? pathname === item.href
+              : isActive;
+            const isSectionOpen = isActive; // expand children when section is active
 
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  aria-current={isActive ? 'page' : undefined}
+                  aria-current={isTopActive ? 'page' : undefined}
                   className={[
                     'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150',
                     'focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1',
-                    isActive
+                    isTopActive
                       ? 'bg-indigo-50 text-indigo-700'
                       : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
                   ].join(' ')}
@@ -152,16 +162,43 @@ export function Sidebar({ user }: SidebarProps) {
                   <span
                     className={[
                       'w-5 h-5 shrink-0',
-                      isActive ? 'text-indigo-600' : 'text-slate-400',
+                      isTopActive ? 'text-indigo-600' : 'text-slate-400',
                     ].join(' ')}
                   >
                     {item.icon}
                   </span>
                   {item.label}
-                  {isActive && (
+                  {isTopActive && (
                     <span className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-600" aria-hidden="true" />
                   )}
                 </Link>
+
+                {/* Sub-links (shown when section is active) */}
+                {item.children && isSectionOpen && (
+                  <ul className="mt-1 ml-8 space-y-0.5" role="list">
+                    {item.children.map((child) => {
+                      const isChildActive = pathname === child.href || pathname.startsWith(`${child.href}/`);
+                      return (
+                        <li key={child.href}>
+                          <Link
+                            href={child.href}
+                            aria-current={isChildActive ? 'page' : undefined}
+                            className={[
+                              'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors duration-150',
+                              'focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1',
+                              isChildActive
+                                ? 'text-indigo-700 font-medium bg-indigo-50'
+                                : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50 font-normal',
+                            ].join(' ')}
+                          >
+                            <span className="w-1 h-1 rounded-full bg-current opacity-60 shrink-0" aria-hidden="true" />
+                            {child.label}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </li>
             );
           })}
