@@ -1,0 +1,10 @@
+[build]
+builder = "NIXPACKS"
+buildCommand = "cd backend && ./mvnw clean package -DskipTests"
+
+[deploy]
+startCommand = "java -Xmx400m -Xss512k -jar backend/target/backend-0.0.1-SNAPSHOT.jar"
+healthcheckPath = "/actuator/health"
+healthcheckTimeout = 60
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
