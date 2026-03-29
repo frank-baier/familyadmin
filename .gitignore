@@ -1,0 +1,21 @@
+# Backend
+backend/target/
+backend/.mvn/
+backend/*.jar
+*.class
+*.log
+
+# Frontend
+frontend/.next/
+frontend/node_modules/
+frontend/.env.local
+frontend/.env*.local
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
