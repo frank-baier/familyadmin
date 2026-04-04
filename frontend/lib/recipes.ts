@@ -122,3 +122,34 @@ export async function uploadPhoto(id: string, file: File): Promise<{ photoUrl: s
 
   return response.json() as Promise<{ photoUrl: string }>;
 }
+
+// ─── Paprika Import ─────────────────────────────────────────────────────────
+
+export interface PaprikaImportResult {
+  id: string | null;
+  title: string;
+  status: 'success' | 'error';
+  error: string | null;
+}
+
+/** Import recipes from a .paprikarecipes file. Returns per-recipe import results. */
+export async function importPaprikaFile(file: File): Promise<PaprikaImportResult[]> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
+  const token = getAccessToken();
+
+  const response = await fetch(`${API_BASE}/api/recipes/import/paprika`, {
+    method: 'POST',
+    body: formData,
+    credentials: 'include',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+
+  if (!response.ok) {
+    throw new Error(response.statusText);
+  }
+
+  return response.json() as Promise<PaprikaImportResult[]>;
+}
