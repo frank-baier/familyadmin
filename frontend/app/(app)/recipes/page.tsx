@@ -11,8 +11,8 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { RecipeCard } from '@/components/recipes/RecipeCard';
-import { getRecipes, searchRecipes } from '@/lib/recipes';
-import type { Recipe } from '@/lib/recipes';
+import { getRecipes, searchRecipes, importPaprikaFile } from '@/lib/recipes';
+import type { Recipe, PaprikaImportResult } from '@/lib/recipes';
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
 
@@ -41,6 +41,10 @@ export default function RecipesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResults, setImportResults] = useState<PaprikaImportResult[] | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   // Initial load
   useEffect(() => {
@@ -84,6 +88,26 @@ export default function RecipesPage() {
     }, 300);
   }
 
+  async function handlePaprikaImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    setImportResults(null);
+    setImportError(null);
+    try {
+      const results = await importPaprikaFile(file);
+      setImportResults(results);
+      await loadAll(); // refresh the recipe list
+    } catch (err) {
+      setImportError('Import failed. Please check the file and try again.');
+      console.error(err);
+    } finally {
+      setImporting(false);
+      // Reset input so same file can be re-imported if needed
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
   const isEmpty = !loading && recipes.length === 0;
 
   return (
@@ -95,19 +119,82 @@ export default function RecipesPage() {
           <p className="text-slate-500 text-sm mt-1">Family recipe collection</p>
         </div>
 
-        <Link
-          href="/recipes/new"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
-                     bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800
-                     focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
-                     transition-all duration-150 shadow-sm shrink-0"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Add Recipe
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
+                       border border-slate-200 bg-white text-slate-700
+                       hover:border-slate-300 hover:bg-slate-50
+                       disabled:opacity-50 disabled:cursor-not-allowed
+                       focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
+                       transition-all duration-150 shrink-0"
+          >
+            {importing ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 010 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z"/>
+                </svg>
+                Importing…
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                Import Paprika
+              </>
+            )}
+          </button>
+
+          <Link
+            href="/recipes/new"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
+                       bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800
+                       focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
+                       transition-all duration-150 shadow-sm shrink-0"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Add Recipe
+          </Link>
+        </div>
       </div>
+
+      {/* Paprika import result panel */}
+      {(importResults !== null || importError !== null) && (
+        <div className={`rounded-xl border px-4 py-3 mb-6 text-sm ${
+          importError
+            ? 'bg-red-50 border-red-200 text-red-700'
+            : 'bg-green-50 border-green-200 text-green-800'
+        }`}>
+          <div className="flex items-center justify-between">
+            <span className="font-medium">
+              {importError
+                ? importError
+                : `Import complete: ${importResults!.filter(r => r.status === 'success').length} recipe(s) imported`
+              }
+            </span>
+            <button
+              onClick={() => { setImportResults(null); setImportError(null); }}
+              className="ml-4 text-xs underline hover:no-underline"
+              aria-label="Dismiss import result"
+            >
+              Dismiss
+            </button>
+          </div>
+          {importResults && importResults.some(r => r.status === 'error') && (
+            <ul className="mt-2 space-y-1 list-disc list-inside text-red-700">
+              {importResults.filter(r => r.status === 'error').map((r, i) => (
+                <li key={i}>{r.title}: {r.error}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {/* Search bar */}
       <div className="relative mb-8">
@@ -195,6 +282,16 @@ export default function RecipesPage() {
           ))}
         </div>
       )}
+
+      {/* Hidden file input for Paprika import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".paprikarecipes"
+        className="hidden"
+        onChange={handlePaprikaImport}
+        aria-hidden="true"
+      />
     </div>
   );
 }
