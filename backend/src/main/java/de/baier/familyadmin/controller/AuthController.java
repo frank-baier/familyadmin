@@ -82,23 +82,26 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> me(@AuthenticationPrincipal User user) {
+        if (user == null) {
+            return ResponseEntity.status(401).build();
+        }
         return ResponseEntity.ok(UserResponse.from(user));
     }
 
     private void setRefreshCookie(HttpServletResponse response, String jti) {
         Cookie cookie = new Cookie("refresh_token", jti);
         cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath("/api/auth");
+        cookie.setSecure(false); // allow over HTTP in local dev
+        cookie.setPath("/");
         cookie.setMaxAge(7 * 24 * 60 * 60);
-        cookie.setAttribute("SameSite", "Strict");
+        cookie.setAttribute("SameSite", "Lax");
         response.addCookie(cookie);
     }
 
     private void clearRefreshCookie(HttpServletResponse response) {
         Cookie cookie = new Cookie("refresh_token", "");
         cookie.setHttpOnly(true);
-        cookie.setPath("/api/auth");
+        cookie.setPath("/");
         cookie.setMaxAge(0);
         response.addCookie(cookie);
     }

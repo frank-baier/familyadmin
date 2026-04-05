@@ -1,75 +1,106 @@
 package de.baier.familyadmin.service;
 
-import de.baier.familyadmin.model.Task;
-import de.baier.familyadmin.model.TaskStatus;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import lombok.RequiredArgsConstructor;
+import com.twilio.Twilio;
+import com.twilio.rest.api.v2010.account.Message;
+import com.twilio.type.PhoneNumber;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.thymeleaf.context.Context;
-import org.thymeleaf.spring6.SpringTemplateEngine;
-
-import java.time.LocalDate;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class NotificationService {
 
-    private final JavaMailSender mailSender;
-    private final SpringTemplateEngine templateEngine;
+    @Value("${twilio.account-sid}")
+    private String accountSid;
+
+    @Value("${twilio.auth-token}")
+    private String authToken;
+
+    @Value("${twilio.whatsapp-from}")
+    private String whatsappFrom;
 
     @Value("${app.frontend.url}")
     private String appUrl;
 
-    @Value("${spring.mail.username}")
-    private String fromEmail;
+    @PostConstruct
+    public void init() {
+        Twilio.init(accountSid, authToken);
+    }
+
+    /**
+     * Call this while the Hibernate session is still open (inside a @Transactional method)
+     * so all lazy associations are resolved before this async method runs in a new thread.
+     */
+    @Async
+    public void sendTaskAssigned(String recipientPhone, String recipientName,
+                                 String assignerName, String taskTitle,
+                                 String taskId, String dueDate) {
+        if (recipientPhone == null || recipientPhone.isBlank()) {
+            log.info("Skipping WhatsApp notification for '{}': no phone number set", recipientName);
+            return;
+        }
+        try {
+            String body = buildAssignedMessage(recipientName, assignerName, taskTitle, dueDate, taskId);
+            send(recipientPhone, body);
+            log.info("Sent task assignment WhatsApp to {} for task '{}'", recipientPhone, taskTitle);
+        } catch (Exception e) {
+            log.error("Failed to send task assignment WhatsApp for task '{}': {}", taskId, e.getMessage());
+        }
+    }
 
     @Async
-    public void sendTaskReminder(Task task) {
-        if (task.getAssignee() == null) {
-            log.debug("Skipping reminder for task '{}': no assignee", task.getId());
+    public void sendTaskReminder(String recipientPhone, String recipientName,
+                                 String taskTitle, String taskId, String dueDate,
+                                 boolean isOverdue) {
+        if (recipientPhone == null || recipientPhone.isBlank()) {
+            log.info("Skipping WhatsApp reminder for '{}': no phone number set", recipientName);
             return;
         }
-        if (task.getStatus() == TaskStatus.DONE) {
-            log.debug("Skipping reminder for task '{}': task is DONE", task.getId());
-            return;
-        }
-
         try {
-            String recipientEmail = task.getAssignee().getEmail();
-            String recipientName = task.getAssignee().getName();
-            LocalDate dueDate = task.getDueDate();
-            boolean isOverdue = dueDate != null && dueDate.isBefore(LocalDate.now());
-
-            Context ctx = new Context();
-            ctx.setVariable("userName", recipientName);
-            ctx.setVariable("taskTitle", task.getTitle());
-            ctx.setVariable("dueDate", dueDate != null ? dueDate.toString() : "No due date");
-            ctx.setVariable("isOverdue", isOverdue);
-            ctx.setVariable("taskUrl", appUrl + "/tasks/" + task.getId());
-
-            String htmlBody = templateEngine.process("email/task-reminder", ctx);
-
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(fromEmail);
-            helper.setTo(recipientEmail);
-            helper.setSubject("Reminder: " + task.getTitle() + (isOverdue ? " is overdue" : " is due today"));
-            helper.setText(htmlBody, true);
-
-            mailSender.send(message);
-            log.info("Sent task reminder to {} for task '{}'", recipientEmail, task.getTitle());
-
-        } catch (MessagingException e) {
-            log.error("Failed to send task reminder for task '{}': {}", task.getId(), e.getMessage());
+            String body = buildReminderMessage(recipientName, taskTitle, dueDate, isOverdue, taskId);
+            send(recipientPhone, body);
+            log.info("Sent task reminder WhatsApp to {} for task '{}'", recipientPhone, taskTitle);
         } catch (Exception e) {
-            log.error("Unexpected error sending task reminder for task '{}': {}", task.getId(), e.getMessage());
+            log.error("Failed to send task reminder WhatsApp for task '{}': {}", taskId, e.getMessage());
         }
+    }
+
+    private void send(String toPhone, String body) {
+        Message.creator(
+                new PhoneNumber("whatsapp:" + toPhone),
+                new PhoneNumber(whatsappFrom),
+                body
+        ).create();
+    }
+
+    private String buildAssignedMessage(String recipientName, String assignerName,
+                                        String taskTitle, String dueDate, String taskId) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Hi ").append(recipientName).append("!\n\n");
+        sb.append(assignerName).append(" assigned you a task:\n");
+        sb.append("*").append(taskTitle).append("*\n");
+        if (dueDate != null) {
+            sb.append("Due: ").append(dueDate).append("\n");
+        }
+        sb.append("\n").append(appUrl).append("/tasks/").append(taskId);
+        return sb.toString();
+    }
+
+    private String buildReminderMessage(String recipientName, String taskTitle,
+                                        String dueDate, boolean isOverdue, String taskId) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Hi ").append(recipientName).append("!\n\n");
+        if (isOverdue) {
+            sb.append("⚠️ Overdue task:\n");
+        } else {
+            sb.append("⏰ Task due today:\n");
+        }
+        sb.append("*").append(taskTitle).append("*\n");
+        sb.append("Due: ").append(dueDate).append("\n");
+        sb.append("\n").append(appUrl).append("/tasks/").append(taskId);
+        return sb.toString();
     }
 }

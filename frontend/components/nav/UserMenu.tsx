@@ -8,18 +8,12 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { logout } from '@/lib/auth';
+import { useUser } from '@/lib/user-context';
 
-interface UserMenuProps {
-  user?: {
-    name: string;
-    email: string;
-    role: 'ADMIN' | 'MEMBER';
-  } | null;
-}
-
-export function UserMenu({ user }: UserMenuProps) {
+export function UserMenu() {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { user } = useUser();
 
   async function handleLogout() {
     setIsLoggingOut(true);

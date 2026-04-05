@@ -10,6 +10,14 @@ public record RecipeRequest(
         Integer servings,
         Integer prepMinutes,
         Integer cookMinutes,
+        Integer totalMinutes,
+        String source,
+        String sourceUrl,
+        Integer rating,
+        String difficulty,
+        String notes,
+        String nutritionalInfo,
+        String categories,
         List<IngredientRequest> ingredients,
         List<StepRequest> steps
 ) {}

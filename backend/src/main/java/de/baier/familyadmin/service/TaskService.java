@@ -11,7 +11,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,6 +23,7 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final ChecklistItemRepository checklistItemRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public List<Task> getAllTasks() {
@@ -66,12 +67,24 @@ public class TaskService {
             task.getChecklistItems().addAll(items);
         }
 
-        return taskRepository.save(task);
+        Task saved = taskRepository.save(task);
+        if (saved.getAssignee() != null) {
+            notificationService.sendTaskAssigned(
+                    saved.getAssignee().getWhatsappPhone(),
+                    saved.getAssignee().getName(),
+                    saved.getCreatedBy().getName(),
+                    saved.getTitle(),
+                    saved.getId().toString(),
+                    saved.getDueDate() != null ? saved.getDueDate().toString() : null);
+        }
+        return saved;
     }
 
     public Task updateTask(UUID id, TaskRequest req, User currentUser) {
         Task task = getTaskById(id);
         requireOwnerOrAdmin(task, currentUser);
+
+        UUID previousAssigneeId = task.getAssignee() != null ? task.getAssignee().getId() : null;
 
         if (req.assigneeId() != null) {
             User assignee = userRepository.findById(req.assigneeId())
@@ -95,13 +108,25 @@ public class TaskService {
                             .build()));
         }
 
-        return taskRepository.save(task);
+        Task saved = taskRepository.save(task);
+        boolean assigneeChanged = saved.getAssignee() != null
+                && !saved.getAssignee().getId().equals(previousAssigneeId);
+        if (assigneeChanged) {
+            notificationService.sendTaskAssigned(
+                    saved.getAssignee().getWhatsappPhone(),
+                    saved.getAssignee().getName(),
+                    currentUser.getName(),
+                    saved.getTitle(),
+                    saved.getId().toString(),
+                    saved.getDueDate() != null ? saved.getDueDate().toString() : null);
+        }
+        return saved;
     }
 
     public Task completeTask(UUID id, User currentUser) {
         Task task = getTaskById(id);
         task.setStatus(TaskStatus.DONE);
-        task.setCompletedAt(OffsetDateTime.now());
+        task.setCompletedAt(Instant.now());
         return taskRepository.save(task);
     }
 

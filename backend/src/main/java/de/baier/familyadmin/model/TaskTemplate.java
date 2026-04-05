@@ -6,61 +6,39 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDate;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "trips")
+@Table(name = "task_templates")
 @EntityListeners(AuditingEntityListener.class)
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Trip {
+public class TaskTemplate {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(nullable = false)
-    private String title;
-
-    @Column(nullable = false)
-    private String destination;
-
-    @Column(name = "start_date", nullable = false)
-    private LocalDate startDate;
-
-    @Column(name = "end_date", nullable = false)
-    private LocalDate endDate;
+    private String name;
 
     @Column(columnDefinition = "TEXT")
     private String description;
-
-    @Column(name = "cover_photo_url", length = 512)
-    private String coverPhotoUrl;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
 
-    @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "template", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("position ASC")
     @Builder.Default
-    private List<PackingItem> packingItems = new ArrayList<>();
-
-    @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("entryDate ASC, entryTime ASC, position ASC")
-    @Builder.Default
-    private List<ItineraryEntry> itineraryEntries = new ArrayList<>();
-
-    @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("position ASC")
-    @Builder.Default
-    private List<TripKeyInfo> keyInfos = new ArrayList<>();
+    private List<TemplateSubtask> subtasks = new ArrayList<>();
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -1,6 +1,8 @@
 package de.baier.familyadmin.controller;
 
 import de.baier.familyadmin.dto.RegisterRequest;
+import de.baier.familyadmin.dto.ResetPasswordRequest;
+import de.baier.familyadmin.dto.UpdateUserRequest;
 import de.baier.familyadmin.dto.UserResponse;
 import de.baier.familyadmin.model.Role;
 import de.baier.familyadmin.service.UserService;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -36,5 +39,28 @@ public class AdminController {
                 .map(UserResponse::from)
                 .toList();
         return ResponseEntity.ok(users);
+    }
+
+    @PutMapping("/users/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserResponse> updateUser(@PathVariable UUID id,
+                                                   @Valid @RequestBody UpdateUserRequest request) {
+        var user = userService.updateUser(id, request.name(), request.email(), request.role(), request.whatsappPhone());
+        return ResponseEntity.ok(UserResponse.from(user));
+    }
+
+    @DeleteMapping("/users/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteUser(@PathVariable UUID id) {
+        userService.deleteUser(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/users/{id}/password")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> resetPassword(@PathVariable UUID id,
+                                              @Valid @RequestBody ResetPasswordRequest request) {
+        userService.resetPassword(id, request.newPassword());
+        return ResponseEntity.noContent().build();
     }
 }

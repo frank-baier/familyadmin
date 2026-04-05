@@ -7,7 +7,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -33,7 +33,7 @@ public class Task {
     private String description;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "task_status")
+    @Column(nullable = false)
     @Builder.Default
     private TaskStatus status = TaskStatus.OPEN;
 
@@ -47,7 +47,7 @@ public class Task {
 
     private LocalDate dueDate;
 
-    private OffsetDateTime completedAt;
+    private Instant completedAt;
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("position ASC")
@@ -56,9 +56,9 @@ public class Task {
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
+    private Instant createdAt;
 
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
-    private OffsetDateTime updatedAt;
+    private Instant updatedAt;
 }

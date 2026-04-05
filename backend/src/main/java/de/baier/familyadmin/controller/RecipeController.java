@@ -3,13 +3,16 @@ package de.baier.familyadmin.controller;
 import de.baier.familyadmin.dto.RecipeRequest;
 import de.baier.familyadmin.dto.RecipeResponse;
 import de.baier.familyadmin.model.User;
+import de.baier.familyadmin.service.PaprikaImportService;
 import de.baier.familyadmin.service.RecipeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
@@ -20,6 +23,7 @@ import java.util.UUID;
 public class RecipeController {
 
     private final RecipeService recipeService;
+    private final PaprikaImportService paprikaImportService;
 
     @GetMapping
     public ResponseEntity<List<RecipeResponse>> getAll() {
@@ -57,5 +61,12 @@ public class RecipeController {
                                        @AuthenticationPrincipal User currentUser) {
         recipeService.deleteRecipe(id, currentUser);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/import/paprika")
+    public ResponseEntity<List<PaprikaImportService.ImportResult>> importPaprika(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal User currentUser) throws IOException {
+        return ResponseEntity.ok(paprikaImportService.importPaprikaFile(file, currentUser));
     }
 }

@@ -6,7 +6,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -41,6 +41,27 @@ public class Recipe {
     @Column(name = "photo_url", length = 512)
     private String photoUrl;
 
+    private String source;
+
+    @Column(name = "source_url", length = 512)
+    private String sourceUrl;
+
+    @Column(name = "total_minutes")
+    private Integer totalMinutes;
+
+    private Integer rating;
+
+    @Column(length = 50)
+    private String difficulty;
+
+    @Column(columnDefinition = "TEXT")
+    private String notes;
+
+    @Column(name = "nutritional_info", columnDefinition = "TEXT")
+    private String nutritionalInfo;
+
+    private String categories;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
@@ -57,9 +78,9 @@ public class Recipe {
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
+    private Instant createdAt;
 
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
-    private OffsetDateTime updatedAt;
+    private Instant updatedAt;
 }

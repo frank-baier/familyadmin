@@ -9,7 +9,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -44,13 +44,17 @@ public class User implements UserDetails {
     @Column(name = "refresh_jti")
     private String refreshJti;
 
+    /** WhatsApp phone number in E.164 format, e.g. +491234567890 */
+    @Column(name = "whatsapp_phone")
+    private String whatsappPhone;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
+    private Instant createdAt;
 
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
-    private OffsetDateTime updatedAt;
+    private Instant updatedAt;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

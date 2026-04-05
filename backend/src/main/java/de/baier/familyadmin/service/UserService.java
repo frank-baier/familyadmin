@@ -52,4 +52,38 @@ public class UserService implements UserDetailsService {
     public List<User> findAll() {
         return userRepository.findAll();
     }
+
+    public User findById(UUID id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
+    }
+
+    @Transactional
+    public User updateUser(UUID id, String name, String email, Role role, String whatsappPhone) {
+        User user = findById(id);
+        if (!user.getEmail().equals(email) && userRepository.existsByEmail(email)) {
+            throw new IllegalArgumentException("Email already in use: " + email);
+        }
+        user.setName(name);
+        user.setEmail(email);
+        user.setRole(role);
+        user.setWhatsappPhone(whatsappPhone);
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public void deleteUser(UUID id) {
+        if (!userRepository.existsById(id)) {
+            throw new IllegalArgumentException("User not found: " + id);
+        }
+        userRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void resetPassword(UUID id, String newPassword) {
+        User user = findById(id);
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setRefreshJti(null); // invalidate any existing sessions
+        userRepository.save(user);
+    }
 }

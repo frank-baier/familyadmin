@@ -5,7 +5,7 @@ import de.baier.familyadmin.model.RecipeIngredient;
 import de.baier.familyadmin.model.RecipeStep;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,12 +16,20 @@ public record RecipeResponse(
         Integer servings,
         Integer prepMinutes,
         Integer cookMinutes,
+        Integer totalMinutes,
+        String source,
+        String sourceUrl,
+        Integer rating,
+        String difficulty,
+        String notes,
+        String nutritionalInfo,
+        String categories,
         String photoUrl,
         UserResponse createdBy,
         List<IngredientResponse> ingredients,
         List<StepResponse> steps,
-        OffsetDateTime createdAt,
-        OffsetDateTime updatedAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
     public record IngredientResponse(UUID id, String name, BigDecimal amount, String unit, int position) {
         public static IngredientResponse from(RecipeIngredient i) {
@@ -43,6 +51,14 @@ public record RecipeResponse(
                 recipe.getServings(),
                 recipe.getPrepMinutes(),
                 recipe.getCookMinutes(),
+                recipe.getTotalMinutes(),
+                recipe.getSource(),
+                recipe.getSourceUrl(),
+                recipe.getRating(),
+                recipe.getDifficulty(),
+                recipe.getNotes(),
+                recipe.getNutritionalInfo(),
+                recipe.getCategories(),
                 recipe.getPhotoUrl(),
                 UserResponse.from(recipe.getCreatedBy()),
                 recipe.getIngredients().stream().map(IngredientResponse::from).toList(),

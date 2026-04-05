@@ -4,7 +4,7 @@ import de.baier.familyadmin.model.Task;
 import de.baier.familyadmin.model.TaskStatus;
 
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,9 +16,9 @@ public record TaskResponse(
         UserResponse assignee,
         UserResponse createdBy,
         LocalDate dueDate,
-        OffsetDateTime completedAt,
+        Instant completedAt,
         List<ChecklistItemResponse> checklistItems,
-        OffsetDateTime createdAt
+        Instant createdAt
 ) {
     public static TaskResponse from(Task task) {
         return new TaskResponse(

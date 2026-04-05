@@ -13,13 +13,13 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 const PUBLIC_PATHS = ['/login'];
 
-export async function middleware(request: NextRequest): Promise<NextResponse> {
+export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
-  // Check for auth cookie (set as HttpOnly by the Spring Boot backend on login)
+  // Check for refresh_token cookie (set as HttpOnly by the Spring Boot backend on login, path=/)
   // Note: request.cookies in middleware is synchronous (RequestCookies object).
   // The async cookie API applies to next/headers (Server Components / Route Handlers).
-  const authCookie = request.cookies.get('auth_session');
+  const authCookie = request.cookies.get('refresh_token');
   const isAuthenticated = Boolean(authCookie?.value);
 
   const isPublicPath = PUBLIC_PATHS.some(

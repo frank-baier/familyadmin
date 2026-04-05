@@ -3,7 +3,7 @@ package de.baier.familyadmin.dto;
 import de.baier.familyadmin.model.Trip;
 
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,8 +17,8 @@ public record TripResponse(
         String coverPhotoUrl,
         UserResponse createdBy,
         List<TripKeyInfoResponse> keyInfos,
-        OffsetDateTime createdAt,
-        OffsetDateTime updatedAt
+        Instant createdAt,
+        Instant updatedAt
 ) {
     public static TripResponse from(Trip trip) {
         return new TripResponse(

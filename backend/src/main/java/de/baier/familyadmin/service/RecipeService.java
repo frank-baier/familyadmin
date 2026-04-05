@@ -42,6 +42,14 @@ public class RecipeService {
                 .servings(req.servings())
                 .prepMinutes(req.prepMinutes())
                 .cookMinutes(req.cookMinutes())
+                .totalMinutes(req.totalMinutes())
+                .source(req.source())
+                .sourceUrl(req.sourceUrl())
+                .rating(req.rating())
+                .difficulty(req.difficulty())
+                .notes(req.notes())
+                .nutritionalInfo(req.nutritionalInfo())
+                .categories(req.categories())
                 .createdBy(currentUser)
                 .build();
 
@@ -77,6 +85,14 @@ public class RecipeService {
         recipe.setServings(req.servings());
         recipe.setPrepMinutes(req.prepMinutes());
         recipe.setCookMinutes(req.cookMinutes());
+        recipe.setTotalMinutes(req.totalMinutes());
+        recipe.setSource(req.source());
+        recipe.setSourceUrl(req.sourceUrl());
+        recipe.setRating(req.rating());
+        recipe.setDifficulty(req.difficulty());
+        recipe.setNotes(req.notes());
+        recipe.setNutritionalInfo(req.nutritionalInfo());
+        recipe.setCategories(req.categories());
 
         recipe.getIngredients().clear();
         if (req.ingredients() != null) {
