@@ -30,6 +30,8 @@ export interface Recipe {
   servings: number | null;
   prepMinutes: number | null;
   cookMinutes: number | null;
+  rating: number | null;
+  notes: string | null;
   photoUrl: string | null;
   createdBy: User;
   ingredients: RecipeIngredient[];
