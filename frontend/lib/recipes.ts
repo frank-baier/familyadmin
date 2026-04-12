@@ -4,7 +4,7 @@
  * Backend: Spring Boot at http://localhost:8080
  */
 
-import { apiFetch, getAccessToken } from './api';
+import { apiFetch, apiFetchMultipart } from './api';
 import type { User } from './auth';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -19,8 +19,8 @@ export interface RecipeIngredient {
 
 export interface RecipeStep {
   id: string;
-  stepNumber: number;
-  instruction: string;
+  position: number;
+  text: string;
 }
 
 export interface Recipe {
@@ -46,8 +46,8 @@ export interface RecipeIngredientRequest {
 }
 
 export interface RecipeStepRequest {
-  stepNumber: number;
-  instruction: string;
+  position: number;
+  text: string;
 }
 
 export interface RecipeRequest {
@@ -105,22 +105,7 @@ export async function deleteRecipe(id: string): Promise<void> {
 export async function uploadPhoto(id: string, file: File): Promise<{ photoUrl: string }> {
   const formData = new FormData();
   formData.append('file', file);
-
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_BASE}/api/recipes/${id}/photo`, {
-    method: 'POST',
-    body: formData,
-    credentials: 'include',
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Photo upload failed: ${response.statusText}`);
-  }
-
-  return response.json() as Promise<{ photoUrl: string }>;
+  return apiFetchMultipart<{ photoUrl: string }>(`/api/recipes/${id}/photo`, formData);
 }
 
 // ─── Paprika Import ─────────────────────────────────────────────────────────
@@ -136,20 +121,5 @@ export interface PaprikaImportResult {
 export async function importPaprikaFile(file: File): Promise<PaprikaImportResult[]> {
   const formData = new FormData();
   formData.append('file', file);
-
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
-  const token = getAccessToken();
-
-  const response = await fetch(`${API_BASE}/api/recipes/import/paprika`, {
-    method: 'POST',
-    body: formData,
-    credentials: 'include',
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-  });
-
-  if (!response.ok) {
-    throw new Error(response.statusText);
-  }
-
-  return response.json() as Promise<PaprikaImportResult[]>;
+  return apiFetchMultipart<PaprikaImportResult[]>('/api/recipes/import/paprika', formData);
 }

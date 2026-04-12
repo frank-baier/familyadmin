@@ -62,8 +62,8 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
   const [steps, setSteps] = useState<string[]>(
     initialData?.steps
       ? [...initialData.steps]
-          .sort((a, b) => a.stepNumber - b.stepNumber)
-          .map((s) => s.instruction)
+          .sort((a, b) => a.position - b.position)
+          .map((s) => s.text)
       : [],
   );
 
@@ -121,7 +121,7 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
       ingredients: ingredientRowsToRequest(ingredients),
       steps: steps
         .filter((s) => s.trim().length > 0)
-        .map((s, i) => ({ stepNumber: i + 1, instruction: s.trim() })),
+        .map((s, i) => ({ position: i, text: s.trim() })),
     };
 
     try {

@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { RecipeCard } from '@/components/recipes/RecipeCard';
 import { getRecipes, searchRecipes, importPaprikaFile } from '@/lib/recipes';
 import type { Recipe, PaprikaImportResult } from '@/lib/recipes';
+import { useUser } from '@/lib/user-context';
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
 
@@ -36,6 +37,7 @@ function RecipeCardSkeleton() {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function RecipesPage() {
+  const { sessionReady } = useUser();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -46,10 +48,10 @@ export default function RecipesPage() {
   const [importResults, setImportResults] = useState<PaprikaImportResult[] | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
 
-  // Initial load
   useEffect(() => {
-    loadAll();
-  }, []);
+    if (sessionReady) loadAll();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionReady]);
 
   async function loadAll() {
     setLoading(true);
