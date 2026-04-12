@@ -19,3 +19,7 @@ frontend/.env*.local
 # OS
 .DS_Store
 Thumbs.db
+backend/.env
+backend/src/main/resources/application-dev.properties
+.env
+.env.production
