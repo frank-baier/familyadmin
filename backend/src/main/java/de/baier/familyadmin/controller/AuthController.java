@@ -71,10 +71,14 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@AuthenticationPrincipal User user,
+    public ResponseEntity<Void> logout(HttpServletRequest request,
                                        HttpServletResponse response) {
-        if (user != null) {
-            userService.updateRefreshJti(user.getId(), null);
+        String refreshJti = getRefreshCookie(request);
+        if (refreshJti != null) {
+            userService.findAll().stream()
+                    .filter(u -> refreshJti.equals(u.getRefreshJti()))
+                    .findFirst()
+                    .ifPresent(u -> userService.updateRefreshJti(u.getId(), null));
         }
         clearRefreshCookie(response);
         return ResponseEntity.noContent().build();
@@ -103,6 +107,7 @@ public class AuthController {
         cookie.setHttpOnly(true);
         cookie.setPath("/");
         cookie.setMaxAge(0);
+        cookie.setAttribute("SameSite", "Lax");
         response.addCookie(cookie);
     }
 

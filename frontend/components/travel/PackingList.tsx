@@ -140,7 +140,7 @@ export function PackingList({ tripId, personal, currentUserId }: PackingListProp
     return (
       <div
         role="alert"
-        className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 flex items-center justify-between"
+        className="rounded-2xl bg-red-50/80 border border-red-200/60 px-4 py-3 text-sm text-red-700 flex items-center justify-between"
       >
         {error}
         <button
@@ -183,7 +183,7 @@ export function PackingList({ tripId, personal, currentUserId }: PackingListProp
             return (
               <li
                 key={item.id}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 group/item transition-colors"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-2xl hover:bg-white/50 group/item transition-colors"
               >
                 {/* Checkbox */}
                 <button
@@ -260,24 +260,18 @@ export function PackingList({ tripId, personal, currentUserId }: PackingListProp
           placeholder="Add an item…"
           aria-label="New packing item"
           disabled={adding}
-          className="flex-1 rounded-xl px-4 py-2 text-sm text-slate-900
-                     border border-slate-200 bg-white placeholder:text-slate-300
-                     hover:border-slate-300
-                     focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                     disabled:opacity-60
-                     transition-colors duration-150"
+          className="input-field flex-1"
         />
         <button
           type="button"
           onClick={handleAdd}
           disabled={adding || !newLabel.trim()}
           aria-label="Add item"
-          className="inline-flex items-center justify-center w-9 h-9 rounded-xl
-                     bg-indigo-600 text-white
-                     hover:bg-indigo-700 active:bg-indigo-800
-                     disabled:opacity-50 disabled:cursor-not-allowed
+          className="inline-flex items-center justify-center w-11 h-11 rounded-2xl shrink-0
+                     text-white disabled:opacity-50 disabled:cursor-not-allowed
                      focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1
-                     transition-all duration-150 shrink-0"
+                     transition-all duration-150"
+          style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', boxShadow: '0 4px 12px rgb(99 102 241 / 0.35)' }}
         >
           {adding ? (
             <Spinner className="w-4 h-4" />

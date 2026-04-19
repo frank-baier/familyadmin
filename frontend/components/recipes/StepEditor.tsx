@@ -128,9 +128,9 @@ export function StepEditor({ steps, onChange }: StepEditorProps) {
       <button
         type="button"
         onClick={() => addStep()}
-        className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg text-xs font-medium
-                   text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50
-                   border border-dashed border-indigo-200 hover:border-indigo-300
+        className="flex items-center gap-2 mt-2 px-3 py-2 rounded-2xl text-xs font-semibold
+                   text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50/80
+                   border border-dashed border-indigo-200/80 hover:border-indigo-300
                    transition-all duration-150 w-full
                    focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1"
       >

@@ -59,7 +59,7 @@ export default function EditTaskPage({ params }: PageProps) {
           </svg>
           Back to Tasks
         </Link>
-        <div className="rounded-xl bg-red-50 border border-red-200 px-5 py-4 text-red-700 text-sm">
+        <div className="rounded-2xl bg-red-50/80 border border-red-200/60 px-5 py-4 text-red-700 text-sm">
           {error ?? 'Task not found.'}
         </div>
       </div>
@@ -97,7 +97,7 @@ export default function EditTaskPage({ params }: PageProps) {
       </div>
 
       {/* Form card */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-6">
+      <div className="glass rounded-3xl px-6 py-6">
         <TaskForm
           onSubmit={handleSubmit}
           initialValues={initialValues}

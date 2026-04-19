@@ -11,6 +11,7 @@ export interface User {
   name: string;
   email: string;
   role: 'ADMIN' | 'MEMBER';
+  whatsappPhone?: string;
 }
 
 interface LoginResponse {

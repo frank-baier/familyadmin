@@ -72,6 +72,14 @@ public class UserService implements UserDetailsService {
     }
 
     @Transactional
+    public User updateProfile(UUID id, String name, String whatsappPhone) {
+        User user = findById(id);
+        user.setName(name);
+        user.setWhatsappPhone(whatsappPhone);
+        return userRepository.save(user);
+    }
+
+    @Transactional
     public void deleteUser(UUID id) {
         if (!userRepository.existsById(id)) {
             throw new IllegalArgumentException("User not found: " + id);

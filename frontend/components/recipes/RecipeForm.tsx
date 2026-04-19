@@ -1,12 +1,5 @@
 'use client';
 
-/**
- * RecipeForm — create/edit recipe form.
- * Uses useActionState (React 19 native) for form state management.
- * Fields: title, description, servings, prepMinutes, cookMinutes, ingredients, steps, photo.
- * Works for both create and edit (pass existing recipe as initialData or null).
- */
-
 import { useActionState, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { IngredientEditor, ingredientRowsToRequest, ingredientToRow } from './IngredientEditor';
@@ -14,8 +7,6 @@ import { StepEditor } from './StepEditor';
 import { createRecipe, updateRecipe, uploadPhoto } from '@/lib/recipes';
 import type { Recipe, RecipeRequest } from '@/lib/recipes';
 import type { IngredientRow } from './IngredientEditor';
-
-// ─── Types ───────────────────────────────────────────────────────────────────
 
 interface FormState {
   errors?: {
@@ -31,10 +22,8 @@ interface FormState {
 
 interface RecipeFormProps {
   initialData?: Recipe | null;
-  redirectTo?: string; // override redirect path; defaults to /recipes/[id]
+  redirectTo?: string;
 }
-
-// ─── Spinner ────────────────────────────────────────────────────────────────
 
 function Spinner() {
   return (
@@ -45,13 +34,10 @@ function Spinner() {
   );
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
-
 export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
   const router = useRouter();
   const isEdit = !!initialData;
 
-  // Controlled ingredient/step lists (not part of FormData)
   const [ingredients, setIngredients] = useState<IngredientRow[]>(
     initialData?.ingredients
       ? [...initialData.ingredients]
@@ -67,12 +53,10 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
       : [],
   );
 
-  // Photo state
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(initialData?.photoUrl ?? null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
-  // Handle photo file selection
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -85,7 +69,6 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
     reader.readAsDataURL(file);
   }
 
-  // Form action
   async function formAction(prevState: FormState, formData: FormData): Promise<FormState> {
     const title = (formData.get('title') as string)?.trim();
     const description = (formData.get('description') as string)?.trim();
@@ -93,7 +76,6 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
     const prepRaw = formData.get('prepMinutes') as string;
     const cookRaw = formData.get('cookMinutes') as string;
 
-    // Validation
     if (!title) {
       return { errors: { title: ['Title is required.'] } };
     }
@@ -132,12 +114,10 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
         recipe = await createRecipe(data);
       }
 
-      // Upload photo if selected
       if (photoFile) {
         try {
           await uploadPhoto(recipe.id, photoFile);
         } catch {
-          // Photo upload failure is non-fatal
           console.error('Photo upload failed');
         }
       }
@@ -152,7 +132,6 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
 
   const [state, action, isPending] = useActionState(formAction, {});
 
-  // Redirect on success
   useEffect(() => {
     if (state.success && state.newId) {
       router.push(redirectTo ?? `/recipes/${state.newId}`);
@@ -160,22 +139,21 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
   }, [state.success, state.newId, router, redirectTo]);
 
   return (
-    <form action={action} noValidate className="space-y-6">
-      {/* Global error */}
+    <form action={action} noValidate className="space-y-5">
       {state.errors?._form && (
         <div
           role="alert"
           aria-live="polite"
-          className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+          className="px-4 py-3 rounded-2xl bg-red-50/80 text-red-700 text-sm border border-red-200/60"
         >
           {state.errors._form.join(' ')}
         </div>
       )}
 
       {/* Title */}
-      <div className="space-y-1.5">
-        <label htmlFor="recipe-title" className="block text-sm font-medium text-slate-700">
-          Title <span className="text-red-500" aria-hidden="true">*</span>
+      <div>
+        <label htmlFor="recipe-title" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+          Title <span className="text-red-400" aria-hidden="true">*</span>
         </label>
         <input
           id="recipe-title"
@@ -187,28 +165,19 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
           placeholder="e.g. Grandma's Spaghetti"
           aria-describedby={state.errors?.title ? 'title-error' : undefined}
           aria-invalid={!!state.errors?.title}
-          className={[
-            'block w-full rounded-xl px-4 py-2.5 text-sm text-slate-900',
-            'border bg-white placeholder:text-slate-300',
-            'focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
-            'transition-colors duration-150',
-            state.errors?.title
-              ? 'border-red-300 focus:ring-red-400'
-              : 'border-slate-200 hover:border-slate-300',
-          ].join(' ')}
+          className={state.errors?.title ? 'input-field border-red-300' : 'input-field'}
         />
         {state.errors?.title && (
-          <p id="title-error" role="alert" aria-live="polite" className="text-xs text-red-600 mt-1">
+          <p id="title-error" role="alert" aria-live="polite" className="text-xs text-red-600 mt-1.5">
             {state.errors.title.join(' ')}
           </p>
         )}
       </div>
 
       {/* Description */}
-      <div className="space-y-1.5">
-        <label htmlFor="recipe-description" className="block text-sm font-medium text-slate-700">
-          Description
-          <span className="ml-1.5 text-xs font-normal text-slate-400">(optional)</span>
+      <div>
+        <label htmlFor="recipe-description" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+          Description <span className="text-slate-400 normal-case font-normal">(optional)</span>
         </label>
         <textarea
           id="recipe-description"
@@ -216,21 +185,15 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
           rows={3}
           defaultValue={initialData?.description ?? undefined}
           placeholder="A short description of the dish…"
-          className="block w-full rounded-xl px-4 py-2.5 text-sm text-slate-900
-                     border border-slate-200 bg-white placeholder:text-slate-300
-                     hover:border-slate-300
-                     focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                     transition-colors duration-150 resize-none"
+          className="input-field"
         />
       </div>
 
-      {/* Servings + Prep + Cook row */}
+      {/* Servings + Prep + Cook */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Servings */}
-        <div className="space-y-1.5">
-          <label htmlFor="recipe-servings" className="block text-sm font-medium text-slate-700">
-            Servings
-            <span className="ml-1.5 text-xs font-normal text-slate-400">(optional)</span>
+        <div>
+          <label htmlFor="recipe-servings" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            Servings <span className="text-slate-400 normal-case font-normal">(opt.)</span>
           </label>
           <input
             id="recipe-servings"
@@ -241,28 +204,18 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
             placeholder="4"
             aria-describedby={state.errors?.servings ? 'servings-error' : undefined}
             aria-invalid={!!state.errors?.servings}
-            className={[
-              'block w-full rounded-xl px-4 py-2.5 text-sm text-slate-900',
-              'border bg-white placeholder:text-slate-300',
-              'focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
-              'transition-colors duration-150',
-              state.errors?.servings
-                ? 'border-red-300 focus:ring-red-400'
-                : 'border-slate-200 hover:border-slate-300',
-            ].join(' ')}
+            className={state.errors?.servings ? 'input-field border-red-300' : 'input-field'}
           />
           {state.errors?.servings && (
-            <p id="servings-error" role="alert" className="text-xs text-red-600 mt-1">
+            <p id="servings-error" role="alert" className="text-xs text-red-600 mt-1.5">
               {state.errors.servings.join(' ')}
             </p>
           )}
         </div>
 
-        {/* Prep minutes */}
-        <div className="space-y-1.5">
-          <label htmlFor="recipe-prep" className="block text-sm font-medium text-slate-700">
-            Prep time (min)
-            <span className="ml-1.5 text-xs font-normal text-slate-400">(optional)</span>
+        <div>
+          <label htmlFor="recipe-prep" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            Prep (min) <span className="text-slate-400 normal-case font-normal">(opt.)</span>
           </label>
           <input
             id="recipe-prep"
@@ -273,28 +226,18 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
             placeholder="15"
             aria-describedby={state.errors?.prepMinutes ? 'prep-error' : undefined}
             aria-invalid={!!state.errors?.prepMinutes}
-            className={[
-              'block w-full rounded-xl px-4 py-2.5 text-sm text-slate-900',
-              'border bg-white placeholder:text-slate-300',
-              'focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
-              'transition-colors duration-150',
-              state.errors?.prepMinutes
-                ? 'border-red-300 focus:ring-red-400'
-                : 'border-slate-200 hover:border-slate-300',
-            ].join(' ')}
+            className={state.errors?.prepMinutes ? 'input-field border-red-300' : 'input-field'}
           />
           {state.errors?.prepMinutes && (
-            <p id="prep-error" role="alert" className="text-xs text-red-600 mt-1">
+            <p id="prep-error" role="alert" className="text-xs text-red-600 mt-1.5">
               {state.errors.prepMinutes.join(' ')}
             </p>
           )}
         </div>
 
-        {/* Cook minutes */}
-        <div className="space-y-1.5">
-          <label htmlFor="recipe-cook" className="block text-sm font-medium text-slate-700">
-            Cook time (min)
-            <span className="ml-1.5 text-xs font-normal text-slate-400">(optional)</span>
+        <div>
+          <label htmlFor="recipe-cook" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            Cook (min) <span className="text-slate-400 normal-case font-normal">(opt.)</span>
           </label>
           <input
             id="recipe-cook"
@@ -305,18 +248,10 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
             placeholder="30"
             aria-describedby={state.errors?.cookMinutes ? 'cook-error' : undefined}
             aria-invalid={!!state.errors?.cookMinutes}
-            className={[
-              'block w-full rounded-xl px-4 py-2.5 text-sm text-slate-900',
-              'border bg-white placeholder:text-slate-300',
-              'focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
-              'transition-colors duration-150',
-              state.errors?.cookMinutes
-                ? 'border-red-300 focus:ring-red-400'
-                : 'border-slate-200 hover:border-slate-300',
-            ].join(' ')}
+            className={state.errors?.cookMinutes ? 'input-field border-red-300' : 'input-field'}
           />
           {state.errors?.cookMinutes && (
-            <p id="cook-error" role="alert" className="text-xs text-red-600 mt-1">
+            <p id="cook-error" role="alert" className="text-xs text-red-600 mt-1.5">
               {state.errors.cookMinutes.join(' ')}
             </p>
           )}
@@ -324,15 +259,13 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
       </div>
 
       {/* Photo upload */}
-      <div className="space-y-2">
-        <span className="block text-sm font-medium text-slate-700">
-          Photo
-          <span className="ml-1.5 text-xs font-normal text-slate-400">(optional)</span>
+      <div>
+        <span className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+          Photo <span className="text-slate-400 normal-case font-normal">(optional)</span>
         </span>
         <div className="flex items-start gap-4">
-          {/* Preview */}
           <div
-            className="w-24 h-24 rounded-xl overflow-hidden border border-slate-200 bg-slate-50
+            className="w-24 h-24 rounded-2xl overflow-hidden border border-slate-200/70 bg-white/50
                        flex items-center justify-center shrink-0"
           >
             {photoPreview ? (
@@ -347,15 +280,11 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
             )}
           </div>
 
-          <div className="flex-1 space-y-2">
+          <div className="flex-1 space-y-2 pt-1">
             <button
               type="button"
               onClick={() => photoInputRef.current?.click()}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium
-                         border border-slate-200 text-slate-700 bg-white
-                         hover:border-slate-300 hover:bg-slate-50
-                         focus:outline-none focus:ring-2 focus:ring-indigo-500
-                         transition-all duration-150"
+              className="btn-secondary"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -379,11 +308,10 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
       </div>
 
       {/* Ingredients */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="block text-sm font-medium text-slate-700">
-            Ingredients
-            <span className="ml-1.5 text-xs font-normal text-slate-400">(optional)</span>
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+            Ingredients <span className="text-slate-400 normal-case font-normal">(optional)</span>
           </span>
           {ingredients.length > 0 && (
             <span className="text-xs text-slate-400">
@@ -392,17 +320,16 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
             </span>
           )}
         </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3">
+        <div className="rounded-2xl border border-slate-200/70 bg-white/40 px-4 py-3">
           <IngredientEditor items={ingredients} onChange={setIngredients} />
         </div>
       </div>
 
       {/* Steps */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="block text-sm font-medium text-slate-700">
-            Steps
-            <span className="ml-1.5 text-xs font-normal text-slate-400">(optional)</span>
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+            Steps <span className="text-slate-400 normal-case font-normal">(optional)</span>
           </span>
           {steps.length > 0 && (
             <span className="text-xs text-slate-400">
@@ -411,24 +338,14 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
             </span>
           )}
         </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3">
+        <div className="rounded-2xl border border-slate-200/70 bg-white/40 px-4 py-3">
           <StepEditor steps={steps} onChange={setSteps} />
         </div>
       </div>
 
       {/* Submit */}
-      <div className="pt-2">
-        <button
-          type="submit"
-          disabled={isPending}
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2
-                     px-6 py-2.5 rounded-xl text-sm font-semibold
-                     bg-indigo-600 text-white
-                     hover:bg-indigo-700 active:bg-indigo-800
-                     disabled:opacity-60 disabled:cursor-not-allowed
-                     focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
-                     transition-all duration-150 shadow-sm"
-        >
+      <div className="pt-1">
+        <button type="submit" disabled={isPending} className="btn-primary">
           {isPending ? (
             <>
               <Spinner />

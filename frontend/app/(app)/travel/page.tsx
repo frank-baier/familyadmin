@@ -18,7 +18,7 @@ import type { Trip } from '@/lib/travel';
 
 function TripCardSkeleton() {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden animate-pulse">
+    <div className="glass rounded-3xl overflow-hidden animate-pulse">
       <div className="aspect-[16/7] bg-slate-100" />
       <div className="p-4 space-y-2">
         <div className="h-4 w-2/3 bg-slate-100 rounded" />
@@ -80,10 +80,7 @@ export default function TravelPage() {
 
         <Link
           href="/travel/new"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
-                     bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800
-                     focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
-                     transition-all duration-150 shadow-sm shrink-0"
+          className="btn-primary shrink-0"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />
@@ -129,7 +126,7 @@ export default function TravelPage() {
               Upcoming
             </h2>
             {upcoming.length === 0 ? (
-              <div className="text-center py-12 bg-slate-50/60 rounded-2xl border border-dashed border-slate-200">
+              <div className="text-center py-12 glass rounded-3xl">
                 <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
                   <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
@@ -140,10 +137,7 @@ export default function TravelPage() {
                 <p className="text-xs text-slate-500 mb-4">Time to plan your next adventure!</p>
                 <Link
                   href="/travel/new"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold
-                             bg-indigo-600 text-white hover:bg-indigo-700
-                             focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
-                             transition-all duration-150"
+                  className="btn-primary text-xs"
                 >
                   Plan a Trip
                 </Link>

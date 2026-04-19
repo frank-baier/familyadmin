@@ -32,7 +32,7 @@ export default function NewRecipePage() {
       </div>
 
       {/* Form card */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-6">
+      <div className="glass rounded-3xl px-6 py-6">
         <RecipeForm />
       </div>
     </div>

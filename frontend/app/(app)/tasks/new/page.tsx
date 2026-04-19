@@ -31,15 +31,15 @@ export default function NewTaskPage() {
       </Link>
 
       {/* Page header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">New Task</h1>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-900">New Task</h1>
         <p className="text-slate-500 text-sm mt-1">
           Add a new task for the family to track.
         </p>
       </div>
 
       {/* Form card */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-6">
+      <div className="glass rounded-3xl px-6 py-6">
         <TaskForm onSubmit={handleSubmit} submitLabel="Create Task" />
       </div>
     </div>

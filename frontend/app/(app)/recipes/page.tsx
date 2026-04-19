@@ -3,12 +3,15 @@
 /**
  * Recipes list page — /recipes
  * - Search bar (debounced 300ms)
+ * - Grid / Table view toggle
+ * - Filter by minimum rating and category
  * - Grid of RecipeCard components (1-col mobile, 2-col md, 3-col lg)
+ * - Table view with name, rating, category columns
  * - "Add Recipe" button
  * - Empty state with friendly message
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { RecipeCard } from '@/components/recipes/RecipeCard';
 import { getRecipes, searchRecipes, importPaprikaFile } from '@/lib/recipes';
@@ -19,7 +22,7 @@ import { useUser } from '@/lib/user-context';
 
 function RecipeCardSkeleton() {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden animate-pulse">
+    <div className="glass rounded-3xl overflow-hidden animate-pulse">
       <div className="aspect-[4/3] bg-slate-100" />
       <div className="p-4 space-y-2">
         <div className="h-4 w-3/4 bg-slate-100 rounded" />
@@ -34,7 +37,74 @@ function RecipeCardSkeleton() {
   );
 }
 
+// ─── Star rating display ──────────────────────────────────────────────────────
+
+function StarRating({ rating }: { rating: number | null }) {
+  if (!rating || rating <= 0) return <span className="text-slate-300 text-xs">—</span>;
+  return (
+    <span className="inline-flex items-center gap-0.5" aria-label={`${rating} out of 5`}>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <svg
+          key={i}
+          className={`w-3.5 h-3.5 ${i < rating ? 'text-amber-400' : 'text-slate-200'}`}
+          fill="currentColor"
+          viewBox="0 0 20 20"
+          aria-hidden="true"
+        >
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      ))}
+    </span>
+  );
+}
+
+// ─── Table view ───────────────────────────────────────────────────────────────
+
+function RecipeTableView({ recipes }: { recipes: Recipe[] }) {
+  return (
+    <div className="overflow-x-auto rounded-xl border border-slate-200">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-slate-50 border-b border-slate-200">
+            <th className="text-left px-4 py-3 font-semibold text-slate-600">Name</th>
+            <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Rating</th>
+            <th className="text-left px-4 py-3 font-semibold text-slate-600">Categories</th>
+          </tr>
+        </thead>
+        <tbody>
+          {recipes.map((recipe, idx) => (
+            <tr
+              key={recipe.id}
+              className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}
+            >
+              <td className="px-4 py-3">
+                <Link
+                  href={`/recipes/${recipe.id}`}
+                  className="font-medium text-slate-900 hover:text-indigo-600 transition-colors"
+                >
+                  {recipe.title}
+                </Link>
+              </td>
+              <td className="px-4 py-3">
+                <StarRating rating={recipe.rating} />
+              </td>
+              <td className="px-4 py-3 text-slate-500">
+                {recipe.categories
+                  ? recipe.categories.split(',').map(c => c.trim()).filter(Boolean).join(', ')
+                  : <span className="text-slate-300">—</span>
+                }
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
+
+type ViewMode = 'grid' | 'table';
 
 export default function RecipesPage() {
   const { sessionReady } = useUser();
@@ -47,6 +117,11 @@ export default function RecipesPage() {
   const [importing, setImporting] = useState(false);
   const [importResults, setImportResults] = useState<PaprikaImportResult[] | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+
+  // View & filter state
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [minRating, setMinRating] = useState<number>(0);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
 
   useEffect(() => {
     if (sessionReady) loadAll();
@@ -110,7 +185,34 @@ export default function RecipesPage() {
     }
   }
 
-  const isEmpty = !loading && recipes.length === 0;
+  // Derive unique categories from loaded recipes
+  const allCategories = useMemo(() => {
+    const cats = new Set<string>();
+    for (const r of recipes) {
+      if (r.categories) {
+        r.categories.split(',').forEach(c => {
+          const trimmed = c.trim();
+          if (trimmed) cats.add(trimmed);
+        });
+      }
+    }
+    return Array.from(cats).sort();
+  }, [recipes]);
+
+  // Apply filters
+  const filteredRecipes = useMemo(() => {
+    return recipes.filter(r => {
+      if (minRating > 0 && (r.rating == null || r.rating < minRating)) return false;
+      if (selectedCategory) {
+        const cats = r.categories ? r.categories.split(',').map(c => c.trim()) : [];
+        if (!cats.includes(selectedCategory)) return false;
+      }
+      return true;
+    });
+  }, [recipes, minRating, selectedCategory]);
+
+  const isEmpty = !loading && filteredRecipes.length === 0;
+  const hasFilters = minRating > 0 || selectedCategory !== '';
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -125,12 +227,7 @@ export default function RecipesPage() {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
-                       border border-slate-200 bg-white text-slate-700
-                       hover:border-slate-300 hover:bg-slate-50
-                       disabled:opacity-50 disabled:cursor-not-allowed
-                       focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
-                       transition-all duration-150 shrink-0"
+            className="btn-secondary shrink-0"
           >
             {importing ? (
               <>
@@ -153,10 +250,7 @@ export default function RecipesPage() {
 
           <Link
             href="/recipes/new"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
-                       bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800
-                       focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
-                       transition-all duration-150 shadow-sm shrink-0"
+            className="btn-primary shrink-0"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />
@@ -198,27 +292,109 @@ export default function RecipesPage() {
         </div>
       )}
 
-      {/* Search bar */}
-      <div className="relative mb-8">
-        <div className="pointer-events-none absolute inset-y-0 left-0 pl-4 flex items-center" aria-hidden="true">
-          <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-          </svg>
+      {/* Toolbar: search + filters + view toggle */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        {/* Search */}
+        <div className="relative flex-1">
+          <div className="pointer-events-none absolute inset-y-0 left-0 pl-4 flex items-center" aria-hidden="true">
+            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+            </svg>
+          </div>
+          <input
+            type="search"
+            value={query}
+            onChange={handleSearchChange}
+            placeholder="Search recipes…"
+            aria-label="Search recipes"
+            className="input-field pl-10"
+          />
         </div>
-        <input
-          type="search"
-          value={query}
-          onChange={handleSearchChange}
-          placeholder="Search recipes…"
-          aria-label="Search recipes"
-          className="block w-full pl-10 pr-4 py-2.5 rounded-xl text-sm text-slate-900
-                     border border-slate-200 bg-white placeholder:text-slate-300
-                     hover:border-slate-300
-                     focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                     transition-colors duration-150"
-        />
+
+        {/* Category filter */}
+        <select
+          value={selectedCategory}
+          onChange={e => setSelectedCategory(e.target.value)}
+          aria-label="Filter by category"
+          className="input-field shrink-0 w-auto px-3"
+        >
+          <option value="">All categories</option>
+          {allCategories.map(cat => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
+        </select>
+
+        {/* Min rating filter */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-xs text-slate-500 whitespace-nowrap">Min rating:</span>
+          <div className="flex items-center gap-0.5">
+            {[1, 2, 3, 4, 5].map(star => (
+              <button
+                key={star}
+                onClick={() => setMinRating(minRating === star ? 0 : star)}
+                aria-label={`Minimum ${star} star${star !== 1 ? 's' : ''}`}
+                className="focus:outline-none focus:ring-1 focus:ring-indigo-400 rounded"
+              >
+                <svg
+                  className={`w-5 h-5 transition-colors ${star <= minRating ? 'text-amber-400' : 'text-slate-200 hover:text-amber-200'}`}
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              </button>
+            ))}
+          </div>
+          {minRating > 0 && (
+            <button
+              onClick={() => setMinRating(0)}
+              className="text-xs text-slate-400 hover:text-slate-600 ml-1"
+              aria-label="Clear rating filter"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* View toggle */}
+        <div className="glass flex rounded-2xl overflow-hidden shrink-0" role="group" aria-label="View mode">
+          <button
+            onClick={() => setViewMode('grid')}
+            aria-pressed={viewMode === 'grid'}
+            className={`px-3 py-2 transition-colors ${viewMode === 'grid' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}
+            title="Grid view"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+          </button>
+          <button
+            onClick={() => setViewMode('table')}
+            aria-pressed={viewMode === 'table'}
+            className={`px-3 py-2 transition-colors ${viewMode === 'table' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}
+            title="Table view"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M3 10h18M3 14h18M10 3v18M14 3v18M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" />
+            </svg>
+          </button>
+        </div>
       </div>
+
+      {/* Active filters summary */}
+      {hasFilters && !loading && (
+        <p className="text-xs text-slate-500 mb-4">
+          Showing {filteredRecipes.length} of {recipes.length} recipes
+          {minRating > 0 && ` · ${minRating}+ stars`}
+          {selectedCategory && ` · "${selectedCategory}"`}
+          {' '}
+          <button onClick={() => { setMinRating(0); setSelectedCategory(''); }} className="underline hover:no-underline">
+            Clear filters
+          </button>
+        </p>
+      )}
 
       {/* Error */}
       {error && (
@@ -237,10 +413,21 @@ export default function RecipesPage() {
       )}
 
       {/* Loading skeleton */}
-      {loading && (
+      {loading && viewMode === 'grid' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <RecipeCardSkeleton key={i} />
+          ))}
+        </div>
+      )}
+      {loading && viewMode === 'table' && (
+        <div className="rounded-xl border border-slate-200 animate-pulse">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex gap-4 px-4 py-3 border-b border-slate-100">
+              <div className="h-4 bg-slate-100 rounded w-1/3" />
+              <div className="h-4 bg-slate-100 rounded w-24" />
+              <div className="h-4 bg-slate-100 rounded w-1/4" />
+            </div>
           ))}
         </div>
       )}
@@ -248,18 +435,26 @@ export default function RecipesPage() {
       {/* Empty state */}
       {isEmpty && (
         <div className="text-center py-20">
-          <div className="w-16 h-16 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-3xl" aria-hidden="true">🍴</span>
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+            style={{ background: 'linear-gradient(135deg, #fde68a, #fb923c)' }} aria-hidden="true">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                d="M12 8.25v-1.5m0 1.5c-1.355 0-2.697.056-4.024.166C6.845 8.51 6 9.473 6 10.608v2.513m6-4.871c1.355 0 2.697.056 4.024.166C17.155 8.51 18 9.473 18 10.608v2.513M15 8.25v-1.5m-6 1.5v-1.5m12 9.75l-1.5.75a3.354 3.354 0 01-3 0 3.354 3.354 0 00-3 0 3.354 3.354 0 01-3 0 3.354 3.354 0 00-3 0 3.354 3.354 0 01-1.5-.75M3 16.5v-2.625a4.125 4.125 0 014.125-4.125h9.75A4.125 4.125 0 0121 13.875V16.5" />
+            </svg>
           </div>
           <h3 className="text-base font-semibold text-slate-900 mb-1">
-            {query.trim() ? `No recipes found for "${query.trim()}"` : 'No recipes yet'}
+            {query.trim()
+              ? `No recipes found for "${query.trim()}"`
+              : hasFilters
+              ? 'No recipes match the current filters'
+              : 'No recipes yet'}
           </h3>
           <p className="text-sm text-slate-500 mb-6 max-w-xs mx-auto">
-            {query.trim()
-              ? 'Try a different search term.'
+            {query.trim() || hasFilters
+              ? 'Try adjusting your search or filters.'
               : 'Start building the family cookbook!'}
           </p>
-          {!query.trim() && (
+          {!query.trim() && !hasFilters && (
             <Link
               href="/recipes/new"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold
@@ -277,12 +472,17 @@ export default function RecipesPage() {
       )}
 
       {/* Recipe grid */}
-      {!loading && !isEmpty && (
+      {!loading && !isEmpty && viewMode === 'grid' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {recipes.map((recipe) => (
+          {filteredRecipes.map((recipe) => (
             <RecipeCard key={recipe.id} recipe={recipe} />
           ))}
         </div>
+      )}
+
+      {/* Recipe table */}
+      {!loading && !isEmpty && viewMode === 'table' && (
+        <RecipeTableView recipes={filteredRecipes} />
       )}
 
       {/* Hidden file input for Paprika import */}

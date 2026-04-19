@@ -29,8 +29,7 @@ function TemplateCard({ template, onDelete }: { template: TaskTemplate; onDelete
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden
-                    hover:shadow-md hover:border-slate-200 transition-all duration-150">
+    <div className="glass-interactive rounded-3xl overflow-hidden">
       <div className="px-5 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -62,7 +61,7 @@ function TemplateCard({ template, onDelete }: { template: TaskTemplate; onDelete
         )}
       </div>
 
-      <div className="border-t border-slate-50 px-5 py-3 flex items-center justify-between gap-2">
+      <div className="hairline mx-4" /><div className="px-5 py-3 flex items-center justify-between gap-2">
         <Link
           href={`/tasks/templates/${template.id}/use`}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
@@ -134,7 +133,7 @@ function TemplateCard({ template, onDelete }: { template: TaskTemplate; onDelete
 
 function TemplateSkeleton() {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse space-y-3">
+    <div className="glass rounded-3xl p-5 animate-pulse space-y-3">
       <div className="h-4 w-2/3 bg-slate-100 rounded" />
       <div className="h-3 w-full bg-slate-50 rounded" />
       <div className="space-y-1.5 mt-2">
@@ -188,10 +187,7 @@ export default function TemplatesPage() {
         </div>
         <Link
           href="/tasks/templates/new"
-          className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold
-                     bg-indigo-600 text-white hover:bg-indigo-700
-                     focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
-                     transition-all duration-150 shadow-sm"
+          className="btn-primary shrink-0"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />

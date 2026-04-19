@@ -271,7 +271,7 @@ export default function TripDetailPage({ params }: PageProps) {
       </div>
 
       {/* Trip header card */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-4">
+      <div className="glass rounded-3xl overflow-hidden mb-4">
         <div className="px-6 pt-6 pb-5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
@@ -392,7 +392,7 @@ export default function TripDetailPage({ params }: PageProps) {
 
       {/* Packing List tab */}
       {activeTab === 'packing' && (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="glass rounded-3xl overflow-hidden">
           {/* Packing sub-tabs */}
           <div className="flex items-center gap-2 px-6 pt-4 pb-3 border-b border-slate-100"
             role="tablist"
@@ -434,7 +434,7 @@ export default function TripDetailPage({ params }: PageProps) {
 
       {/* Itinerary tab — placeholder for 04-03 */}
       {activeTab === 'itinerary' && (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="glass rounded-3xl overflow-hidden">
           <div className="px-6 py-12 text-center">
             <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
               <svg

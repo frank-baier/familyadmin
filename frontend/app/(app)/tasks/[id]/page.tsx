@@ -175,10 +175,10 @@ export default function TaskDetailPage({ params }: PageProps) {
       </Link>
 
       {/* Main card */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="glass rounded-3xl overflow-hidden">
         {/* Overdue banner */}
         {overdue && !isDone && (
-          <div className="bg-red-50 border-b border-red-100 px-6 py-2.5 flex items-center gap-2">
+          <div className="bg-red-50/80 border-b border-red-100/80 px-6 py-2.5 flex items-center gap-2">
             <svg className="w-4 h-4 text-red-500 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
               <path fillRule="evenodd"
                 d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z"
@@ -256,7 +256,7 @@ export default function TaskDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        <div className="border-t border-slate-50" />
+        <div className="hairline mx-4" />
 
         {/* Meta info */}
         <dl className="px-6 py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -313,7 +313,7 @@ export default function TaskDetailPage({ params }: PageProps) {
         {/* Description */}
         {task.description && (
           <>
-            <div className="border-t border-slate-50" />
+            <div className="hairline mx-4" />
             <div className="px-6 py-4">
               <h2 className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2">Description</h2>
               <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{task.description}</p>
@@ -324,7 +324,7 @@ export default function TaskDetailPage({ params }: PageProps) {
         {/* Checklist */}
         {sortedChecklist.length > 0 && (
           <>
-            <div className="border-t border-slate-50" />
+            <div className="hairline mx-4" />
             <div className="px-6 py-4">
               <div className="flex items-center justify-between mb-1">
                 <h2 className="text-xs font-medium text-slate-400 uppercase tracking-wide">Checklist</h2>
@@ -361,7 +361,7 @@ export default function TaskDetailPage({ params }: PageProps) {
         )}
 
         {/* Footer: delete */}
-        <div className="border-t border-slate-100 px-6 py-4 flex justify-end">
+        <div className="hairline mx-4" /><div className="px-6 py-4 flex justify-end">
           {showDeleteConfirm ? (
             <div className="flex items-center gap-3">
               <span className="text-sm text-slate-600">Delete this task?</span>

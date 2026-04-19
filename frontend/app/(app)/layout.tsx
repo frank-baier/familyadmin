@@ -1,10 +1,12 @@
 /**
  * App shell layout for authenticated pages.
- * Renders Sidebar (fixed left) + main content area.
- * Server Component — reads user from cookie for initial render.
+ * Mobile-first: bottom tab bar + floating top header.
+ * Desktop (md+): fixed glass sidebar on the left.
  */
 
 import { Sidebar } from '@/components/nav/Sidebar';
+import { BottomNav } from '@/components/nav/BottomNav';
+import { MobileHeader } from '@/components/nav/MobileHeader';
 import { SessionRestorer } from '@/components/SessionRestorer';
 import { UserProvider } from '@/lib/user-context';
 
@@ -15,32 +17,36 @@ export default function AppLayout({
 }) {
   return (
     <UserProvider>
-      <div className="flex min-h-dvh bg-slate-50">
-        {/* Fixed sidebar */}
-        <div className="fixed inset-y-0 left-0 z-40 w-64">
-          <Sidebar />
-        </div>
+      {/* Skip link — keyboard/screen-reader first */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:px-4 focus:py-2 focus:bg-white focus:text-indigo-700 focus:rounded-xl focus:shadow-lg focus:text-sm focus:font-medium"
+      >
+        Skip to main content
+      </a>
 
-        {/* Main content — offset by sidebar width */}
-        <main
-          id="main-content"
-          className="flex-1 ml-64 min-h-dvh"
-          tabIndex={-1}
-        >
-          {/* Skip to main content link for keyboard/screen reader users */}
-          <a
-            href="#main-content"
-            className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-indigo-700 focus:rounded-lg focus:shadow-lg focus:text-sm focus:font-medium"
-          >
-            Skip to main content
-          </a>
-
-          <SessionRestorer />
-          <div className="p-8">
-            {children}
-          </div>
-        </main>
+      {/* Desktop sidebar — hidden below md */}
+      <div className="hidden md:block fixed inset-y-0 left-0 z-40 w-72 p-4">
+        <Sidebar />
       </div>
+
+      {/* Mobile floating header — hidden md+ */}
+      <MobileHeader />
+
+      <SessionRestorer />
+
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="min-h-dvh md:pl-72 pt-20 md:pt-0 pb-28 md:pb-0"
+      >
+        <div className="px-4 md:px-10 pt-4 md:pt-10">
+          {children}
+        </div>
+      </main>
+
+      {/* Mobile bottom tab bar — hidden md+ */}
+      <BottomNav />
     </UserProvider>
   );
 }

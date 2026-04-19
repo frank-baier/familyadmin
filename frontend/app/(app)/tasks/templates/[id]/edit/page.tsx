@@ -56,7 +56,7 @@ export default function EditTemplatePage({ params }: PageProps) {
           </svg>
           Back to Templates
         </Link>
-        <div className="rounded-xl bg-red-50 border border-red-200 px-5 py-4 text-red-700 text-sm">
+        <div className="rounded-2xl bg-red-50/80 border border-red-200/60 px-5 py-4 text-red-700 text-sm">
           {error ?? 'Template not found.'}
         </div>
       </div>
@@ -87,7 +87,7 @@ export default function EditTemplatePage({ params }: PageProps) {
         <p className="text-slate-500 text-sm mt-1 truncate max-w-md">{template.name}</p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-6">
+      <div className="glass rounded-3xl px-6 py-6">
         <TemplateForm onSubmit={handleSubmit} initialValues={initialValues} submitLabel="Save Changes" />
       </div>
     </div>

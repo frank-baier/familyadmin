@@ -97,7 +97,7 @@ export default function UseTemplatePage({ params }: PageProps) {
           </svg>
           Back to Templates
         </Link>
-        <div className="rounded-xl bg-red-50 border border-red-200 px-5 py-4 text-red-700 text-sm">
+        <div className="rounded-2xl bg-red-50/80 border border-red-200/60 px-5 py-4 text-red-700 text-sm">
           {error ?? 'Template not found.'}
         </div>
       </div>
@@ -136,16 +136,16 @@ export default function UseTemplatePage({ params }: PageProps) {
 
       {/* Submit error */}
       {submitError && (
-        <div role="alert" className="rounded-xl bg-red-50 border border-red-200 px-5 py-3 text-red-700 text-sm mb-4">
+        <div role="alert" className="rounded-2xl bg-red-50/80 border border-red-200/60 px-5 py-3 text-red-700 text-sm mb-4">
           {submitError}
         </div>
       )}
 
       {/* Subtask selection */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-6">
+      <div className="glass rounded-3xl overflow-hidden mb-6">
         {/* Select all / none */}
-        <div className="px-5 py-3 border-b border-slate-50 flex items-center justify-between">
-          <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+        <div className="px-5 py-3 hairline flex items-center justify-between">
+          <span className="section-label">
             {selected.size} of {sorted.length} selected
           </span>
           <div className="flex gap-3">
@@ -153,7 +153,7 @@ export default function UseTemplatePage({ params }: PageProps) {
               onClick={selectAll}
               disabled={allSelected}
               className="text-xs text-indigo-600 hover:text-indigo-800 disabled:text-slate-300
-                         focus:outline-none focus:underline transition-colors"
+                         focus:outline-none focus:underline transition-colors font-semibold"
             >
               Select all
             </button>
@@ -173,13 +173,13 @@ export default function UseTemplatePage({ params }: PageProps) {
             This template has no subtasks. A task will be created with just the title.
           </div>
         ) : (
-          <ul className="divide-y divide-slate-50">
-            {sorted.map((subtask: TemplateSubtask) => {
+          <ul>
+            {sorted.map((subtask: TemplateSubtask, idx) => {
               const isChecked = selected.has(subtask.id);
               return (
-                <li key={subtask.id}>
+                <li key={subtask.id} className={idx > 0 ? 'hairline' : ''}>
                   <label className="flex items-center gap-3 px-5 py-3.5 cursor-pointer
-                                    hover:bg-slate-50 transition-colors duration-100">
+                                    hover:bg-white/50 transition-colors duration-100">
                     <input
                       type="checkbox"
                       checked={isChecked}
@@ -204,15 +204,7 @@ export default function UseTemplatePage({ params }: PageProps) {
 
       {/* Actions */}
       <div className="flex items-center gap-3">
-        <button
-          onClick={handleCreate}
-          disabled={submitting}
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold
-                     bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800
-                     disabled:opacity-60 disabled:cursor-not-allowed
-                     focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
-                     transition-all duration-150 shadow-sm"
-        >
+        <button onClick={handleCreate} disabled={submitting} className="btn-primary">
           {submitting ? (
             <>
               <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
@@ -231,11 +223,7 @@ export default function UseTemplatePage({ params }: PageProps) {
           )}
         </button>
 
-        <Link href="/tasks/templates"
-          className="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600
-                     hover:text-slate-800 hover:bg-slate-100
-                     focus:outline-none focus:ring-2 focus:ring-slate-400
-                     transition-all duration-150">
+        <Link href="/tasks/templates" className="btn-secondary">
           Cancel
         </Link>
       </div>

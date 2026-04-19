@@ -28,7 +28,7 @@ export default function NewTripPage() {
       </div>
 
       {/* Form card */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-8">
+      <div className="glass rounded-3xl px-6 py-8">
         <TripForm />
       </div>
     </div>

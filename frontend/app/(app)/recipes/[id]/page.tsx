@@ -155,7 +155,7 @@ export default function RecipeDetailPage({ params }: PageProps) {
       </div>
 
       {/* Main card */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="glass rounded-3xl overflow-hidden">
         {/* Header */}
         <div className="px-6 pt-6 pb-4">
           <div className="flex items-start justify-between gap-4">
@@ -244,7 +244,7 @@ export default function RecipeDetailPage({ params }: PageProps) {
         {/* Description */}
         {recipe.description && (
           <>
-            <div className="border-t border-slate-50" />
+            <div className="hairline mx-4" />
             <div className="px-6 py-4">
               <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
                 {recipe.description}
@@ -256,7 +256,7 @@ export default function RecipeDetailPage({ params }: PageProps) {
         {/* Notes */}
         {recipe.notes && (
           <>
-            <div className="border-t border-slate-100" />
+            <div className="hairline mx-4" />
             <div className="px-6 py-5">
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Notes</h2>
               <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{recipe.notes}</p>
@@ -267,7 +267,7 @@ export default function RecipeDetailPage({ params }: PageProps) {
         {/* Ingredients */}
         {sortedIngredients.length > 0 && (
           <>
-            <div className="border-t border-slate-100" />
+            <div className="hairline mx-4" />
             <div className="px-6 py-5">
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">
                 Ingredients
@@ -295,7 +295,7 @@ export default function RecipeDetailPage({ params }: PageProps) {
         {/* Steps */}
         {sortedSteps.length > 0 && (
           <>
-            <div className="border-t border-slate-100" />
+            <div className="hairline mx-4" />
             <div className="px-6 py-5">
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">
                 Instructions
@@ -324,7 +324,7 @@ export default function RecipeDetailPage({ params }: PageProps) {
         )}
 
         {/* Footer: delete */}
-        <div className="border-t border-slate-100 px-6 py-4 flex justify-end">
+        <div className="hairline mx-4" /><div className="px-6 py-4 flex justify-end">
           {showDeleteConfirm ? (
             <div className="flex items-center gap-3">
               <span className="text-sm text-slate-600">Delete this recipe?</span>

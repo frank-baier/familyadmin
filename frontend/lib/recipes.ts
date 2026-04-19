@@ -32,6 +32,7 @@ export interface Recipe {
   cookMinutes: number | null;
   rating: number | null;
   notes: string | null;
+  categories: string | null;
   photoUrl: string | null;
   createdBy: User;
   ingredients: RecipeIngredient[];
