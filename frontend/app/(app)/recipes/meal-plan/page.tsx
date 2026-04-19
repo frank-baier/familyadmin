@@ -105,9 +105,9 @@ export default function MealPlanPage() {
         <button
           onClick={goToPrevWeek}
           aria-label="Previous week"
-          className="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200
-                     text-slate-600 hover:bg-slate-50 hover:border-slate-300
-                     focus:outline-none focus:ring-2 focus:ring-indigo-500
+          className="glass w-9 h-9 flex items-center justify-center rounded-2xl
+                     text-slate-600 hover:text-slate-900
+                     focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500
                      transition-colors duration-150"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -122,9 +122,9 @@ export default function MealPlanPage() {
         <button
           onClick={goToNextWeek}
           aria-label="Next week"
-          className="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200
-                     text-slate-600 hover:bg-slate-50 hover:border-slate-300
-                     focus:outline-none focus:ring-2 focus:ring-indigo-500
+          className="glass w-9 h-9 flex items-center justify-center rounded-2xl
+                     text-slate-600 hover:text-slate-900
+                     focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500
                      transition-colors duration-150"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -135,9 +135,7 @@ export default function MealPlanPage() {
         {!isCurrentWeek && (
           <button
             onClick={goToThisWeek}
-            className="ml-2 px-3 py-1.5 rounded-lg text-xs font-semibold border border-indigo-200
-                       text-indigo-600 hover:bg-indigo-50 transition-colors duration-150
-                       focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="btn-secondary ml-2"
           >
             This week
           </button>
@@ -148,7 +146,7 @@ export default function MealPlanPage() {
       {error && (
         <div
           role="alert"
-          className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 mb-6
+          className="rounded-2xl bg-red-50/80 border border-red-200/60 px-5 py-3 text-sm text-red-700 mb-6
                      flex items-center justify-between"
         >
           {error}
@@ -164,21 +162,19 @@ export default function MealPlanPage() {
       {/* Loading skeleton */}
       {loadingPlans && (
         <div className="space-y-2 animate-pulse">
-          {/* Header row skeleton */}
           <div className="grid grid-cols-[80px_repeat(7,1fr)] gap-1">
             <div />
             {Array.from({ length: 7 }).map((_, i) => (
-              <div key={i} className="h-10 rounded-xl bg-slate-100" />
+              <div key={i} className="h-10 rounded-2xl bg-white/40" />
             ))}
           </div>
-          {/* 4 slot rows */}
           {Array.from({ length: 4 }).map((_, row) => (
             <div key={row} className="grid grid-cols-[80px_repeat(7,1fr)] gap-1">
               <div className="h-[72px] flex items-center justify-end pr-3">
-                <div className="h-3 w-14 bg-slate-100 rounded" />
+                <div className="h-3 w-14 bg-white/40 rounded" />
               </div>
               {Array.from({ length: 7 }).map((_, col) => (
-                <div key={col} className="h-[72px] rounded-xl bg-slate-100" />
+                <div key={col} className="h-[72px] rounded-2xl bg-white/40" />
               ))}
             </div>
           ))}

@@ -153,8 +153,8 @@ export function WeeklyPlanner({
                 <div
                   key={idx}
                   className={[
-                    'rounded-xl px-2 py-2.5 text-center',
-                    isToday ? 'bg-indigo-50' : '',
+                    'rounded-2xl px-2 py-2.5 text-center',
+                    isToday ? 'glass' : '',
                   ].join(' ')}
                 >
                   <p
@@ -193,8 +193,8 @@ export function WeeklyPlanner({
                   <div
                     key={idx}
                     className={[
-                      'rounded-xl',
-                      isToday ? 'bg-indigo-50/60' : '',
+                      'rounded-2xl',
+                      isToday ? 'ring-1 ring-indigo-200/60' : '',
                     ].join(' ')}
                   >
                     <MealSlotCell

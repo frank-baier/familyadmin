@@ -31,8 +31,7 @@ export function MealSlotCell({
   if (isPending) {
     return (
       <div
-        className="min-h-[72px] rounded-xl border border-slate-100 bg-slate-50
-                   flex items-center justify-center"
+        className="glass min-h-[72px] rounded-2xl flex items-center justify-center"
         aria-busy="true"
         aria-label={`${label} — loading`}
       >
@@ -44,23 +43,17 @@ export function MealSlotCell({
   if (recipe) {
     return (
       <div
-        className="min-h-[72px] rounded-xl border border-indigo-100 bg-white px-3 py-3
+        className="glass min-h-[72px] rounded-2xl px-3 py-3
                    flex items-start justify-between gap-2 group"
         aria-label={`${label}: ${recipe.name}`}
       >
         <div className="flex items-start gap-2 min-w-0">
-          {/* Slot colour dot */}
           <span
-            className={[
-              'mt-0.5 shrink-0 w-2 h-2 rounded-full',
-              slotDotColor(slot),
-            ].join(' ')}
+            className={['mt-0.5 shrink-0 w-2 h-2 rounded-full', slotDotColor(slot)].join(' ')}
             aria-hidden="true"
           />
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 leading-none mb-1">
-              {label}
-            </p>
+            <p className="section-label mb-1">{label}</p>
             <p className="text-sm font-medium text-slate-800 leading-snug line-clamp-2">
               {recipe.name}
             </p>
@@ -71,10 +64,10 @@ export function MealSlotCell({
         <button
           onClick={() => onRemove(slot)}
           aria-label={`Remove ${recipe.name} from ${label}`}
-          className="shrink-0 mt-0.5 w-6 h-6 flex items-center justify-center rounded-lg
-                     text-slate-300 hover:bg-red-50 hover:text-red-500 transition-colors duration-150
+          className="shrink-0 mt-0.5 w-6 h-6 flex items-center justify-center rounded-xl
+                     text-slate-300 hover:bg-red-100/60 hover:text-red-500 transition-colors duration-150
                      opacity-0 group-hover:opacity-100 focus:opacity-100
-                     focus:outline-none focus:ring-2 focus:ring-red-400"
+                     focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
@@ -89,16 +82,16 @@ export function MealSlotCell({
     <button
       onClick={() => onAdd(slot)}
       aria-label={`Add recipe to ${label}`}
-      className="min-h-[72px] w-full rounded-xl border border-dashed border-slate-200
-                 bg-transparent hover:border-indigo-300 hover:bg-indigo-50/50
+      className="glass-interactive min-h-[72px] w-full rounded-2xl
+                 border border-dashed border-white/40 hover:border-indigo-300/60
                  flex flex-col items-center justify-center gap-1 group
                  transition-colors duration-150
-                 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400"
+                 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
     >
       <span
         className={[
           'w-6 h-6 rounded-full flex items-center justify-center',
-          'bg-slate-100 group-hover:bg-indigo-100 transition-colors duration-150',
+          'bg-white/50 group-hover:bg-indigo-100/70 transition-colors duration-150',
           slotIconColor(slot),
         ].join(' ')}
         aria-hidden="true"
@@ -107,7 +100,7 @@ export function MealSlotCell({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />
         </svg>
       </span>
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 group-hover:text-indigo-400 transition-colors duration-150">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 group-hover:text-indigo-500 transition-colors duration-150">
         {label}
       </span>
     </button>
