@@ -52,6 +52,25 @@ public class NotificationService {
     }
 
     @Async
+    public void sendChecklistComplete(String recipientPhone, String recipientName,
+                                      String taskTitle, String taskId) {
+        if (recipientPhone == null || recipientPhone.isBlank()) {
+            log.info("Skipping checklist-complete WhatsApp for '{}': no phone number set", recipientName);
+            return;
+        }
+        try {
+            String body = "Hi " + recipientName + "!\n\n" +
+                    "All checklist items are done for task:\n" +
+                    "*" + taskTitle + "*\n\n" +
+                    appUrl + "/tasks/" + taskId;
+            send(recipientPhone, body);
+            log.info("Sent checklist-complete WhatsApp to {} for task '{}'", recipientPhone, taskTitle);
+        } catch (Exception e) {
+            log.error("Failed to send checklist-complete WhatsApp for task '{}': {}", taskId, e.getMessage());
+        }
+    }
+
+    @Async
     public void sendTaskReminder(String recipientPhone, String recipientName,
                                  String taskTitle, String taskId, String dueDate,
                                  boolean isOverdue) {

@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { TaskForm } from '@/components/tasks/TaskForm';
 import { getTask, updateTask } from '@/lib/tasks';
 import type { Task, TaskRequest } from '@/lib/tasks';
+import { useUser } from '@/lib/user-context';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -19,6 +20,13 @@ interface PageProps {
 export default function EditTaskPage({ params }: PageProps) {
   const { id } = use(params);
   const router = useRouter();
+  const { user } = useUser();
+
+  useEffect(() => {
+    if (user && user.role !== 'ADMIN') {
+      router.replace(`/tasks/${id}`);
+    }
+  }, [user, id, router]);
 
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);

@@ -84,7 +84,7 @@ export async function toggleChecklistItem(
   taskId: string,
   itemId: string,
 ): Promise<ChecklistItem> {
-  return apiFetch<ChecklistItem>(`/api/tasks/${taskId}/checklist/${itemId}/toggle`, {
+  return apiFetch<ChecklistItem>(`/api/tasks/${taskId}/checklist/${itemId}`, {
     method: 'PATCH',
   });
 }

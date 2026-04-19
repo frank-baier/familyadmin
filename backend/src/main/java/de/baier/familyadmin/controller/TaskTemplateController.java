@@ -9,6 +9,7 @@ import de.baier.familyadmin.service.TaskTemplateService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,6 +35,7 @@ public class TaskTemplateController {
         return ResponseEntity.ok(TaskTemplateResponse.from(templateService.getById(id)));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<TaskTemplateResponse> create(
             @Valid @RequestBody TaskTemplateRequest request,
@@ -44,6 +46,7 @@ public class TaskTemplateController {
                 .body(TaskTemplateResponse.from(template));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<TaskTemplateResponse> update(
             @PathVariable UUID id,
@@ -51,6 +54,7 @@ public class TaskTemplateController {
         return ResponseEntity.ok(TaskTemplateResponse.from(templateService.update(id, request)));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         templateService.delete(id);

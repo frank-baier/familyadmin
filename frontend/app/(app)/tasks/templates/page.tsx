@@ -10,10 +10,11 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getTemplates, deleteTemplate } from '@/lib/templates';
 import type { TaskTemplate } from '@/lib/templates';
+import { useUser } from '@/lib/user-context';
 
 // ─── Template card ─────────────────────────────────────────────────────────
 
-function TemplateCard({ template, onDelete }: { template: TaskTemplate; onDelete: () => void }) {
+function TemplateCard({ template, onDelete, isAdmin }: { template: TaskTemplate; onDelete: () => void; isAdmin: boolean }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -75,55 +76,57 @@ function TemplateCard({ template, onDelete }: { template: TaskTemplate; onDelete
           Use template
         </Link>
 
-        <div className="flex items-center gap-1">
-          <Link
-            href={`/tasks/templates/${template.id}/edit`}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50
-                       focus:outline-none focus:ring-2 focus:ring-indigo-500
-                       transition-all duration-150"
-            title="Edit template"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-            </svg>
-          </Link>
-
-          {showDeleteConfirm ? (
-            <div className="flex items-center gap-1.5 ml-1">
-              <span className="text-xs text-slate-500">Delete?</span>
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="px-2 py-1 text-xs text-slate-500 border border-slate-200 rounded-lg
-                           hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
-              >
-                No
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="px-2 py-1 text-xs font-medium text-white bg-red-600 rounded-lg
-                           hover:bg-red-700 disabled:opacity-60
-                           focus:outline-none focus:ring-2 focus:ring-red-500"
-              >
-                {deleting ? '…' : 'Yes'}
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50
-                         focus:outline-none focus:ring-2 focus:ring-red-400
+        {isAdmin && (
+          <div className="flex items-center gap-1">
+            <Link
+              href={`/tasks/templates/${template.id}/edit`}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50
+                         focus:outline-none focus:ring-2 focus:ring-indigo-500
                          transition-all duration-150"
-              title="Delete template"
+              title="Edit template"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                  d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
               </svg>
-            </button>
-          )}
-        </div>
+            </Link>
+
+            {showDeleteConfirm ? (
+              <div className="flex items-center gap-1.5 ml-1">
+                <span className="text-xs text-slate-500">Delete?</span>
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="px-2 py-1 text-xs text-slate-500 border border-slate-200 rounded-lg
+                             hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                >
+                  No
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="px-2 py-1 text-xs font-medium text-white bg-red-600 rounded-lg
+                             hover:bg-red-700 disabled:opacity-60
+                             focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  {deleting ? '…' : 'Yes'}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50
+                           focus:outline-none focus:ring-2 focus:ring-red-400
+                           transition-all duration-150"
+                title="Delete template"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -148,6 +151,8 @@ function TemplateSkeleton() {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function TemplatesPage() {
+  const { user } = useUser();
+  const isAdmin = user?.role === 'ADMIN';
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -185,15 +190,17 @@ export default function TemplatesPage() {
             Reusable task blueprints — pick subtasks and create a task in seconds.
           </p>
         </div>
-        <Link
-          href="/tasks/templates/new"
-          className="btn-primary shrink-0"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          New template
-        </Link>
+        {isAdmin && (
+          <Link
+            href="/tasks/templates/new"
+            className="btn-primary shrink-0"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            New template
+          </Link>
+        )}
       </div>
 
       {/* Error */}
@@ -221,17 +228,19 @@ export default function TemplatesPage() {
           </div>
           <h2 className="text-sm font-semibold text-slate-900 mb-1">No templates yet</h2>
           <p className="text-sm text-slate-500 mb-6">
-            Create your first template to speed up recurring tasks.
+            {isAdmin ? 'Create your first template to speed up recurring tasks.' : 'No templates available yet.'}
           </p>
-          <Link
-            href="/tasks/templates/new"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold
-                       bg-indigo-600 text-white hover:bg-indigo-700
-                       focus:outline-none focus:ring-2 focus:ring-indigo-500
-                       transition-all duration-150"
-          >
-            Create first template
-          </Link>
+          {isAdmin && (
+            <Link
+              href="/tasks/templates/new"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold
+                         bg-indigo-600 text-white hover:bg-indigo-700
+                         focus:outline-none focus:ring-2 focus:ring-indigo-500
+                         transition-all duration-150"
+            >
+              Create first template
+            </Link>
+          )}
         </div>
       )}
 
@@ -239,7 +248,7 @@ export default function TemplatesPage() {
       {!loading && templates.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {templates.map((t) => (
-            <TemplateCard key={t.id} template={t} onDelete={load} />
+            <TemplateCard key={t.id} template={t} onDelete={load} isAdmin={isAdmin} />
           ))}
         </div>
       )}

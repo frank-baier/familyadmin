@@ -10,7 +10,7 @@ interface NavItem {
   href: string;
   icon: React.ReactNode;
   adminOnly?: boolean;
-  children?: { label: string; href: string }[];
+  children?: { label: string; href: string; adminOnly?: boolean }[];
 }
 
 const navItems: NavItem[] = [
@@ -33,7 +33,7 @@ const navItems: NavItem[] = [
           d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ),
-    children: [{ label: 'Templates', href: '/tasks/templates' }],
+    children: [{ label: 'Templates', href: '/tasks/templates', adminOnly: true }],
   },
   {
     label: 'Recipes',
@@ -150,7 +150,7 @@ export function Sidebar() {
 
                 {item.children && sectionOpen && (
                   <ul className="mt-0.5 ml-7 space-y-0.5" role="list">
-                    {item.children.map((child) => {
+                    {item.children.filter((c) => !c.adminOnly || user?.role === 'ADMIN').map((child) => {
                       const childActive = pathname === child.href || pathname.startsWith(`${child.href}/`);
                       return (
                         <li key={child.href}>

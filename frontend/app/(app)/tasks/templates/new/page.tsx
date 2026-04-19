@@ -4,14 +4,23 @@
  * New template page — /tasks/templates/new
  */
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { TemplateForm } from '@/components/tasks/TemplateForm';
 import { createTemplate } from '@/lib/templates';
 import type { TaskTemplateRequest } from '@/lib/templates';
+import { useUser } from '@/lib/user-context';
 
 export default function NewTemplatePage() {
   const router = useRouter();
+  const { user } = useUser();
+
+  useEffect(() => {
+    if (user && user.role !== 'ADMIN') {
+      router.replace('/tasks/templates');
+    }
+  }, [user, router]);
 
   async function handleSubmit(data: TaskTemplateRequest) {
     await createTemplate(data);

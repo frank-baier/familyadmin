@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { ChecklistItem } from '@/components/tasks/ChecklistItem';
 import { getTask, completeTask, deleteTask, isOverdue, isDueToday } from '@/lib/tasks';
 import type { Task, ChecklistItem as ChecklistItemType } from '@/lib/tasks';
+import { useUser } from '@/lib/user-context';
 
 // ─── Status badge config ─────────────────────────────────────────────────────
 
@@ -73,6 +74,8 @@ interface PageProps {
 export default function TaskDetailPage({ params }: PageProps) {
   const { id } = use(params);
   const router = useRouter();
+  const { user } = useUser();
+  const isAdmin = user?.role === 'ADMIN';
 
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
@@ -202,20 +205,22 @@ export default function TaskDetailPage({ params }: PageProps) {
               {task.title}
             </h1>
 
-            {/* Edit button (placeholder) */}
-            <Link
-              href={`/tasks/${task.id}/edit`}
-              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-                         text-slate-500 border border-slate-200 hover:border-slate-300 hover:text-slate-700
-                         focus:outline-none focus:ring-2 focus:ring-indigo-500
-                         transition-all duration-150"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
-              </svg>
-              Edit
-            </Link>
+            {/* Edit button — admins only */}
+            {isAdmin && (
+              <Link
+                href={`/tasks/${task.id}/edit`}
+                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+                           text-slate-500 border border-slate-200 hover:border-slate-300 hover:text-slate-700
+                           focus:outline-none focus:ring-2 focus:ring-indigo-500
+                           transition-all duration-150"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+                </svg>
+                Edit
+              </Link>
+            )}
           </div>
 
           {/* Status + actions row */}

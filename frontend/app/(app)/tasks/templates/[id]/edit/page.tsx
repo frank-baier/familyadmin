@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { TemplateForm } from '@/components/tasks/TemplateForm';
 import { getTemplate, updateTemplate } from '@/lib/templates';
 import type { TaskTemplate, TaskTemplateRequest } from '@/lib/templates';
+import { useUser } from '@/lib/user-context';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -18,6 +19,13 @@ interface PageProps {
 export default function EditTemplatePage({ params }: PageProps) {
   const { id } = use(params);
   const router = useRouter();
+  const { user } = useUser();
+
+  useEffect(() => {
+    if (user && user.role !== 'ADMIN') {
+      router.replace('/tasks/templates');
+    }
+  }, [user, router]);
 
   const [template, setTemplate] = useState<TaskTemplate | null>(null);
   const [loading, setLoading] = useState(true);

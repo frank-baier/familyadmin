@@ -82,7 +82,9 @@ public class TaskService {
 
     public Task updateTask(UUID id, TaskRequest req, User currentUser) {
         Task task = getTaskById(id);
-        requireOwnerOrAdmin(task, currentUser);
+        if (currentUser.getRole() != Role.ADMIN) {
+            throw new AccessDeniedException("Only admins can edit tasks");
+        }
 
         UUID previousAssigneeId = task.getAssignee() != null ? task.getAssignee().getId() : null;
 
@@ -134,7 +136,19 @@ public class TaskService {
         ChecklistItem item = checklistItemRepository.findById(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Checklist item not found: " + itemId));
         item.setDone(!item.isDone());
-        return checklistItemRepository.save(item);
+        ChecklistItem saved = checklistItemRepository.save(item);
+
+        Task task = item.getTask();
+        boolean allDone = task.getChecklistItems().stream().allMatch(ChecklistItem::isDone);
+        if (allDone && !task.getChecklistItems().isEmpty()) {
+            String taskTitle = task.getTitle();
+            String taskIdStr = task.getId().toString();
+            userRepository.findByRole(Role.ADMIN).forEach(admin ->
+                    notificationService.sendChecklistComplete(
+                            admin.getWhatsappPhone(), admin.getName(), taskTitle, taskIdStr));
+        }
+
+        return saved;
     }
 
     public void deleteTask(UUID id, User currentUser) {
