@@ -1,39 +1,37 @@
 package de.baier.familyadmin.service;
 
-import com.twilio.Twilio;
-import com.twilio.rest.api.v2010.account.Message;
-import com.twilio.type.PhoneNumber;
-import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
 public class NotificationService {
 
-    @Value("${twilio.account-sid}")
-    private String accountSid;
+    private static final String TEMPLATE_TASK_ASSIGNED   = "task_assigned";
+    private static final String TEMPLATE_TASK_REMINDER   = "task_reminder";
+    private static final String TEMPLATE_TASK_OVERDUE    = "task_overdue";
+    private static final String TEMPLATE_CHECKLIST_DONE  = "checklist_complete";
 
-    @Value("${twilio.auth-token}")
-    private String authToken;
+    @Value("${meta.whatsapp.token}")
+    private String accessToken;
 
-    @Value("${twilio.whatsapp-from}")
-    private String whatsappFrom;
+    @Value("${meta.whatsapp.phone-number-id}")
+    private String phoneNumberId;
 
     @Value("${app.frontend.url}")
     private String appUrl;
 
-    @PostConstruct
-    public void init() {
-        Twilio.init(accountSid, authToken);
-    }
+    private final RestClient restClient = RestClient.builder()
+            .baseUrl("https://graph.facebook.com/v19.0")
+            .build();
 
-    /**
-     * Call this while the Hibernate session is still open (inside a @Transactional method)
-     * so all lazy associations are resolved before this async method runs in a new thread.
-     */
     @Async
     public void sendTaskAssigned(String recipientPhone, String recipientName,
                                  String assignerName, String taskTitle,
@@ -43,8 +41,13 @@ public class NotificationService {
             return;
         }
         try {
-            String body = buildAssignedMessage(recipientName, assignerName, taskTitle, dueDate, taskId);
-            send(recipientPhone, body);
+            sendTemplate(recipientPhone, TEMPLATE_TASK_ASSIGNED, List.of(
+                    recipientName,
+                    assignerName,
+                    taskTitle,
+                    dueDate != null ? dueDate : "no due date",
+                    appUrl + "/tasks/" + taskId
+            ));
             log.info("Sent task assignment WhatsApp to {} for task '{}'", recipientPhone, taskTitle);
         } catch (Exception e) {
             log.error("Failed to send task assignment WhatsApp for task '{}': {}", taskId, e.getMessage());
@@ -59,11 +62,11 @@ public class NotificationService {
             return;
         }
         try {
-            String body = "Hi " + recipientName + "!\n\n" +
-                    "All checklist items are done for task:\n" +
-                    "*" + taskTitle + "*\n\n" +
-                    appUrl + "/tasks/" + taskId;
-            send(recipientPhone, body);
+            sendTemplate(recipientPhone, TEMPLATE_CHECKLIST_DONE, List.of(
+                    recipientName,
+                    taskTitle,
+                    appUrl + "/tasks/" + taskId
+            ));
             log.info("Sent checklist-complete WhatsApp to {} for task '{}'", recipientPhone, taskTitle);
         } catch (Exception e) {
             log.error("Failed to send checklist-complete WhatsApp for task '{}': {}", taskId, e.getMessage());
@@ -79,47 +82,43 @@ public class NotificationService {
             return;
         }
         try {
-            String body = buildReminderMessage(recipientName, taskTitle, dueDate, isOverdue, taskId);
-            send(recipientPhone, body);
+            String template = isOverdue ? TEMPLATE_TASK_OVERDUE : TEMPLATE_TASK_REMINDER;
+            sendTemplate(recipientPhone, template, List.of(
+                    recipientName,
+                    taskTitle,
+                    dueDate,
+                    appUrl + "/tasks/" + taskId
+            ));
             log.info("Sent task reminder WhatsApp to {} for task '{}'", recipientPhone, taskTitle);
         } catch (Exception e) {
             log.error("Failed to send task reminder WhatsApp for task '{}': {}", taskId, e.getMessage());
         }
     }
 
-    private void send(String toPhone, String body) {
-        Message.creator(
-                new PhoneNumber("whatsapp:" + toPhone),
-                new PhoneNumber(whatsappFrom),
-                body
-        ).create();
-    }
+    private void sendTemplate(String phone, String templateName, List<String> params) {
+        List<Map<String, String>> parameters = params.stream()
+                .map(p -> Map.of("type", "text", "text", p))
+                .toList();
 
-    private String buildAssignedMessage(String recipientName, String assignerName,
-                                        String taskTitle, String dueDate, String taskId) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Hi ").append(recipientName).append("!\n\n");
-        sb.append(assignerName).append(" assigned you a task:\n");
-        sb.append("*").append(taskTitle).append("*\n");
-        if (dueDate != null) {
-            sb.append("Due: ").append(dueDate).append("\n");
-        }
-        sb.append("\n").append(appUrl).append("/tasks/").append(taskId);
-        return sb.toString();
-    }
+        Map<String, Object> body = Map.of(
+                "messaging_product", "whatsapp",
+                "to", phone.startsWith("+") ? phone.substring(1) : phone,
+                "type", "template",
+                "template", Map.of(
+                        "name", templateName,
+                        "language", Map.of("code", "en"),
+                        "components", List.of(
+                                Map.of("type", "body", "parameters", parameters)
+                        )
+                )
+        );
 
-    private String buildReminderMessage(String recipientName, String taskTitle,
-                                        String dueDate, boolean isOverdue, String taskId) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Hi ").append(recipientName).append("!\n\n");
-        if (isOverdue) {
-            sb.append("⚠️ Overdue task:\n");
-        } else {
-            sb.append("⏰ Task due today:\n");
-        }
-        sb.append("*").append(taskTitle).append("*\n");
-        sb.append("Due: ").append(dueDate).append("\n");
-        sb.append("\n").append(appUrl).append("/tasks/").append(taskId);
-        return sb.toString();
+        restClient.post()
+                .uri("/{phoneNumberId}/messages", phoneNumberId)
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .toBodilessEntity();
     }
 }
