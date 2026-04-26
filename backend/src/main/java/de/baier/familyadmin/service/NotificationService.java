@@ -106,7 +106,7 @@ public class NotificationService {
                 "type", "template",
                 "template", Map.of(
                         "name", templateName,
-                        "language", Map.of("code", "en"),
+                        "language", Map.of("code", "de"),
                         "components", List.of(
                                 Map.of("type", "body", "parameters", parameters)
                         )
