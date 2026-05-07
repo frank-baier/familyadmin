@@ -166,7 +166,7 @@ export function WeeklyPlanner({
                     {formatDayLabel(date)}
                   </p>
                   {isToday && (
-                    <span className="inline-block mt-1 w-1.5 h-1.5 rounded-full bg-indigo-500" aria-label="Today" />
+                    <span className="inline-block mt-1 w-1.5 h-1.5 rounded-full bg-indigo-500" aria-label="Heute" />
                   )}
                 </div>
               );

@@ -34,7 +34,7 @@ export default function EditTemplatePage({ params }: PageProps) {
   useEffect(() => {
     getTemplate(id)
       .then(setTemplate)
-      .catch(() => setError('Template not found.'))
+      .catch(() => setError('Vorlage nicht gefunden.'))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -62,10 +62,10 @@ export default function EditTemplatePage({ params }: PageProps) {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
           </svg>
-          Back to Templates
+          Zurück zu Vorlagen
         </Link>
         <div className="rounded-2xl bg-red-50/80 border border-red-200/60 px-5 py-4 text-red-700 text-sm">
-          {error ?? 'Template not found.'}
+          {error ?? 'Vorlage nicht gefunden.'}
         </div>
       </div>
     );
@@ -87,16 +87,16 @@ export default function EditTemplatePage({ params }: PageProps) {
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
         </svg>
-        Back to Templates
+        Zurück zu Vorlagen
       </Link>
 
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Edit Template</h1>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Vorlage bearbeiten</h1>
         <p className="text-slate-500 text-sm mt-1 truncate max-w-md">{template.name}</p>
       </div>
 
       <div className="glass rounded-3xl px-6 py-6">
-        <TemplateForm onSubmit={handleSubmit} initialValues={initialValues} submitLabel="Save Changes" />
+        <TemplateForm onSubmit={handleSubmit} initialValues={initialValues} submitLabel="Änderungen speichern" />
       </div>
     </div>
   );

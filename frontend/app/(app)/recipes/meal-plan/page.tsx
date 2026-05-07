@@ -47,7 +47,7 @@ export default function MealPlanPage() {
       setMealPlans(data);
     } catch (err) {
       console.error('Failed to load meal plans:', err);
-      setError('Could not load meal plans. Please try again.');
+      setError('Mahlzeitenpläne konnten nicht geladen werden. Bitte erneut versuchen.');
     } finally {
       setLoadingPlans(false);
     }
@@ -95,8 +95,8 @@ export default function MealPlanPage() {
       {/* Page header */}
       <div className="flex items-start justify-between mb-8 gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Meal Plan</h1>
-          <p className="text-slate-500 text-sm mt-1">Plan your family meals for the week</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Mahlzeitenplan</h1>
+          <p className="text-slate-500 text-sm mt-1">Familienmahlzeiten für die Woche planen</p>
         </div>
       </div>
 
@@ -104,7 +104,7 @@ export default function MealPlanPage() {
       <div className="flex items-center gap-3 mb-6 flex-wrap">
         <button
           onClick={goToPrevWeek}
-          aria-label="Previous week"
+          aria-label="Vorherige Woche"
           className="glass w-9 h-9 flex items-center justify-center rounded-2xl
                      text-slate-600 hover:text-slate-900
                      focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500
@@ -121,7 +121,7 @@ export default function MealPlanPage() {
 
         <button
           onClick={goToNextWeek}
-          aria-label="Next week"
+          aria-label="Nächste Woche"
           className="glass w-9 h-9 flex items-center justify-center rounded-2xl
                      text-slate-600 hover:text-slate-900
                      focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500
@@ -137,7 +137,7 @@ export default function MealPlanPage() {
             onClick={goToThisWeek}
             className="btn-secondary ml-2"
           >
-            This week
+            Diese Woche
           </button>
         )}
       </div>
@@ -154,7 +154,7 @@ export default function MealPlanPage() {
             onClick={() => fetchMealPlans(monday)}
             className="ml-4 text-xs font-medium text-red-700 underline hover:no-underline"
           >
-            Retry
+            Erneut versuchen
           </button>
         </div>
       )}

@@ -67,8 +67,8 @@ function RecipeTableView({ recipes }: { recipes: Recipe[] }) {
         <thead>
           <tr className="bg-slate-50 border-b border-slate-200">
             <th className="text-left px-4 py-3 font-semibold text-slate-600">Name</th>
-            <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Rating</th>
-            <th className="text-left px-4 py-3 font-semibold text-slate-600">Categories</th>
+            <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Bewertung</th>
+            <th className="text-left px-4 py-3 font-semibold text-slate-600">Kategorien</th>
           </tr>
         </thead>
         <tbody>
@@ -135,7 +135,7 @@ export default function RecipesPage() {
       const data = await getRecipes();
       setRecipes(data);
     } catch (err) {
-      setError('Failed to load recipes. Please try again.');
+      setError('Rezepte konnten nicht geladen werden. Bitte erneut versuchen.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -157,7 +157,7 @@ export default function RecipesPage() {
         const data = trimmed ? await searchRecipes(trimmed) : await getRecipes();
         setRecipes(data);
       } catch (err) {
-        setError('Search failed. Please try again.');
+        setError('Suche fehlgeschlagen. Bitte erneut versuchen.');
         console.error(err);
       } finally {
         setLoading(false);
@@ -176,7 +176,7 @@ export default function RecipesPage() {
       setImportResults(results);
       await loadAll(); // refresh the recipe list
     } catch (err) {
-      setImportError('Import failed. Please check the file and try again.');
+      setImportError('Import fehlgeschlagen. Bitte Datei prüfen und erneut versuchen.');
       console.error(err);
     } finally {
       setImporting(false);
@@ -219,8 +219,8 @@ export default function RecipesPage() {
       {/* Page header */}
       <div className="flex items-start justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Recipes</h1>
-          <p className="text-slate-500 text-sm mt-1">Family recipe collection</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Rezepte</h1>
+          <p className="text-slate-500 text-sm mt-1">Familienrezeptsammlung</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -235,7 +235,7 @@ export default function RecipesPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 010 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z"/>
                 </svg>
-                Importing…
+                Wird importiert…
               </>
             ) : (
               <>
@@ -243,7 +243,7 @@ export default function RecipesPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
-                Import Paprika
+                Paprika importieren
               </>
             )}
           </button>
@@ -255,7 +255,7 @@ export default function RecipesPage() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
-            Add Recipe
+            Rezept hinzufügen
           </Link>
         </div>
       </div>
@@ -271,15 +271,15 @@ export default function RecipesPage() {
             <span className="font-medium">
               {importError
                 ? importError
-                : `Import complete: ${importResults!.filter(r => r.status === 'success').length} recipe(s) imported`
+                : `Import abgeschlossen: ${importResults!.filter(r => r.status === 'success').length} Rezept(e) importiert`
               }
             </span>
             <button
               onClick={() => { setImportResults(null); setImportError(null); }}
               className="ml-4 text-xs underline hover:no-underline"
-              aria-label="Dismiss import result"
+              aria-label="Importergebnis schließen"
             >
-              Dismiss
+              Schließen
             </button>
           </div>
           {importResults && importResults.some(r => r.status === 'error') && (
@@ -306,8 +306,8 @@ export default function RecipesPage() {
             type="search"
             value={query}
             onChange={handleSearchChange}
-            placeholder="Search recipes…"
-            aria-label="Search recipes"
+            placeholder="Rezepte suchen…"
+            aria-label="Rezepte suchen"
             className="input-field pl-10"
           />
         </div>
@@ -316,10 +316,10 @@ export default function RecipesPage() {
         <select
           value={selectedCategory}
           onChange={e => setSelectedCategory(e.target.value)}
-          aria-label="Filter by category"
+          aria-label="Nach Kategorie filtern"
           className="input-field shrink-0 w-auto px-3"
         >
-          <option value="">All categories</option>
+          <option value="">Alle Kategorien</option>
           {allCategories.map(cat => (
             <option key={cat} value={cat}>{cat}</option>
           ))}
@@ -327,13 +327,13 @@ export default function RecipesPage() {
 
         {/* Min rating filter */}
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className="text-xs text-slate-500 whitespace-nowrap">Min rating:</span>
+          <span className="text-xs text-slate-500 whitespace-nowrap">Min. Bewertung:</span>
           <div className="flex items-center gap-0.5">
             {[1, 2, 3, 4, 5].map(star => (
               <button
                 key={star}
                 onClick={() => setMinRating(minRating === star ? 0 : star)}
-                aria-label={`Minimum ${star} star${star !== 1 ? 's' : ''}`}
+                aria-label={`Mindestens ${star} Stern${star !== 1 ? 'e' : ''}`}
                 className="focus:outline-none focus:ring-1 focus:ring-indigo-400 rounded"
               >
                 <svg
@@ -350,7 +350,7 @@ export default function RecipesPage() {
             <button
               onClick={() => setMinRating(0)}
               className="text-xs text-slate-400 hover:text-slate-600 ml-1"
-              aria-label="Clear rating filter"
+              aria-label="Bewertungsfilter zurücksetzen"
             >
               ✕
             </button>
@@ -358,12 +358,12 @@ export default function RecipesPage() {
         </div>
 
         {/* View toggle */}
-        <div className="glass flex rounded-2xl overflow-hidden shrink-0" role="group" aria-label="View mode">
+        <div className="glass flex rounded-2xl overflow-hidden shrink-0" role="group" aria-label="Ansichtsmodus">
           <button
             onClick={() => setViewMode('grid')}
             aria-pressed={viewMode === 'grid'}
             className={`px-3 py-2 transition-colors ${viewMode === 'grid' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}
-            title="Grid view"
+            title="Rasteransicht"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
               <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -373,7 +373,7 @@ export default function RecipesPage() {
             onClick={() => setViewMode('table')}
             aria-pressed={viewMode === 'table'}
             className={`px-3 py-2 transition-colors ${viewMode === 'table' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}
-            title="Table view"
+            title="Tabellenansicht"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -386,12 +386,12 @@ export default function RecipesPage() {
       {/* Active filters summary */}
       {hasFilters && !loading && (
         <p className="text-xs text-slate-500 mb-4">
-          Showing {filteredRecipes.length} of {recipes.length} recipes
-          {minRating > 0 && ` · ${minRating}+ stars`}
+          {filteredRecipes.length} von {recipes.length} Rezepten
+          {minRating > 0 && ` · ${minRating}+ Sterne`}
           {selectedCategory && ` · "${selectedCategory}"`}
           {' '}
           <button onClick={() => { setMinRating(0); setSelectedCategory(''); }} className="underline hover:no-underline">
-            Clear filters
+            Filter zurücksetzen
           </button>
         </p>
       )}
@@ -407,7 +407,7 @@ export default function RecipesPage() {
             onClick={loadAll}
             className="ml-4 text-xs font-medium text-red-700 underline hover:no-underline"
           >
-            Retry
+            Erneut versuchen
           </button>
         </div>
       )}
@@ -444,15 +444,15 @@ export default function RecipesPage() {
           </div>
           <h3 className="text-base font-semibold text-slate-900 mb-1">
             {query.trim()
-              ? `No recipes found for "${query.trim()}"`
+              ? `Keine Rezepte gefunden für "${query.trim()}"`
               : hasFilters
-              ? 'No recipes match the current filters'
-              : 'No recipes yet'}
+              ? 'Keine Rezepte entsprechen den aktuellen Filtern'
+              : 'Noch keine Rezepte'}
           </h3>
           <p className="text-sm text-slate-500 mb-6 max-w-xs mx-auto">
             {query.trim() || hasFilters
-              ? 'Try adjusting your search or filters.'
-              : 'Start building the family cookbook!'}
+              ? 'Suche oder Filter anpassen.'
+              : 'Fang an, das Familienkochbuch aufzubauen!'}
           </p>
           {!query.trim() && !hasFilters && (
             <Link
@@ -465,7 +465,7 @@ export default function RecipesPage() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
-              Add first recipe
+              Erstes Rezept hinzufügen
             </Link>
           )}
         </div>

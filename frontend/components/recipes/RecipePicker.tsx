@@ -47,7 +47,7 @@ export function RecipePicker({ recipes, loading = false, onSelect, onClose }: Re
       onClick={onClose}
       aria-modal="true"
       role="dialog"
-      aria-label="Pick a recipe"
+      aria-label="Rezept auswählen"
     >
       {/* Modal panel */}
       <div
@@ -57,10 +57,10 @@ export function RecipePicker({ recipes, loading = false, onSelect, onClose }: Re
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 hairline">
-          <h2 className="text-base font-semibold text-slate-900">Choose a Recipe</h2>
+          <h2 className="text-base font-semibold text-slate-900">Rezept auswählen</h2>
           <button
             onClick={onClose}
-            aria-label="Close recipe picker"
+            aria-label="Rezeptauswahl schließen"
             className="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400
                        hover:bg-white/60 hover:text-slate-700 transition-colors duration-150
                        focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
@@ -87,7 +87,7 @@ export function RecipePicker({ recipes, loading = false, onSelect, onClose }: Re
             <input
               ref={inputRef}
               type="search"
-              placeholder="Search recipes…"
+              placeholder="Rezepte suchen…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="input-field pl-9"
@@ -106,13 +106,13 @@ export function RecipePicker({ recipes, loading = false, onSelect, onClose }: Re
           {!loading && filtered.length === 0 && (
             <div className="text-center py-12 px-5">
               <p className="text-sm text-slate-500">
-                {query ? `No recipes match "${query}"` : 'No recipes available yet.'}
+                {query ? `Keine Rezepte für „${query}" gefunden.` : 'Noch keine Rezepte vorhanden.'}
               </p>
             </div>
           )}
 
           {!loading && filtered.length > 0 && (
-            <ul role="listbox" aria-label="Recipes" className="py-2">
+            <ul role="listbox" aria-label="Rezepte" className="py-2">
               {filtered.map((recipe) => (
                 <li key={recipe.id} role="option" aria-selected={false}>
                   <button

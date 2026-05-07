@@ -68,7 +68,7 @@ export function ChecklistEditor({ items, onChange }: ChecklistEditorProps) {
     <div className="space-y-2">
       {items.length === 0 && (
         <p className="text-xs text-slate-400 italic py-1">
-          No checklist items — add one below.
+          Keine Checklisteneinträge — unten einen hinzufügen.
         </p>
       )}
 
@@ -104,12 +104,12 @@ export function ChecklistEditor({ items, onChange }: ChecklistEditorProps) {
             value={item}
             onChange={(e) => updateItem(index, e.target.value)}
             onKeyDown={(e) => handleKeyDown(e, index)}
-            placeholder={`Item ${index + 1}`}
+            placeholder={`Eintrag ${index + 1}`}
             className="flex-1 min-w-0 text-sm bg-transparent border-0 border-b border-slate-200
                        focus:border-indigo-400 focus:outline-none px-0 py-1
                        text-slate-700 placeholder:text-slate-300
                        transition-colors duration-150"
-            aria-label={`Checklist item ${index + 1}`}
+            aria-label={`Checklisteneintrag ${index + 1}`}
           />
 
           {/* Remove button */}
@@ -121,7 +121,7 @@ export function ChecklistEditor({ items, onChange }: ChecklistEditorProps) {
                        opacity-0 group-hover:opacity-100 focus:opacity-100
                        transition-all duration-150
                        focus:outline-none focus:ring-2 focus:ring-red-400"
-            aria-label={`Remove checklist item ${index + 1}`}
+            aria-label={`Checklisteneintrag ${index + 1} entfernen`}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
@@ -143,7 +143,7 @@ export function ChecklistEditor({ items, onChange }: ChecklistEditorProps) {
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />
         </svg>
-        Add item
+        Eintrag hinzufügen
       </button>
     </div>
   );

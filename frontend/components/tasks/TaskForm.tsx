@@ -49,7 +49,7 @@ export function TaskForm({ onSubmit, initialValues, submitLabel = 'Create Task' 
     const dueDate = formData.get('dueDate') as string;
 
     if (!title || title.trim().length === 0) {
-      return { errors: { title: ['Title is required.'] } };
+      return { errors: { title: ['Titel ist erforderlich.'] } };
     }
 
     const taskData: TaskRequest = {
@@ -67,7 +67,7 @@ export function TaskForm({ onSubmit, initialValues, submitLabel = 'Create Task' 
       return { success: true };
     } catch (err: unknown) {
       const message =
-        err instanceof Error ? err.message : 'Something went wrong. Please try again.';
+        err instanceof Error ? err.message : 'Etwas ist schiefgelaufen. Bitte erneut versuchen.';
       return { errors: { _form: [message] } };
     }
   }
@@ -95,7 +95,7 @@ export function TaskForm({ onSubmit, initialValues, submitLabel = 'Create Task' 
       {/* Title */}
       <div>
         <label htmlFor="task-title" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-          Title <span className="text-red-400" aria-hidden="true">*</span>
+          Titel <span className="text-red-400" aria-hidden="true">*</span>
         </label>
         <input
           id="task-title"
@@ -104,7 +104,7 @@ export function TaskForm({ onSubmit, initialValues, submitLabel = 'Create Task' 
           required
           autoFocus
           defaultValue={initialValues?.title}
-          placeholder="e.g. Buy groceries"
+          placeholder="z. B. Einkaufen gehen"
           aria-describedby={state.errors?.title ? 'title-error' : undefined}
           aria-invalid={!!state.errors?.title}
           className={state.errors?.title ? 'input-field border-red-300 focus:border-red-400' : 'input-field'}
@@ -119,14 +119,14 @@ export function TaskForm({ onSubmit, initialValues, submitLabel = 'Create Task' 
       {/* Description */}
       <div>
         <label htmlFor="task-description" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-          Description <span className="text-slate-400 normal-case font-normal">(optional)</span>
+          Beschreibung <span className="text-slate-400 normal-case font-normal">(optional)</span>
         </label>
         <textarea
           id="task-description"
           name="description"
           rows={3}
           defaultValue={initialValues?.description}
-          placeholder="Add more details about this task…"
+          placeholder="Weitere Details zu dieser Aufgabe hinzufügen…"
           className="input-field"
         />
       </div>
@@ -135,7 +135,7 @@ export function TaskForm({ onSubmit, initialValues, submitLabel = 'Create Task' 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label htmlFor="task-assignee" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-            Assign to <span className="text-slate-400 normal-case font-normal">(optional)</span>
+            Zuweisen an <span className="text-slate-400 normal-case font-normal">(optional)</span>
           </label>
           <select
             id="task-assignee"
@@ -144,7 +144,7 @@ export function TaskForm({ onSubmit, initialValues, submitLabel = 'Create Task' 
             disabled={loadingMembers}
             className="input-field"
           >
-            <option value="">Unassigned</option>
+            <option value="">Nicht zugewiesen</option>
             {members.map((member) => (
               <option key={member.id} value={member.id}>
                 {member.name}
@@ -155,7 +155,7 @@ export function TaskForm({ onSubmit, initialValues, submitLabel = 'Create Task' 
 
         <div>
           <label htmlFor="task-due-date" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-            Due date <span className="text-slate-400 normal-case font-normal">(optional)</span>
+            Fälligkeitsdatum <span className="text-slate-400 normal-case font-normal">(optional)</span>
           </label>
           <input
             id="task-due-date"
@@ -171,11 +171,11 @@ export function TaskForm({ onSubmit, initialValues, submitLabel = 'Create Task' 
       <div>
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-            Checklist <span className="text-slate-400 normal-case font-normal">(optional)</span>
+            Checkliste <span className="text-slate-400 normal-case font-normal">(optional)</span>
           </span>
           {checklistItems.length > 0 && (
             <span className="text-xs text-slate-400">
-              {checklistItems.filter((i) => i.trim()).length} item{checklistItems.filter((i) => i.trim()).length !== 1 ? 's' : ''}
+              {checklistItems.filter((i) => i.trim()).length} Eintrag{checklistItems.filter((i) => i.trim()).length !== 1 ? '' : ''}{checklistItems.filter((i) => i.trim()).length !== 1 ? 'e' : ''}
             </span>
           )}
         </div>
@@ -193,7 +193,7 @@ export function TaskForm({ onSubmit, initialValues, submitLabel = 'Create Task' 
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              Saving…
+              Wird gespeichert…
             </>
           ) : (
             submitLabel

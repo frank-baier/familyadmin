@@ -157,3 +157,12 @@ docker compose -f docker-compose.prod.yml exec postgres psql -U familyadmin -c "
 See logs
 docker compose -f docker-compose.prod.yml logs backend | grep -i "skip\|phone\|notification\|assigned" | tail -20                                                    
 
+Whatsapp Number:
++1 (555) 176-2413
+Phone Number ID: 1070270152837361
+WhatsApp Business Account ID: 863447493465502
+Token: EAAVcskZCa23IBRVI4uZBjFjI1OZAyzT7Xk1J8PTYbgvsX8LZCVD0ZC41TAvPlWcsafu4quZACScoNqvwXMpvCHe0NrRrHwFz4nKZAGws720DkVwVcgJaF8k30C02bEfItzvpL8SDHbFQgkenZBazXgWKcJ7Ey3ZA4XiuScbPtOq47bcE5MQpcl8yugxZAV2ZAAy6mU3wq3k8wkJRviZBwLQm9lSYQ5CaYASnZCvozLrGTK2RAQUCrL82DOthkFxrfZB1AwxuQ8E08AAO5xNZA8VjUO7NDXsEnZAEich s
+
+
+Resend API Key (required for sendig emails - resend.com, google login)
+re_3iqE6maH_D5hSC8E1sFkHyRmcCFnYZiZB

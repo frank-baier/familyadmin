@@ -33,7 +33,7 @@ export function MealSlotCell({
       <div
         className="glass min-h-[72px] rounded-2xl flex items-center justify-center"
         aria-busy="true"
-        aria-label={`${label} — loading`}
+        aria-label={`${label} — wird geladen`}
       >
         <div className="w-5 h-5 rounded-full border-2 border-indigo-200 border-t-indigo-600 animate-spin" />
       </div>
@@ -63,7 +63,7 @@ export function MealSlotCell({
         {/* Remove button */}
         <button
           onClick={() => onRemove(slot)}
-          aria-label={`Remove ${recipe.name} from ${label}`}
+          aria-label={`${recipe.name} aus ${label} entfernen`}
           className="shrink-0 mt-0.5 w-6 h-6 flex items-center justify-center rounded-xl
                      text-slate-300 hover:bg-red-100/60 hover:text-red-500 transition-colors duration-150
                      opacity-0 group-hover:opacity-100 focus:opacity-100
@@ -81,7 +81,7 @@ export function MealSlotCell({
   return (
     <button
       onClick={() => onAdd(slot)}
-      aria-label={`Add recipe to ${label}`}
+      aria-label={`Rezept zu ${label} hinzufügen`}
       className="glass-interactive min-h-[72px] w-full rounded-2xl
                  border border-dashed border-white/40 hover:border-indigo-300/60
                  flex flex-col items-center justify-center gap-1 group

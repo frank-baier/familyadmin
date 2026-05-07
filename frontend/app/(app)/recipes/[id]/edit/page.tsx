@@ -57,7 +57,7 @@ export default function EditRecipePage({ params }: PageProps) {
   useEffect(() => {
     getRecipe(id)
       .then(setRecipe)
-      .catch(() => setError('Recipe not found or you do not have access.'))
+      .catch(() => setError('Rezept nicht gefunden oder kein Zugriff.'))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -72,15 +72,15 @@ export default function EditRecipePage({ params }: PageProps) {
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
         </svg>
-        Back to Recipe
+        Zurück zum Rezept
       </Link>
 
       {/* Page header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-          {recipe ? `Edit: ${recipe.title}` : 'Edit Recipe'}
+          {recipe ? `Bearbeiten: ${recipe.title}` : 'Rezept bearbeiten'}
         </h1>
-        <p className="text-slate-500 text-sm mt-1">Update the recipe details.</p>
+        <p className="text-slate-500 text-sm mt-1">Rezeptdetails aktualisieren.</p>
       </div>
 
       {/* Error */}

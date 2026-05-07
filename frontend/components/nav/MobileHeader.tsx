@@ -26,7 +26,7 @@ export function MobileHeader() {
         <Link
           href="/dashboard"
           className="flex items-center gap-2.5 min-w-0 rounded-xl px-1 py-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-          aria-label="FamilyAdmin home"
+          aria-label="FamilyAdmin Startseite"
         >
           <span
             className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
@@ -56,14 +56,14 @@ export function MobileHeader() {
               FamilyAdmin
             </span>
             <span className="text-[0.6875rem] text-slate-500 leading-tight truncate">
-              Baier family
+              Familie Baier
             </span>
           </span>
         </Link>
 
         <Link
           href="/profile"
-          aria-label={user?.name ? `Signed in as ${user.name}` : 'Your profile'}
+          aria-label={user?.name ? `Angemeldet als ${user.name}` : 'Dein Profil'}
           className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-[0.75rem] font-bold
                      text-indigo-700 bg-gradient-to-br from-indigo-100 to-violet-100
                      border border-white/70

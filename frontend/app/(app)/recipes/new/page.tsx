@@ -20,14 +20,14 @@ export default function NewRecipePage() {
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
         </svg>
-        Back to Recipes
+        Zurück zu Rezepten
       </Link>
 
       {/* Page header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">New Recipe</h1>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Neues Rezept</h1>
         <p className="text-slate-500 text-sm mt-1">
-          Add a new recipe to the family cookbook.
+          Ein neues Rezept zum Familienkochbuch hinzufügen.
         </p>
       </div>
 

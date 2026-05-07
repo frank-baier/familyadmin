@@ -38,13 +38,13 @@ export function TripForm() {
 
     const errors: FormState['errors'] = {};
 
-    if (!title) errors.title = ['Title is required.'];
-    if (!destination) errors.destination = ['Destination is required.'];
-    if (!startDate) errors.startDate = ['Start date is required.'];
-    if (!endDate) errors.endDate = ['End date is required.'];
+    if (!title) errors.title = ['Reisetitel ist erforderlich.'];
+    if (!destination) errors.destination = ['Reiseziel ist erforderlich.'];
+    if (!startDate) errors.startDate = ['Startdatum ist erforderlich.'];
+    if (!endDate) errors.endDate = ['Enddatum ist erforderlich.'];
 
     if (startDate && endDate && startDate > endDate) {
-      errors.endDate = ['End date must be on or after start date.'];
+      errors.endDate = ['Das Enddatum muss am oder nach dem Startdatum liegen.'];
     }
 
     if (Object.keys(errors).length > 0) {
@@ -64,7 +64,7 @@ export function TripForm() {
       return { success: true, newId: trip.id };
     } catch (err: unknown) {
       const message =
-        err instanceof Error ? err.message : 'Something went wrong. Please try again.';
+        err instanceof Error ? err.message : 'Etwas ist schiefgelaufen. Bitte erneut versuchen.';
       return { errors: { _form: [message] } };
     }
   }
@@ -92,7 +92,7 @@ export function TripForm() {
       {/* Title */}
       <div>
         <label htmlFor="trip-title" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-          Trip name <span className="text-red-400" aria-hidden="true">*</span>
+          Reisetitel <span className="text-red-400" aria-hidden="true">*</span>
         </label>
         <input
           id="trip-title"
@@ -100,7 +100,7 @@ export function TripForm() {
           type="text"
           required
           autoFocus
-          placeholder="e.g. Summer Holidays 2025"
+          placeholder="z. B. Sommerurlaub 2025"
           aria-describedby={state.errors?.title ? 'title-error' : undefined}
           aria-invalid={!!state.errors?.title}
           className={state.errors?.title ? 'input-field border-red-300' : 'input-field'}
@@ -115,14 +115,14 @@ export function TripForm() {
       {/* Destination */}
       <div>
         <label htmlFor="trip-destination" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-          Destination <span className="text-red-400" aria-hidden="true">*</span>
+          Reiseziel <span className="text-red-400" aria-hidden="true">*</span>
         </label>
         <input
           id="trip-destination"
           name="destination"
           type="text"
           required
-          placeholder="e.g. Paris, France"
+          placeholder="z. B. Paris, Frankreich"
           aria-describedby={state.errors?.destination ? 'destination-error' : undefined}
           aria-invalid={!!state.errors?.destination}
           className={state.errors?.destination ? 'input-field border-red-300' : 'input-field'}
@@ -138,7 +138,7 @@ export function TripForm() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label htmlFor="trip-start" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-            Start date <span className="text-red-400" aria-hidden="true">*</span>
+            Startdatum <span className="text-red-400" aria-hidden="true">*</span>
           </label>
           <input
             id="trip-start"
@@ -158,7 +158,7 @@ export function TripForm() {
 
         <div>
           <label htmlFor="trip-end" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-            End date <span className="text-red-400" aria-hidden="true">*</span>
+            Enddatum <span className="text-red-400" aria-hidden="true">*</span>
           </label>
           <input
             id="trip-end"
@@ -180,13 +180,13 @@ export function TripForm() {
       {/* Description */}
       <div>
         <label htmlFor="trip-description" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-          Description <span className="text-slate-400 normal-case font-normal">(optional)</span>
+          Beschreibung <span className="text-slate-400 normal-case font-normal">(optional)</span>
         </label>
         <textarea
           id="trip-description"
           name="description"
           rows={3}
-          placeholder="A short description of the trip…"
+          placeholder="Eine kurze Beschreibung der Reise…"
           className="input-field"
         />
       </div>
@@ -197,10 +197,10 @@ export function TripForm() {
           {isPending ? (
             <>
               <Spinner />
-              Creating…
+              Wird erstellt…
             </>
           ) : (
-            'Plan this trip'
+            'Reise planen'
           )}
         </button>
       </div>

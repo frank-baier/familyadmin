@@ -18,7 +18,7 @@ interface Tab {
 
 const tabs: Tab[] = [
   {
-    label: 'Home',
+    label: 'Start',
     href: '/dashboard',
     icon: (
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -28,7 +28,7 @@ const tabs: Tab[] = [
     ),
   },
   {
-    label: 'Tasks',
+    label: 'Aufgaben',
     href: '/tasks',
     matchPrefix: '/tasks',
     icon: (
@@ -39,7 +39,7 @@ const tabs: Tab[] = [
     ),
   },
   {
-    label: 'Recipes',
+    label: 'Rezepte',
     href: '/recipes',
     matchPrefix: '/recipes',
     icon: (
@@ -50,7 +50,7 @@ const tabs: Tab[] = [
     ),
   },
   {
-    label: 'Travel',
+    label: 'Reisen',
     href: '/travel',
     matchPrefix: '/travel',
     icon: (
@@ -61,7 +61,7 @@ const tabs: Tab[] = [
     ),
   },
   {
-    label: 'Me',
+    label: 'Profil',
     href: '/profile',
     matchPrefix: '/profile',
     icon: (
@@ -85,7 +85,7 @@ export function BottomNav() {
 
   return (
     <nav
-      aria-label="Primary"
+      aria-label="Hauptnavigation"
       className="md:hidden fixed bottom-0 inset-x-0 z-40 pb-safe px-3 pt-2"
     >
       <div

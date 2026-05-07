@@ -100,19 +100,19 @@ export function isSameDay(a: Date, b: Date): boolean {
   );
 }
 
-/** Short label like "Mon 6 Jan". */
+/** Short label like "Mo. 6. Jan.". */
 export function formatDayLabel(date: Date): string {
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${days[date.getDay()]} ${date.getDate()} ${months[date.getMonth()]}`;
+  const days = ['So.', 'Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.'];
+  const months = ['Jan.', 'Feb.', 'März', 'Apr.', 'Mai', 'Juni', 'Juli', 'Aug.', 'Sep.', 'Okt.', 'Nov.', 'Dez.'];
+  return `${days[date.getDay()]} ${date.getDate()}. ${months[date.getMonth()]}`;
 }
 
-/** Human-readable week range like "30 Mar – 5 Apr 2026". */
+/** Human-readable week range like "30. März – 5. Apr. 2026". */
 export function formatWeekRange(monday: Date): string {
   const sunday = addDays(monday, 6);
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const months = ['Jan.', 'Feb.', 'März', 'Apr.', 'Mai', 'Juni', 'Juli', 'Aug.', 'Sep.', 'Okt.', 'Nov.', 'Dez.'];
   const startMonth = monday.getMonth() !== sunday.getMonth() ? ` ${months[monday.getMonth()]}` : '';
-  return `${monday.getDate()}${startMonth} – ${sunday.getDate()} ${months[sunday.getMonth()]} ${sunday.getFullYear()}`;
+  return `${monday.getDate()}.${startMonth} – ${sunday.getDate()}. ${months[sunday.getMonth()]} ${sunday.getFullYear()}`;
 }
 
 /** Ordered meal slots for grid rows */
@@ -120,8 +120,8 @@ export const MEAL_SLOTS: MealSlot[] = ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'];
 
 /** Display labels for meal slots */
 export const MEAL_SLOT_LABELS: Record<MealSlot, string> = {
-  BREAKFAST: 'Breakfast',
-  LUNCH: 'Lunch',
-  DINNER: 'Dinner',
+  BREAKFAST: 'Frühstück',
+  LUNCH: 'Mittagessen',
+  DINNER: 'Abendessen',
   SNACK: 'Snack',
 };

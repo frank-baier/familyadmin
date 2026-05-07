@@ -16,9 +16,9 @@ import { useUser } from '@/lib/user-context';
 // ─── Status badge config ─────────────────────────────────────────────────────
 
 const STATUS_CONFIG = {
-  OPEN: { label: 'Open', classes: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
-  IN_PROGRESS: { label: 'In Progress', classes: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
-  DONE: { label: 'Done', classes: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' },
+  OPEN: { label: 'Offen', classes: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
+  IN_PROGRESS: { label: 'In Bearbeitung', classes: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' },
+  DONE: { label: 'Erledigt', classes: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' },
 } as const;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -28,7 +28,7 @@ function getInitials(name: string): string {
 }
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', {
+  return new Date(dateStr).toLocaleDateString('de-DE', {
     weekday: 'short',
     year: 'numeric',
     month: 'short',
@@ -37,7 +37,7 @@ function formatDate(dateStr: string): string {
 }
 
 function formatDateTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleString('en-US', {
+  return new Date(dateStr).toLocaleString('de-DE', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -87,7 +87,7 @@ export default function TaskDetailPage({ params }: PageProps) {
   useEffect(() => {
     getTask(id)
       .then(setTask)
-      .catch(() => setError('Task not found or you do not have access.'))
+      .catch(() => setError('Aufgabe nicht gefunden oder kein Zugriff.'))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -147,10 +147,10 @@ export default function TaskDetailPage({ params }: PageProps) {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
           </svg>
-          Back to Tasks
+          Zurück zu Aufgaben
         </Link>
         <div className="rounded-xl bg-red-50 border border-red-200 px-5 py-4 text-red-700 text-sm">
-          {error ?? 'Task not found.'}
+          {error ?? 'Aufgabe nicht gefunden.'}
         </div>
       </div>
     );
@@ -174,7 +174,7 @@ export default function TaskDetailPage({ params }: PageProps) {
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
         </svg>
-        Back to Tasks
+        Zurück zu Aufgaben
       </Link>
 
       {/* Main card */}
@@ -188,7 +188,7 @@ export default function TaskDetailPage({ params }: PageProps) {
                 clipRule="evenodd" />
             </svg>
             <span className="text-sm font-medium text-red-700">
-              This task is overdue — was due {formatDate(task.dueDate!)}
+              Diese Aufgabe ist überfällig — war fällig am {formatDate(task.dueDate!)}
             </span>
           </div>
         )}
@@ -218,7 +218,7 @@ export default function TaskDetailPage({ params }: PageProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
                 </svg>
-                Edit
+                Bearbeiten
               </Link>
             )}
           </div>
@@ -249,13 +249,13 @@ export default function TaskDetailPage({ params }: PageProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4.5 12.75l6 6 9-13.5" />
                   </svg>
                 )}
-                Mark Complete
+                Als erledigt markieren
               </button>
             )}
 
             {isDone && task.completedAt && (
               <span className="text-xs text-slate-400">
-                Completed {formatDateTime(task.completedAt)}
+                Erledigt am {formatDateTime(task.completedAt)}
               </span>
             )}
           </div>
@@ -267,7 +267,7 @@ export default function TaskDetailPage({ params }: PageProps) {
         <dl className="px-6 py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Assignee */}
           <div>
-            <dt className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Assigned to</dt>
+            <dt className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Zugewiesen an</dt>
             <dd>
               {task.assignee ? (
                 <div className="flex items-center gap-2">
@@ -280,14 +280,14 @@ export default function TaskDetailPage({ params }: PageProps) {
                   <span className="text-sm text-slate-700 font-medium">{task.assignee.name}</span>
                 </div>
               ) : (
-                <span className="text-sm text-slate-400 italic">Unassigned</span>
+                <span className="text-sm text-slate-400 italic">Nicht zugewiesen</span>
               )}
             </dd>
           </div>
 
           {/* Due date */}
           <div>
-            <dt className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Due date</dt>
+            <dt className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Fälligkeitsdatum</dt>
             <dd>
               {task.dueDate ? (
                 <span className={[
@@ -297,20 +297,20 @@ export default function TaskDetailPage({ params }: PageProps) {
                   {formatDate(task.dueDate)}
                 </span>
               ) : (
-                <span className="text-sm text-slate-400 italic">No due date</span>
+                <span className="text-sm text-slate-400 italic">Kein Fälligkeitsdatum</span>
               )}
             </dd>
           </div>
 
           {/* Created by */}
           <div>
-            <dt className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Created by</dt>
+            <dt className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Erstellt von</dt>
             <dd className="text-sm text-slate-700">{task.createdBy.name}</dd>
           </div>
 
           {/* Created at */}
           <div>
-            <dt className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Created</dt>
+            <dt className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">Erstellt am</dt>
             <dd className="text-sm text-slate-700">{formatDateTime(task.createdAt)}</dd>
           </div>
         </dl>
@@ -320,7 +320,7 @@ export default function TaskDetailPage({ params }: PageProps) {
           <>
             <div className="hairline mx-4" />
             <div className="px-6 py-4">
-              <h2 className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2">Description</h2>
+              <h2 className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2">Beschreibung</h2>
               <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{task.description}</p>
             </div>
           </>
@@ -332,9 +332,9 @@ export default function TaskDetailPage({ params }: PageProps) {
             <div className="hairline mx-4" />
             <div className="px-6 py-4">
               <div className="flex items-center justify-between mb-1">
-                <h2 className="text-xs font-medium text-slate-400 uppercase tracking-wide">Checklist</h2>
+                <h2 className="text-xs font-medium text-slate-400 uppercase tracking-wide">Checkliste</h2>
                 <span className="text-xs text-slate-400 font-medium">
-                  {doneCount}/{sortedChecklist.length} done
+                  {doneCount}/{sortedChecklist.length} erledigt
                 </span>
               </div>
 
@@ -347,11 +347,11 @@ export default function TaskDetailPage({ params }: PageProps) {
                   aria-valuenow={doneCount}
                   aria-valuemin={0}
                   aria-valuemax={sortedChecklist.length}
-                  aria-label="Checklist progress"
+                  aria-label="Checklisten-Fortschritt"
                 />
               </div>
 
-              <ul className="divide-y divide-slate-50" aria-label="Checklist items">
+              <ul className="divide-y divide-slate-50" aria-label="Checklisteneinträge">
                 {sortedChecklist.map((item) => (
                   <ChecklistItem
                     key={item.id}
@@ -369,7 +369,7 @@ export default function TaskDetailPage({ params }: PageProps) {
         <div className="hairline mx-4" /><div className="px-6 py-4 flex justify-end">
           {showDeleteConfirm ? (
             <div className="flex items-center gap-3">
-              <span className="text-sm text-slate-600">Delete this task?</span>
+              <span className="text-sm text-slate-600">Diese Aufgabe löschen?</span>
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800
@@ -377,7 +377,7 @@ export default function TaskDetailPage({ params }: PageProps) {
                            focus:outline-none focus:ring-2 focus:ring-slate-400
                            transition-all duration-150"
               >
-                Cancel
+                Abbrechen
               </button>
               <button
                 onClick={handleDelete}
@@ -388,7 +388,7 @@ export default function TaskDetailPage({ params }: PageProps) {
                            focus:outline-none focus:ring-2 focus:ring-red-500
                            transition-all duration-150"
               >
-                {deleting ? 'Deleting…' : 'Yes, delete'}
+                {deleting ? 'Wird gelöscht…' : 'Ja, löschen'}
               </button>
             </div>
           ) : (
@@ -404,7 +404,7 @@ export default function TaskDetailPage({ params }: PageProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
               </svg>
-              Delete task
+              Aufgabe löschen
             </button>
           )}
         </div>

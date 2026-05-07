@@ -36,7 +36,7 @@ export default function ProfilePage() {
       setUser(updated);
       setSuccess(true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to save profile.');
+      setError(err instanceof Error ? err.message : 'Profil konnte nicht gespeichert werden.');
     } finally {
       setSaving(false);
     }
@@ -73,7 +73,7 @@ export default function ProfilePage() {
           {initials}
         </div>
         <div className="min-w-0">
-          <h1 className="text-xl font-bold text-slate-900">{user?.name ?? 'Family Member'}</h1>
+          <h1 className="text-xl font-bold text-slate-900">{user?.name ?? 'Familienmitglied'}</h1>
           <p className="text-sm text-slate-500">{user?.email}</p>
           {user?.role === 'ADMIN' && (
             <span className="pill bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200/60 mt-1 inline-flex">
@@ -85,44 +85,44 @@ export default function ProfilePage() {
 
       {/* Edit form */}
       <div className="glass rounded-3xl px-6 py-6">
-        <h2 className="section-label mb-4">Profile Settings</h2>
+        <h2 className="section-label mb-4">Profileinstellungen</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <p className="px-4 py-3 rounded-2xl bg-red-50/80 text-red-700 text-sm border border-red-200/60">{error}</p>
           )}
           {success && (
             <p className="px-4 py-3 rounded-2xl bg-emerald-50/80 text-emerald-700 text-sm border border-emerald-200/60">
-              Profile updated successfully.
+              Profil erfolgreich aktualisiert.
             </p>
           )}
 
           <div>
             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Name</label>
             <input type="text" required value={name} onChange={(e) => setName(e.target.value)}
-              className="input-field" placeholder="Your name" />
+              className="input-field" placeholder="Dein Name" />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Email</label>
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">E-Mail</label>
             <input type="email" value={user?.email ?? ''} disabled
               className="input-field opacity-50 cursor-not-allowed" />
-            <p className="mt-1 text-xs text-slate-400">Email can only be changed by an admin.</p>
+            <p className="mt-1 text-xs text-slate-400">E-Mail kann nur von einem Admin geändert werden.</p>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-              WhatsApp number
+              WhatsApp-Nummer
             </label>
             <input type="tel" value={whatsappPhone} onChange={(e) => setWhatsappPhone(e.target.value)}
               className="input-field" placeholder="+491234567890" />
             <p className="mt-1 text-xs text-slate-400">
-              International format, e.g. +491234567890. Used for task notifications.
+              Internationales Format, z. B. +491234567890. Wird für Aufgabenbenachrichtigungen verwendet.
             </p>
           </div>
 
           <div className="flex justify-end pt-1">
             <button type="submit" disabled={saving} className="btn-primary">
-              {saving ? 'Saving…' : 'Save changes'}
+              {saving ? 'Wird gespeichert…' : 'Änderungen speichern'}
             </button>
           </div>
         </form>
@@ -130,7 +130,7 @@ export default function ProfilePage() {
 
       {/* Quick links */}
       <div className="glass rounded-3xl px-6 py-4 space-y-1">
-        <h2 className="section-label mb-3">More</h2>
+        <h2 className="section-label mb-3">Mehr</h2>
 
         <Link
           href="/documents"
@@ -141,7 +141,7 @@ export default function ProfilePage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
               d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
           </svg>
-          <span className="flex-1">Documents</span>
+          <span className="flex-1">Dokumente</span>
           <svg className="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.25 4.5l7.5 7.5-7.5 7.5" />
           </svg>
@@ -157,7 +157,7 @@ export default function ProfilePage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
                 d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
             </svg>
-            <span className="flex-1">Family Members</span>
+            <span className="flex-1">Familienmitglieder</span>
             <svg className="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.25 4.5l7.5 7.5-7.5 7.5" />
             </svg>
@@ -178,7 +178,7 @@ export default function ProfilePage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
               d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
           </svg>
-          {loggingOut ? 'Signing out…' : 'Sign out'}
+          {loggingOut ? 'Wird abgemeldet…' : 'Abmelden'}
         </button>
       </div>
 

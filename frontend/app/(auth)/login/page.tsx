@@ -11,12 +11,12 @@ const initialState: LoginState = {};
 async function loginAction(_prev: LoginState, formData: FormData): Promise<LoginState> {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
-  if (!email || !password) return { error: 'Please enter your email and password.' };
+  if (!email || !password) return { error: 'Bitte E-Mail und Passwort eingeben.' };
   try {
     await login(email, password);
     return { success: true };
   } catch {
-    return { error: 'Invalid email or password. Please try again.' };
+    return { error: 'Ungültige E-Mail oder falsches Passwort. Bitte erneut versuchen.' };
   }
 }
 
@@ -55,7 +55,7 @@ export default function LoginPage() {
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">FamilyAdmin</h1>
-          <p className="text-sm text-slate-500 mt-1">Baier family · Private hub</p>
+          <p className="text-sm text-slate-500 mt-1">Familie Baier · Privater Bereich</p>
         </div>
 
         {/* Error */}
@@ -76,19 +76,19 @@ export default function LoginPage() {
         <form action={action} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
-              Email
+              E-Mail
             </label>
             <input
               id="email" name="email" type="email"
               autoComplete="email" required disabled={pending}
               className="input-field"
-              placeholder="you@example.com"
+              placeholder="du@beispiel.com"
             />
           </div>
 
           <div>
             <label htmlFor="password" className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
-              Password
+              Passwort
             </label>
             <input
               id="password" name="password" type="password"
@@ -109,14 +109,14 @@ export default function LoginPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                Signing in…
+                Anmelden…
               </>
-            ) : 'Sign in'}
+            ) : 'Anmelden'}
           </button>
         </form>
 
         <p className="mt-6 text-center text-xs text-slate-400">
-          Accounts are managed by the family admin.
+          Konten werden vom Familienadmin verwaltet.
         </p>
       </div>
     </div>

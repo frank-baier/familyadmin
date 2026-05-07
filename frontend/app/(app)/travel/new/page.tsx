@@ -18,13 +18,13 @@ export default function NewTripPage() {
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
         </svg>
-        Back to Travel
+        Zurück zu Reisen
       </Link>
 
       {/* Page header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Plan a Trip</h1>
-        <p className="text-slate-500 text-sm mt-1">Create a new family trip</p>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Reise planen</h1>
+        <p className="text-slate-500 text-sm mt-1">Eine neue Familienreise erstellen</p>
       </div>
 
       {/* Form card */}

@@ -25,7 +25,7 @@ const navItems: NavItem[] = [
     ),
   },
   {
-    label: 'Tasks',
+    label: 'Aufgaben',
     href: '/tasks',
     icon: (
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -33,10 +33,10 @@ const navItems: NavItem[] = [
           d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ),
-    children: [{ label: 'Templates', href: '/tasks/templates', adminOnly: true }],
+    children: [{ label: 'Vorlagen', href: '/tasks/templates', adminOnly: true }],
   },
   {
-    label: 'Recipes',
+    label: 'Rezepte',
     href: '/recipes',
     icon: (
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -44,10 +44,10 @@ const navItems: NavItem[] = [
           d="M12 8.25v-1.5m0 1.5c-1.355 0-2.697.056-4.024.166C6.845 8.51 6 9.473 6 10.608v2.513m6-4.871c1.355 0 2.697.056 4.024.166C17.155 8.51 18 9.473 18 10.608v2.513M15 8.25v-1.5m-6 1.5v-1.5m12 9.75l-1.5.75a3.354 3.354 0 01-3 0 3.354 3.354 0 00-3 0 3.354 3.354 0 01-3 0 3.354 3.354 0 00-3 0 3.354 3.354 0 01-1.5-.75M3 16.5v-2.625a4.125 4.125 0 014.125-4.125h9.75A4.125 4.125 0 0121 13.875V16.5" />
       </svg>
     ),
-    children: [{ label: 'Meal Plan', href: '/recipes/meal-plan' }],
+    children: [{ label: 'Mahlzeitenplan', href: '/recipes/meal-plan' }],
   },
   {
-    label: 'Travel',
+    label: 'Reisen',
     href: '/travel',
     icon: (
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -57,7 +57,7 @@ const navItems: NavItem[] = [
     ),
   },
   {
-    label: 'Documents',
+    label: 'Dokumente',
     href: '/documents',
     icon: (
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -67,7 +67,7 @@ const navItems: NavItem[] = [
     ),
   },
   {
-    label: 'Family Members',
+    label: 'Familienmitglieder',
     href: '/admin/users',
     adminOnly: true,
     icon: (
@@ -87,7 +87,7 @@ export function Sidebar() {
   return (
     <aside
       className="glass-strong flex flex-col h-full rounded-3xl overflow-hidden"
-      aria-label="Primary navigation"
+      aria-label="Hauptnavigation"
     >
       {/* Brand */}
       <div className="flex items-center gap-3 px-5 pt-6 pb-5">
@@ -106,7 +106,7 @@ export function Sidebar() {
         </span>
         <div>
           <p className="text-sm font-bold text-slate-900 leading-tight">FamilyAdmin</p>
-          <p className="text-xs text-slate-400 leading-tight">Baier family</p>
+          <p className="text-xs text-slate-400 leading-tight">Familie Baier</p>
         </div>
       </div>
 

@@ -38,7 +38,7 @@ export default function UseTemplatePage({ params }: PageProps) {
         // Pre-select all subtasks
         setSelected(new Set(t.subtasks.map((s) => s.id)));
       })
-      .catch(() => setError('Template not found.'))
+      .catch(() => setError('Vorlage nicht gefunden.'))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -71,7 +71,7 @@ export default function UseTemplatePage({ params }: PageProps) {
       const task = await useTemplate(id, Array.from(selected));
       router.push(`/tasks/${task.id}/edit`);
     } catch {
-      setSubmitError('Failed to create task. Please try again.');
+      setSubmitError('Aufgabe konnte nicht erstellt werden. Bitte erneut versuchen.');
       setSubmitting(false);
     }
   }
@@ -95,10 +95,10 @@ export default function UseTemplatePage({ params }: PageProps) {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
           </svg>
-          Back to Templates
+          Zurück zu Vorlagen
         </Link>
         <div className="rounded-2xl bg-red-50/80 border border-red-200/60 px-5 py-4 text-red-700 text-sm">
-          {error ?? 'Template not found.'}
+          {error ?? 'Vorlage nicht gefunden.'}
         </div>
       </div>
     );
@@ -117,7 +117,7 @@ export default function UseTemplatePage({ params }: PageProps) {
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
         </svg>
-        Back to Templates
+        Zurück zu Vorlagen
       </Link>
 
       {/* Header */}
@@ -130,8 +130,7 @@ export default function UseTemplatePage({ params }: PageProps) {
 
       {/* Instruction */}
       <p className="text-sm text-slate-600 mb-4">
-        Select the subtasks to include. A new task will be created with the selected items as its
-        checklist — you can then assign it and set a due date.
+        Unteraufgaben auswählen, die einbezogen werden sollen. Eine neue Aufgabe wird mit den ausgewählten Einträgen als Checkliste erstellt — du kannst sie dann zuweisen und ein Fälligkeitsdatum setzen.
       </p>
 
       {/* Submit error */}
@@ -146,7 +145,7 @@ export default function UseTemplatePage({ params }: PageProps) {
         {/* Select all / none */}
         <div className="px-5 py-3 hairline flex items-center justify-between">
           <span className="section-label">
-            {selected.size} of {sorted.length} selected
+            {selected.size} von {sorted.length} ausgewählt
           </span>
           <div className="flex gap-3">
             <button
@@ -155,7 +154,7 @@ export default function UseTemplatePage({ params }: PageProps) {
               className="text-xs text-indigo-600 hover:text-indigo-800 disabled:text-slate-300
                          focus:outline-none focus:underline transition-colors font-semibold"
             >
-              Select all
+              Alle auswählen
             </button>
             <button
               onClick={selectNone}
@@ -163,14 +162,14 @@ export default function UseTemplatePage({ params }: PageProps) {
               className="text-xs text-slate-500 hover:text-slate-700 disabled:text-slate-300
                          focus:outline-none focus:underline transition-colors"
             >
-              Clear
+              Auswahl aufheben
             </button>
           </div>
         </div>
 
         {sorted.length === 0 ? (
           <div className="px-5 py-8 text-center text-sm text-slate-400">
-            This template has no subtasks. A task will be created with just the title.
+            Diese Vorlage hat keine Unteraufgaben. Eine Aufgabe wird nur mit dem Titel erstellt.
           </div>
         ) : (
           <ul>
@@ -211,20 +210,20 @@ export default function UseTemplatePage({ params }: PageProps) {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              Creating…
+              Wird erstellt…
             </>
           ) : (
             <>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4.5 12.75l6 6 9-13.5" />
               </svg>
-              Create task{selected.size > 0 ? ` with ${selected.size} subtask${selected.size !== 1 ? 's' : ''}` : ''}
+              Aufgabe erstellen{selected.size > 0 ? ` mit ${selected.size} Unteraufgabe${selected.size !== 1 ? 'n' : ''}` : ''}
             </>
           )}
         </button>
 
         <Link href="/tasks/templates" className="btn-secondary">
-          Cancel
+          Abbrechen
         </Link>
       </div>
     </div>

@@ -26,9 +26,9 @@ function formatDateRange(startStr: string, endStr: string): string {
   const start = new Date(`${startStr}T00:00:00`);
   const end = new Date(`${endStr}T00:00:00`);
 
-  const dayFmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric' });
-  const monthFmt = new Intl.DateTimeFormat('en-GB', { month: 'short' });
-  const yearFmt = new Intl.DateTimeFormat('en-GB', { year: 'numeric' });
+  const dayFmt = new Intl.DateTimeFormat('de-DE', { day: 'numeric' });
+  const monthFmt = new Intl.DateTimeFormat('de-DE', { month: 'short' });
+  const yearFmt = new Intl.DateTimeFormat('de-DE', { year: 'numeric' });
 
   const startDay = dayFmt.format(start);
   const startMonth = monthFmt.format(start);
@@ -174,7 +174,7 @@ export default function TripDetailPage({ params }: PageProps) {
         setTrip(tripData);
         setCurrentUser(userData);
       } catch {
-        setError('Trip not found or you do not have access.');
+        setError('Reise nicht gefunden oder kein Zugriff.');
       } finally {
         setLoading(false);
       }
@@ -216,10 +216,10 @@ export default function TripDetailPage({ params }: PageProps) {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
           </svg>
-          Back to Travel
+          Zurück zu Reisen
         </Link>
         <div className="rounded-xl bg-red-50 border border-red-200 px-5 py-4 text-red-700 text-sm">
-          {error ?? 'Trip not found.'}
+          {error ?? 'Reise nicht gefunden.'}
         </div>
       </div>
     );
@@ -244,7 +244,7 @@ export default function TripDetailPage({ params }: PageProps) {
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
         </svg>
-        Back to Travel
+        Zurück zu Reisen
       </Link>
 
       {/* Cover image / gradient fallback */}
@@ -288,8 +288,8 @@ export default function TripDetailPage({ params }: PageProps) {
             <div className="shrink-0 flex items-center gap-1.5">
               <div
                 className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold"
-                title={`Created by ${trip.createdBy.name}`}
-                aria-label={`Created by ${trip.createdBy.name}`}
+                title={`Erstellt von ${trip.createdBy.name}`}
+                aria-label={`Erstellt von ${trip.createdBy.name}`}
               >
                 {trip.createdBy.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
               </div>
@@ -310,7 +310,7 @@ export default function TripDetailPage({ params }: PageProps) {
             <div className="border-t border-slate-100" />
             <div className="px-6 py-4">
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">
-                Key info
+                Wichtige Infos
               </h2>
               <dl className="space-y-2">
                 {sortedKeyInfos.map((info) => (
@@ -333,7 +333,7 @@ export default function TripDetailPage({ params }: PageProps) {
             <div className="px-6 py-4 flex justify-end">
               {showDeleteConfirm ? (
                 <div className="flex items-center gap-3">
-                  <span className="text-sm text-slate-600">Delete this trip?</span>
+                  <span className="text-sm text-slate-600">Diese Reise löschen?</span>
                   <button
                     onClick={() => setShowDeleteConfirm(false)}
                     className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800
@@ -341,7 +341,7 @@ export default function TripDetailPage({ params }: PageProps) {
                                focus:outline-none focus:ring-2 focus:ring-slate-400
                                transition-all duration-150"
                   >
-                    Cancel
+                    Abbrechen
                   </button>
                   <button
                     onClick={handleDelete}
@@ -352,7 +352,7 @@ export default function TripDetailPage({ params }: PageProps) {
                                focus:outline-none focus:ring-2 focus:ring-red-500
                                transition-all duration-150"
                   >
-                    {deleting ? 'Deleting…' : 'Yes, delete'}
+                    {deleting ? 'Wird gelöscht…' : 'Ja, löschen'}
                   </button>
                 </div>
               ) : (
@@ -368,7 +368,7 @@ export default function TripDetailPage({ params }: PageProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                       d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                   </svg>
-                  Delete trip
+                  Reise löschen
                 </button>
               )}
             </div>
@@ -380,13 +380,13 @@ export default function TripDetailPage({ params }: PageProps) {
       <div
         className="flex items-center gap-2 mb-4 p-1 bg-slate-100 rounded-xl w-fit"
         role="tablist"
-        aria-label="Trip sections"
+        aria-label="Reisebereiche"
       >
         <TabButton active={activeTab === 'packing'} onClick={() => setActiveTab('packing')}>
-          Packing List
+          Packliste
         </TabButton>
         <TabButton active={activeTab === 'itinerary'} onClick={() => setActiveTab('itinerary')}>
-          Itinerary
+          Reiseplan
         </TabButton>
       </div>
 
@@ -396,19 +396,19 @@ export default function TripDetailPage({ params }: PageProps) {
           {/* Packing sub-tabs */}
           <div className="flex items-center gap-2 px-6 pt-4 pb-3 border-b border-slate-100"
             role="tablist"
-            aria-label="Packing list type"
+            aria-label="Packlisten-Typ"
           >
             <SubTabButton
               active={packingSubTab === 'shared'}
               onClick={() => setPackingSubTab('shared')}
             >
-              Shared
+              Geteilt
             </SubTabButton>
             <SubTabButton
               active={packingSubTab === 'personal'}
               onClick={() => setPackingSubTab('personal')}
             >
-              My Items
+              Meine Einträge
             </SubTabButton>
           </div>
 
@@ -452,8 +452,8 @@ export default function TripDetailPage({ params }: PageProps) {
                 />
               </svg>
             </div>
-            <p className="text-sm font-semibold text-slate-500 mb-1">Itinerary coming soon</p>
-            <p className="text-xs text-slate-400">Day-by-day planning will be available shortly.</p>
+            <p className="text-sm font-semibold text-slate-500 mb-1">Reiseplan demnächst verfügbar</p>
+            <p className="text-xs text-slate-400">Tagesplanung wird in Kürze verfügbar sein.</p>
           </div>
         </div>
       )}

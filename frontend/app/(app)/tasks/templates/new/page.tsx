@@ -37,18 +37,18 @@ export default function NewTemplatePage() {
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
         </svg>
-        Back to Templates
+        Zurück zu Vorlagen
       </Link>
 
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">New Template</h1>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Neue Vorlage</h1>
         <p className="text-slate-500 text-sm mt-1">
-          Define a reusable task with a list of subtasks to choose from.
+          Eine wiederverwendbare Aufgabe mit einer Liste von Unteraufgaben definieren.
         </p>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-6">
-        <TemplateForm onSubmit={handleSubmit} submitLabel="Create Template" />
+        <TemplateForm onSubmit={handleSubmit} submitLabel="Vorlage erstellen" />
       </div>
     </div>
   );

@@ -27,20 +27,20 @@ export default function NewTaskPage() {
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
         </svg>
-        Back to Tasks
+        Zurück zu Aufgaben
       </Link>
 
       {/* Page header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">New Task</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Neue Aufgabe</h1>
         <p className="text-slate-500 text-sm mt-1">
-          Add a new task for the family to track.
+          Eine neue Aufgabe für die Familie erstellen.
         </p>
       </div>
 
       {/* Form card */}
       <div className="glass rounded-3xl px-6 py-6">
-        <TaskForm onSubmit={handleSubmit} submitLabel="Create Task" />
+        <TaskForm onSubmit={handleSubmit} submitLabel="Aufgabe erstellen" />
       </div>
     </div>
   );

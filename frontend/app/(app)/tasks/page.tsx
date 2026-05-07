@@ -25,7 +25,7 @@ function SectionLabel({ label, count, variant = 'default' }: { label: string; co
   return (
     <div className="flex items-center gap-3 mb-3">
       <span className={`section-label ${colors[variant]}`}>{label}</span>
-      <span className="text-xs text-slate-400">{count} task{count !== 1 ? 's' : ''}</span>
+      <span className="text-xs text-slate-400">{count} Aufgabe{count !== 1 ? 'n' : ''}</span>
       <div className="flex-1 hairline" />
     </div>
   );
@@ -57,7 +57,7 @@ export default function TasksPage() {
     try {
       setTasks(activeTab === 'family' ? await getTasks() : await getMyTasks());
     } catch (e) {
-      setError('Failed to load tasks. Please try again.');
+      setError('Aufgaben konnten nicht geladen werden. Bitte erneut versuchen.');
       console.error(e);
     } finally {
       setLoading(false);
@@ -75,23 +75,23 @@ export default function TasksPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Tasks</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Aufgaben</h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            {activeTab === 'family' ? 'All family tasks' : 'Your assigned tasks'}
+            {activeTab === 'family' ? 'Alle Familienaufgaben' : 'Deine zugewiesenen Aufgaben'}
           </p>
         </div>
         <Link href="/tasks/new" className="btn-primary shrink-0">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
-          New
+          Neu
         </Link>
       </div>
 
       {/* Tab toggle */}
       <div
         role="tablist"
-        aria-label="Task view"
+        aria-label="Aufgabenansicht"
         className="glass rounded-2xl p-1 flex gap-1 w-fit mb-6"
       >
         {(['family', 'mine'] as Tab[]).map((id) => (
@@ -108,7 +108,7 @@ export default function TasksPage() {
                 : 'text-slate-500 hover:text-slate-800',
             ].join(' ')}
           >
-            {id === 'family' ? 'Family' : 'Mine'}
+            {id === 'family' ? 'Familie' : 'Meine'}
           </button>
         ))}
       </div>
@@ -117,7 +117,7 @@ export default function TasksPage() {
       {error && (
         <div role="alert" className="glass rounded-2xl px-4 py-3 text-sm text-red-700 bg-red-50/70 border border-red-200/60 mb-5 flex justify-between">
           {error}
-          <button onClick={loadTasks} className="ml-4 text-xs underline hover:no-underline">Retry</button>
+          <button onClick={loadTasks} className="ml-4 text-xs underline hover:no-underline">Erneut versuchen</button>
         </div>
       )}
 
@@ -142,17 +142,17 @@ export default function TasksPage() {
             </svg>
           </div>
           <h3 className="text-base font-semibold text-slate-900 mb-1">
-            {activeTab === 'mine' ? 'No tasks assigned to you' : 'No tasks yet'}
+            {activeTab === 'mine' ? 'Keine Aufgaben zugewiesen' : 'Noch keine Aufgaben'}
           </h3>
           <p className="text-sm text-slate-500 mb-6 max-w-xs mx-auto">
-            {activeTab === 'mine' ? 'Tasks assigned to you will appear here.' : 'Create the first task to get organised!'}
+            {activeTab === 'mine' ? 'Dir zugewiesene Aufgaben erscheinen hier.' : 'Erstelle die erste Aufgabe, um loszulegen!'}
           </p>
           {activeTab === 'family' && (
             <Link href="/tasks/new" className="btn-primary">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
-              Create first task
+              Erste Aufgabe erstellen
             </Link>
           )}
         </div>
@@ -163,7 +163,7 @@ export default function TasksPage() {
         <div className="space-y-10">
           {overdue.length > 0 && (
             <section aria-labelledby="overdue-heading">
-              <SectionLabel label="Overdue" count={overdue.length} variant="overdue" />
+              <SectionLabel label="Überfällig" count={overdue.length} variant="overdue" />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {overdue.map((t) => <TaskCard key={t.id} task={t} />)}
               </div>
@@ -171,7 +171,7 @@ export default function TasksPage() {
           )}
           {today.length > 0 && (
             <section aria-labelledby="today-heading">
-              <SectionLabel label="Due Today" count={today.length} variant="today" />
+              <SectionLabel label="Heute fällig" count={today.length} variant="today" />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {today.map((t) => <TaskCard key={t.id} task={t} />)}
               </div>
@@ -179,7 +179,7 @@ export default function TasksPage() {
           )}
           {upcoming.length > 0 && (
             <section aria-labelledby="upcoming-heading">
-              <SectionLabel label="Upcoming" count={upcoming.length} />
+              <SectionLabel label="Demnächst" count={upcoming.length} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {upcoming.map((t) => <TaskCard key={t.id} task={t} />)}
               </div>
@@ -187,7 +187,7 @@ export default function TasksPage() {
           )}
           {noDueDate.length > 0 && (
             <section aria-labelledby="noduedate-heading">
-              <SectionLabel label="No Due Date" count={noDueDate.length} variant="noduedate" />
+              <SectionLabel label="Kein Fälligkeitsdatum" count={noDueDate.length} variant="noduedate" />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {noDueDate.map((t) => <TaskCard key={t.id} task={t} />)}
               </div>

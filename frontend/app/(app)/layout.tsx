@@ -22,7 +22,7 @@ export default function AppLayout({
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:px-4 focus:py-2 focus:bg-white focus:text-indigo-700 focus:rounded-xl focus:shadow-lg focus:text-sm focus:font-medium"
       >
-        Skip to main content
+        Zum Hauptinhalt springen
       </a>
 
       {/* Desktop sidebar — hidden below md */}

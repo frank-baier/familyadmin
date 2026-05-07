@@ -77,7 +77,7 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
     const cookRaw = formData.get('cookMinutes') as string;
 
     if (!title) {
-      return { errors: { title: ['Title is required.'] } };
+      return { errors: { title: ['Titel ist erforderlich.'] } };
     }
 
     const servings = servingsRaw ? parseInt(servingsRaw, 10) : undefined;
@@ -85,13 +85,13 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
     const cookMinutes = cookRaw ? parseInt(cookRaw, 10) : undefined;
 
     if (servings !== undefined && (isNaN(servings) || servings < 1)) {
-      return { errors: { servings: ['Servings must be a positive number.'] } };
+      return { errors: { servings: ['Portionen muss eine positive Zahl sein.'] } };
     }
     if (prepMinutes !== undefined && (isNaN(prepMinutes) || prepMinutes < 0)) {
-      return { errors: { prepMinutes: ['Prep time must be 0 or more minutes.'] } };
+      return { errors: { prepMinutes: ['Vorbereitungszeit muss 0 oder mehr Minuten sein.'] } };
     }
     if (cookMinutes !== undefined && (isNaN(cookMinutes) || cookMinutes < 0)) {
-      return { errors: { cookMinutes: ['Cook time must be 0 or more minutes.'] } };
+      return { errors: { cookMinutes: ['Kochzeit muss 0 oder mehr Minuten sein.'] } };
     }
 
     const data: RecipeRequest = {
@@ -125,7 +125,7 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
       return { success: true, newId: recipe.id };
     } catch (err: unknown) {
       const message =
-        err instanceof Error ? err.message : 'Something went wrong. Please try again.';
+        err instanceof Error ? err.message : 'Etwas ist schiefgelaufen. Bitte erneut versuchen.';
       return { errors: { _form: [message] } };
     }
   }
@@ -153,7 +153,7 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
       {/* Title */}
       <div>
         <label htmlFor="recipe-title" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-          Title <span className="text-red-400" aria-hidden="true">*</span>
+          Titel <span className="text-red-400" aria-hidden="true">*</span>
         </label>
         <input
           id="recipe-title"
@@ -162,7 +162,7 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
           required
           autoFocus
           defaultValue={initialData?.title}
-          placeholder="e.g. Grandma's Spaghetti"
+          placeholder="z. B. Omas Spaghetti"
           aria-describedby={state.errors?.title ? 'title-error' : undefined}
           aria-invalid={!!state.errors?.title}
           className={state.errors?.title ? 'input-field border-red-300' : 'input-field'}
@@ -177,14 +177,14 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
       {/* Description */}
       <div>
         <label htmlFor="recipe-description" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-          Description <span className="text-slate-400 normal-case font-normal">(optional)</span>
+          Beschreibung <span className="text-slate-400 normal-case font-normal">(optional)</span>
         </label>
         <textarea
           id="recipe-description"
           name="description"
           rows={3}
           defaultValue={initialData?.description ?? undefined}
-          placeholder="A short description of the dish…"
+          placeholder="Eine kurze Beschreibung des Gerichts…"
           className="input-field"
         />
       </div>
@@ -193,7 +193,7 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
           <label htmlFor="recipe-servings" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-            Servings <span className="text-slate-400 normal-case font-normal">(opt.)</span>
+            Portionen <span className="text-slate-400 normal-case font-normal">(opt.)</span>
           </label>
           <input
             id="recipe-servings"
@@ -215,7 +215,7 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
 
         <div>
           <label htmlFor="recipe-prep" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-            Prep (min) <span className="text-slate-400 normal-case font-normal">(opt.)</span>
+            Vorbereitung (min) <span className="text-slate-400 normal-case font-normal">(opt.)</span>
           </label>
           <input
             id="recipe-prep"
@@ -237,7 +237,7 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
 
         <div>
           <label htmlFor="recipe-cook" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-            Cook (min) <span className="text-slate-400 normal-case font-normal">(opt.)</span>
+            Kochen (min) <span className="text-slate-400 normal-case font-normal">(opt.)</span>
           </label>
           <input
             id="recipe-cook"
@@ -261,7 +261,7 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
       {/* Photo upload */}
       <div>
         <span className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-          Photo <span className="text-slate-400 normal-case font-normal">(optional)</span>
+          Foto <span className="text-slate-400 normal-case font-normal">(optional)</span>
         </span>
         <div className="flex items-start gap-4">
           <div
@@ -272,7 +272,7 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={photoPreview}
-                alt="Recipe photo preview"
+                alt="Rezeptfoto-Vorschau"
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -290,7 +290,7 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
               </svg>
-              {photoPreview ? 'Change photo' : 'Upload photo'}
+              {photoPreview ? 'Foto ändern' : 'Foto hochladen'}
             </button>
             {photoFile && (
               <p className="text-xs text-slate-500">{photoFile.name}</p>
@@ -301,7 +301,7 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
               accept="image/*"
               onChange={handlePhotoChange}
               className="sr-only"
-              aria-label="Upload recipe photo"
+              aria-label="Rezeptfoto hochladen"
             />
           </div>
         </div>
@@ -311,12 +311,12 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
       <div>
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-            Ingredients <span className="text-slate-400 normal-case font-normal">(optional)</span>
+            Zutaten <span className="text-slate-400 normal-case font-normal">(optional)</span>
           </span>
           {ingredients.length > 0 && (
             <span className="text-xs text-slate-400">
-              {ingredients.filter((i) => i.name.trim()).length} ingredient
-              {ingredients.filter((i) => i.name.trim()).length !== 1 ? 's' : ''}
+              {ingredients.filter((i) => i.name.trim()).length} Zutat
+              {ingredients.filter((i) => i.name.trim()).length !== 1 ? 'en' : ''}
             </span>
           )}
         </div>
@@ -329,12 +329,12 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
       <div>
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-            Steps <span className="text-slate-400 normal-case font-normal">(optional)</span>
+            Schritte <span className="text-slate-400 normal-case font-normal">(optional)</span>
           </span>
           {steps.length > 0 && (
             <span className="text-xs text-slate-400">
-              {steps.filter((s) => s.trim()).length} step
-              {steps.filter((s) => s.trim()).length !== 1 ? 's' : ''}
+              {steps.filter((s) => s.trim()).length} Schritt
+              {steps.filter((s) => s.trim()).length !== 1 ? 'e' : ''}
             </span>
           )}
         </div>
@@ -349,12 +349,12 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
           {isPending ? (
             <>
               <Spinner />
-              Saving…
+              Wird gespeichert…
             </>
           ) : isEdit ? (
-            'Save changes'
+            'Änderungen speichern'
           ) : (
-            'Create recipe'
+            'Rezept erstellen'
           )}
         </button>
       </div>

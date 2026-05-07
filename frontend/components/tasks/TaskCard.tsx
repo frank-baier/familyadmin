@@ -5,16 +5,16 @@ import type { Task } from '@/lib/tasks';
 import { isOverdue, isDueToday, checklistProgress } from '@/lib/tasks';
 
 const STATUS_CONFIG = {
-  OPEN: { label: 'Open', bg: 'bg-indigo-50', text: 'text-indigo-700', ring: 'ring-indigo-200/60' },
-  IN_PROGRESS: { label: 'In Progress', bg: 'bg-amber-50', text: 'text-amber-700', ring: 'ring-amber-200/60' },
-  DONE: { label: 'Done', bg: 'bg-emerald-50', text: 'text-emerald-700', ring: 'ring-emerald-200/60' },
+  OPEN: { label: 'Offen', bg: 'bg-indigo-50', text: 'text-indigo-700', ring: 'ring-indigo-200/60' },
+  IN_PROGRESS: { label: 'In Bearbeitung', bg: 'bg-amber-50', text: 'text-amber-700', ring: 'ring-amber-200/60' },
+  DONE: { label: 'Erledigt', bg: 'bg-emerald-50', text: 'text-emerald-700', ring: 'ring-emerald-200/60' },
 } as const;
 
 function getInitials(name: string) {
   return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
 }
 function formatDue(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return new Date(dateStr).toLocaleDateString('de-DE', { month: 'short', day: 'numeric' });
 }
 
 export function TaskCard({ task }: { task: Task }) {
@@ -29,7 +29,7 @@ export function TaskCard({ task }: { task: Task }) {
       href={`/tasks/${task.id}`}
       className="glass-interactive rounded-3xl p-5 flex flex-col gap-3 group
                  focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-      aria-label={`Task: ${task.title}`}
+      aria-label={`Aufgabe: ${task.title}`}
     >
       {/* Status row */}
       <div className="flex items-center justify-between gap-2">
@@ -41,7 +41,7 @@ export function TaskCard({ task }: { task: Task }) {
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
               <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
             </svg>
-            Overdue
+            Überfällig
           </span>
         )}
       </div>
@@ -74,7 +74,7 @@ export function TaskCard({ task }: { task: Task }) {
               <span className="text-xs text-slate-500 truncate">{task.assignee.name}</span>
             </>
           ) : (
-            <span className="text-xs text-slate-400 italic">Unassigned</span>
+            <span className="text-xs text-slate-400 italic">Nicht zugewiesen</span>
           )}
         </div>
 

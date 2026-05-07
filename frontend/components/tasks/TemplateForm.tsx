@@ -28,7 +28,7 @@ export function TemplateForm({ onSubmit, initialValues, submitLabel = 'Save Temp
     const description = formData.get('description') as string;
 
     if (!name || name.trim().length === 0) {
-      return { errors: { name: ['Name is required.'] } };
+      return { errors: { name: ['Name ist erforderlich.'] } };
     }
 
     const data: TaskTemplateRequest = {
@@ -43,7 +43,7 @@ export function TemplateForm({ onSubmit, initialValues, submitLabel = 'Save Temp
       await onSubmit(data);
       return { success: true };
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
+      const message = err instanceof Error ? err.message : 'Etwas ist schiefgelaufen. Bitte erneut versuchen.';
       return { errors: { _form: [message] } };
     }
   }
@@ -62,7 +62,7 @@ export function TemplateForm({ onSubmit, initialValues, submitLabel = 'Save Temp
       {/* Name */}
       <div>
         <label htmlFor="template-name" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-          Template name <span className="text-red-400" aria-hidden="true">*</span>
+          Vorlagenname <span className="text-red-400" aria-hidden="true">*</span>
         </label>
         <input
           id="template-name"
@@ -71,7 +71,7 @@ export function TemplateForm({ onSubmit, initialValues, submitLabel = 'Save Temp
           required
           autoFocus
           defaultValue={initialValues?.name}
-          placeholder="e.g. Weekly house cleaning"
+          placeholder="z. B. Wöchentliche Hausreinigung"
           aria-describedby={state.errors?.name ? 'name-error' : undefined}
           aria-invalid={!!state.errors?.name}
           className={state.errors?.name ? 'input-field border-red-300 focus:border-red-400' : 'input-field'}
@@ -86,14 +86,14 @@ export function TemplateForm({ onSubmit, initialValues, submitLabel = 'Save Temp
       {/* Description */}
       <div>
         <label htmlFor="template-description" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-          Description <span className="text-slate-400 normal-case font-normal">(optional)</span>
+          Beschreibung <span className="text-slate-400 normal-case font-normal">(optional)</span>
         </label>
         <textarea
           id="template-description"
           name="description"
           rows={3}
           defaultValue={initialValues?.description}
-          placeholder="What is this template for?"
+          placeholder="Wofür ist diese Vorlage?"
           className="input-field"
         />
       </div>
@@ -102,11 +102,11 @@ export function TemplateForm({ onSubmit, initialValues, submitLabel = 'Save Temp
       <div>
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-            Subtasks <span className="text-slate-400 normal-case font-normal">(added as checklist items)</span>
+            Unteraufgaben <span className="text-slate-400 normal-case font-normal">(als Checklisteneinträge hinzugefügt)</span>
           </span>
           {subtasks.length > 0 && (
             <span className="text-xs text-slate-400">
-              {subtasks.filter((s) => s.trim()).length} item{subtasks.filter((s) => s.trim()).length !== 1 ? 's' : ''}
+              {subtasks.filter((s) => s.trim()).length} Eintrag{subtasks.filter((s) => s.trim()).length !== 1 ? 'e' : ''}
             </span>
           )}
         </div>
@@ -124,7 +124,7 @@ export function TemplateForm({ onSubmit, initialValues, submitLabel = 'Save Temp
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              Saving…
+              Wird gespeichert…
             </>
           ) : (
             submitLabel

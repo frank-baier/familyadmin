@@ -70,8 +70,7 @@ public class TaskService {
         Task saved = taskRepository.save(task);
         if (saved.getAssignee() != null) {
             notificationService.sendTaskAssigned(
-                    saved.getAssignee().getWhatsappPhone(),
-                    saved.getAssignee().getName(),
+                    saved.getAssignee(),
                     saved.getCreatedBy().getName(),
                     saved.getTitle(),
                     saved.getId().toString(),
@@ -115,8 +114,7 @@ public class TaskService {
                 && !saved.getAssignee().getId().equals(previousAssigneeId);
         if (assigneeChanged) {
             notificationService.sendTaskAssigned(
-                    saved.getAssignee().getWhatsappPhone(),
-                    saved.getAssignee().getName(),
+                    saved.getAssignee(),
                     currentUser.getName(),
                     saved.getTitle(),
                     saved.getId().toString(),
@@ -144,8 +142,7 @@ public class TaskService {
             String taskTitle = task.getTitle();
             String taskIdStr = task.getId().toString();
             userRepository.findByRole(Role.ADMIN).forEach(admin ->
-                    notificationService.sendChecklistComplete(
-                            admin.getWhatsappPhone(), admin.getName(), taskTitle, taskIdStr));
+                    notificationService.sendChecklistComplete(admin, taskTitle, taskIdStr));
         }
 
         return saved;

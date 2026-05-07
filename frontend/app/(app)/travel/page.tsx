@@ -55,7 +55,7 @@ export default function TravelPage() {
       const data = await getTrips();
       setTrips(data);
     } catch (err) {
-      setError('Failed to load trips. Please try again.');
+      setError('Reisen konnten nicht geladen werden. Bitte erneut versuchen.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -74,8 +74,8 @@ export default function TravelPage() {
       {/* Page header */}
       <div className="flex items-start justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Travel</h1>
-          <p className="text-slate-500 text-sm mt-1">Family trip planner</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Reisen</h1>
+          <p className="text-slate-500 text-sm mt-1">Familien-Reiseplaner</p>
         </div>
 
         <Link
@@ -85,7 +85,7 @@ export default function TravelPage() {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
-          Plan a Trip
+          Reise planen
         </Link>
       </div>
 
@@ -100,7 +100,7 @@ export default function TravelPage() {
             onClick={load}
             className="ml-4 text-xs font-medium text-red-700 underline hover:no-underline"
           >
-            Retry
+            Erneut versuchen
           </button>
         </div>
       )}
@@ -121,9 +121,9 @@ export default function TravelPage() {
       {!loading && (
         <div className="space-y-10">
           {/* Upcoming section */}
-          <section aria-label="Upcoming trips">
+          <section aria-label="Bevorstehende Reisen">
             <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">
-              Upcoming
+              Bevorstehend
             </h2>
             {upcoming.length === 0 ? (
               <div className="text-center py-12 glass rounded-3xl">
@@ -133,13 +133,13 @@ export default function TravelPage() {
                       d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
                   </svg>
                 </div>
-                <p className="text-sm font-semibold text-slate-700 mb-1">No upcoming trips</p>
-                <p className="text-xs text-slate-500 mb-4">Time to plan your next adventure!</p>
+                <p className="text-sm font-semibold text-slate-700 mb-1">Keine bevorstehenden Reisen</p>
+                <p className="text-xs text-slate-500 mb-4">Zeit, das nächste Abenteuer zu planen!</p>
                 <Link
                   href="/travel/new"
                   className="btn-primary text-xs"
                 >
-                  Plan a Trip
+                  Reise planen
                 </Link>
               </div>
             ) : (
@@ -153,9 +153,9 @@ export default function TravelPage() {
 
           {/* Past section */}
           {past.length > 0 && (
-            <section aria-label="Past trips">
+            <section aria-label="Vergangene Reisen">
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">
-                Past trips
+                Vergangene Reisen
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 opacity-80">
                 {past.map((trip) => (

@@ -15,8 +15,8 @@ interface Module {
 
 const modules: Module[] = [
   {
-    title: 'Tasks',
-    description: 'Shared to-dos, chores and assignments for the whole family.',
+    title: 'Aufgaben',
+    description: 'Gemeinsame Aufgaben und Haushaltsaufgaben für die ganze Familie.',
     href: '/tasks',
     gradient: 'from-indigo-500 via-violet-500 to-purple-600',
     shadow: '0 12px 32px rgb(99 102 241 / 0.35)',
@@ -29,8 +29,8 @@ const modules: Module[] = [
     ),
   },
   {
-    title: 'Recipes',
-    description: 'Save and share family recipes. Plan meals and build shopping lists.',
+    title: 'Rezepte',
+    description: 'Familienrezepte speichern und teilen. Mahlzeiten planen und Einkaufslisten erstellen.',
     href: '/recipes',
     gradient: 'from-orange-400 via-rose-500 to-pink-600',
     shadow: '0 12px 32px rgb(249 115 22 / 0.3)',
@@ -43,8 +43,8 @@ const modules: Module[] = [
     ),
   },
   {
-    title: 'Travel',
-    description: 'Plan trips, track itineraries and manage family adventures.',
+    title: 'Reisen',
+    description: 'Reisen planen, Reisepläne verfolgen und Familienausflüge organisieren.',
     href: '/travel',
     gradient: 'from-sky-500 via-cyan-500 to-teal-500',
     shadow: '0 12px 32px rgb(14 165 233 / 0.3)',
@@ -57,8 +57,8 @@ const modules: Module[] = [
     ),
   },
   {
-    title: 'Documents',
-    description: 'Securely store and share important family documents.',
+    title: 'Dokumente',
+    description: 'Wichtige Familiendokumente sicher speichern und teilen.',
     href: '/documents',
     gradient: 'from-violet-500 via-fuchsia-500 to-purple-600',
     shadow: '0 12px 32px rgb(139 92 246 / 0.3)',
@@ -73,10 +73,10 @@ const modules: Module[] = [
 ];
 
 const stats = [
-  { label: 'Family members', value: '5' },
-  { label: 'Active tasks', value: '—' },
-  { label: 'Recipes saved', value: '—' },
-  { label: 'Trips planned', value: '—' },
+  { label: 'Familienmitglieder', value: '5' },
+  { label: 'Aktive Aufgaben', value: '—' },
+  { label: 'Gespeicherte Rezepte', value: '—' },
+  { label: 'Geplante Reisen', value: '—' },
 ];
 
 export default function DashboardPage() {
@@ -104,7 +104,7 @@ export default function DashboardPage() {
             {greeting}
           </h1>
           <p className="text-slate-500 mt-1 text-sm md:text-base">
-            Everything your family needs — in one place.
+            Alles, was eure Familie braucht — an einem Ort.
           </p>
         </div>
       </div>
@@ -121,7 +121,7 @@ export default function DashboardPage() {
 
       {/* Module grid */}
       <section aria-labelledby="modules-heading">
-        <h2 id="modules-heading" className="section-label mb-4">Modules</h2>
+        <h2 id="modules-heading" className="section-label mb-4">Module</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {modules.map((mod) => (
             <Link
@@ -154,7 +154,7 @@ export default function DashboardPage() {
                   {mod.description}
                 </p>
                 <div className={`flex items-center gap-1 mt-3 text-xs font-semibold ${mod.accentText} opacity-0 group-hover:opacity-100 transition-opacity duration-200`}>
-                  Open
+                  Öffnen
                   <svg className="w-3.5 h-3.5 transition-transform duration-150 group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                   </svg>
@@ -171,7 +171,7 @@ export default function DashboardPage() {
 
 function getGreeting(): string {
   const h = new Date().getHours();
-  if (h < 12) return 'Good morning, Baier family!';
-  if (h < 17) return 'Good afternoon, Baier family!';
-  return 'Good evening, Baier family!';
+  if (h < 12) return 'Guten Morgen, Familie Baier!';
+  if (h < 17) return 'Guten Tag, Familie Baier!';
+  return 'Guten Abend, Familie Baier!';
 }

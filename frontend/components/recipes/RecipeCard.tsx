@@ -37,7 +37,7 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
       href={`/recipes/${recipe.id}`}
       className="glass-interactive rounded-3xl overflow-hidden flex flex-col group
                  focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-      aria-label={`Recipe: ${recipe.title}`}
+      aria-label={`Rezept: ${recipe.title}`}
     >
       {/* Photo */}
       <div className="relative w-full aspect-[4/3] overflow-hidden shrink-0">
@@ -74,24 +74,24 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
         <div className="flex items-center justify-between gap-2 mt-auto pt-1">
           <div className="flex items-center gap-2 flex-wrap">
             {prepLabel && (
-              <span className="text-xs text-slate-400">Prep {prepLabel}</span>
+              <span className="text-xs text-slate-400">Vorber. {prepLabel}</span>
             )}
             {cookLabel && (
-              <span className="text-xs text-slate-400">Cook {cookLabel}</span>
+              <span className="text-xs text-slate-400">Kochen {cookLabel}</span>
             )}
             {!prepLabel && !cookLabel && totalLabel == null && (
-              <span className="text-xs text-slate-400 italic">No time info</span>
+              <span className="text-xs text-slate-400 italic">Keine Zeitangabe</span>
             )}
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             {recipe.servings != null && (
-              <span className="text-xs text-slate-400">{recipe.servings} srv</span>
+              <span className="text-xs text-slate-400">{recipe.servings} Port.</span>
             )}
             <div
               className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
               style={{ background: 'linear-gradient(135deg, #e0e7ff, #ede9fe)', color: '#4f46e5' }}
               title={recipe.createdBy.name}
-              aria-label={`Created by ${recipe.createdBy.name}`}
+              aria-label={`Erstellt von ${recipe.createdBy.name}`}
             >
               {getInitials(recipe.createdBy.name)}
             </div>

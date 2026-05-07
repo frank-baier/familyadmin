@@ -60,7 +60,7 @@ export function StepEditor({ steps, onChange }: StepEditorProps) {
     <div className="space-y-3">
       {steps.length === 0 && (
         <p className="text-xs text-slate-400 italic py-1">
-          No steps — add one below.
+          Keine Schritte — unten einen hinzufügen.
         </p>
       )}
 
@@ -97,13 +97,13 @@ export function StepEditor({ steps, onChange }: StepEditorProps) {
             }}
             value={step}
             onChange={(e) => updateStep(index, e.target.value)}
-            placeholder={`Describe step ${index + 1}…`}
+            placeholder={`Schritt ${index + 1} beschreiben…`}
             rows={2}
             className="flex-1 min-w-0 text-sm bg-transparent border border-slate-200 rounded-lg
                        focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 focus:outline-none
                        px-3 py-2 text-slate-700 placeholder:text-slate-300
                        resize-none transition-colors duration-150"
-            aria-label={`Step ${index + 1}`}
+            aria-label={`Schritt ${index + 1}`}
           />
 
           {/* Remove */}
@@ -115,7 +115,7 @@ export function StepEditor({ steps, onChange }: StepEditorProps) {
                        opacity-0 group-hover:opacity-100 focus:opacity-100
                        transition-all duration-150
                        focus:outline-none focus:ring-2 focus:ring-red-400"
-            aria-label={`Remove step ${index + 1}`}
+            aria-label={`Schritt ${index + 1} entfernen`}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
@@ -137,7 +137,7 @@ export function StepEditor({ steps, onChange }: StepEditorProps) {
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />
         </svg>
-        Add step
+        Schritt hinzufügen
       </button>
     </div>
   );

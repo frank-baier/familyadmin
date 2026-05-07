@@ -34,11 +34,10 @@ public class TaskReminderScheduler {
             LocalDate dueDate = task.getDueDate();
             boolean isOverdue = dueDate != null && dueDate.isBefore(LocalDate.now());
             notificationService.sendTaskReminder(
-                    task.getAssignee().getEmail(),
-                    task.getAssignee().getName(),
+                    task.getAssignee(),
                     task.getTitle(),
                     task.getId().toString(),
-                    dueDate != null ? dueDate.toString() : "No due date",
+                    dueDate != null ? dueDate.toString() : "kein Fälligkeitsdatum",
                     isOverdue);
         }
     }

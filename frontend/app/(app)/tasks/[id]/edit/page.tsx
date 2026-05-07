@@ -35,7 +35,7 @@ export default function EditTaskPage({ params }: PageProps) {
   useEffect(() => {
     getTask(id)
       .then(setTask)
-      .catch(() => setError('Task not found or you do not have access.'))
+      .catch(() => setError('Aufgabe nicht gefunden oder kein Zugriff.'))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -65,10 +65,10 @@ export default function EditTaskPage({ params }: PageProps) {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
           </svg>
-          Back to Tasks
+          Zurück zu Aufgaben
         </Link>
         <div className="rounded-2xl bg-red-50/80 border border-red-200/60 px-5 py-4 text-red-700 text-sm">
-          {error ?? 'Task not found.'}
+          {error ?? 'Aufgabe nicht gefunden.'}
         </div>
       </div>
     );
@@ -95,12 +95,12 @@ export default function EditTaskPage({ params }: PageProps) {
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
         </svg>
-        Back to Task
+        Zurück zur Aufgabe
       </Link>
 
       {/* Page header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Edit Task</h1>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Aufgabe bearbeiten</h1>
         <p className="text-slate-500 text-sm mt-1 truncate max-w-md">{task.title}</p>
       </div>
 
@@ -109,7 +109,7 @@ export default function EditTaskPage({ params }: PageProps) {
         <TaskForm
           onSubmit={handleSubmit}
           initialValues={initialValues}
-          submitLabel="Save Changes"
+          submitLabel="Änderungen speichern"
         />
       </div>
     </div>

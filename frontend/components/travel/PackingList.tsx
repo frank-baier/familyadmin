@@ -67,7 +67,7 @@ export function PackingList({ tripId, personal, currentUserId }: PackingListProp
       const data = await getPackingItems(tripId, personal ? true : undefined);
       setItems(data);
     } catch {
-      setError('Failed to load packing list.');
+      setError('Packliste konnte nicht geladen werden.');
     } finally {
       setLoading(false);
     }
@@ -110,7 +110,7 @@ export function PackingList({ tripId, personal, currentUserId }: PackingListProp
       setNewLabel('');
       inputRef.current?.focus();
     } catch {
-      setAddError('Failed to add item.');
+      setAddError('Eintrag konnte nicht hinzugefügt werden.');
     } finally {
       setAdding(false);
     }
@@ -147,7 +147,7 @@ export function PackingList({ tripId, personal, currentUserId }: PackingListProp
           onClick={load}
           className="ml-4 text-xs font-medium text-red-700 underline hover:no-underline"
         >
-          Retry
+          Erneut versuchen
         </button>
       </div>
     );
@@ -166,7 +166,7 @@ export function PackingList({ tripId, personal, currentUserId }: PackingListProp
             />
           </div>
           <span className="text-xs text-slate-500 shrink-0 tabular-nums">
-            {packedCount} / {total} packed
+            {packedCount} / {total} eingepackt
           </span>
         </div>
       )}
@@ -174,10 +174,10 @@ export function PackingList({ tripId, personal, currentUserId }: PackingListProp
       {/* Item list */}
       {items.length === 0 ? (
         <p className="text-sm text-slate-400 italic py-4 text-center">
-          No items yet. Add the first one below.
+          Noch keine Einträge. Füge unten den ersten hinzu.
         </p>
       ) : (
-        <ul className="space-y-1" aria-label={personal ? 'My packing items' : 'Shared packing items'}>
+        <ul className="space-y-1" aria-label={personal ? 'Meine Packsachen' : 'Gemeinsame Packsachen'}>
           {items.map((item) => {
             const canDelete = !currentUserId || item.addedBy.id === currentUserId;
             return (
@@ -190,7 +190,7 @@ export function PackingList({ tripId, personal, currentUserId }: PackingListProp
                   type="button"
                   role="checkbox"
                   aria-checked={item.packed}
-                  aria-label={`Mark "${item.label}" as ${item.packed ? 'unpacked' : 'packed'}`}
+                  aria-label={`„${item.label}" als ${item.packed ? 'nicht eingepackt' : 'eingepackt'} markieren`}
                   onClick={() => handleToggle(item)}
                   className={[
                     'w-5 h-5 rounded border-2 shrink-0 flex items-center justify-center transition-all duration-150',
@@ -221,7 +221,7 @@ export function PackingList({ tripId, personal, currentUserId }: PackingListProp
                 {!personal && (
                   <span
                     className="text-[10px] text-slate-400 shrink-0 hidden sm:block"
-                    title={`Added by ${item.addedBy.name}`}
+                    title={`Hinzugefügt von ${item.addedBy.name}`}
                   >
                     {item.addedBy.name.split(' ')[0]}
                   </span>
@@ -232,7 +232,7 @@ export function PackingList({ tripId, personal, currentUserId }: PackingListProp
                   <button
                     type="button"
                     onClick={() => handleDelete(item.id)}
-                    aria-label={`Delete "${item.label}"`}
+                    aria-label={`„${item.label}" löschen`}
                     className="opacity-0 group-hover/item:opacity-100 transition-opacity
                                p-1 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50
                                focus:outline-none focus:opacity-100 focus:ring-2 focus:ring-red-400"
@@ -257,8 +257,8 @@ export function PackingList({ tripId, personal, currentUserId }: PackingListProp
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Add an item…"
-          aria-label="New packing item"
+          placeholder="Eintrag hinzufügen…"
+          aria-label="Neuer Packgegenstand"
           disabled={adding}
           className="input-field flex-1"
         />
@@ -266,7 +266,7 @@ export function PackingList({ tripId, personal, currentUserId }: PackingListProp
           type="button"
           onClick={handleAdd}
           disabled={adding || !newLabel.trim()}
-          aria-label="Add item"
+          aria-label="Eintrag hinzufügen"
           className="inline-flex items-center justify-center w-11 h-11 rounded-2xl shrink-0
                      text-white disabled:opacity-50 disabled:cursor-not-allowed
                      focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1

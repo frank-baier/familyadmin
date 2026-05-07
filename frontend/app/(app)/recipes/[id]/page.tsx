@@ -73,7 +73,7 @@ export default function RecipeDetailPage({ params }: PageProps) {
   useEffect(() => {
     getRecipe(id)
       .then(setRecipe)
-      .catch(() => setError('Recipe not found or you do not have access.'))
+      .catch(() => setError('Rezept nicht gefunden oder kein Zugriff.'))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -109,10 +109,10 @@ export default function RecipeDetailPage({ params }: PageProps) {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
           </svg>
-          Back to Recipes
+          Zurück zu Rezepten
         </Link>
         <div className="rounded-xl bg-red-50 border border-red-200 px-5 py-4 text-red-700 text-sm">
-          {error ?? 'Recipe not found.'}
+          {error ?? 'Rezept nicht gefunden.'}
         </div>
       </div>
     );
@@ -133,7 +133,7 @@ export default function RecipeDetailPage({ params }: PageProps) {
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
         </svg>
-        Back to Recipes
+        Zurück zu Rezepten
       </Link>
 
       {/* Photo header */}
@@ -175,7 +175,7 @@ export default function RecipeDetailPage({ params }: PageProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
               </svg>
-              Edit
+              Bearbeiten
             </Link>
           </div>
 
@@ -187,7 +187,7 @@ export default function RecipeDetailPage({ params }: PageProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>Prep: <strong className="text-slate-700">{formatTime(recipe.prepMinutes)}</strong></span>
+                <span>Vorbereitung: <strong className="text-slate-700">{formatTime(recipe.prepMinutes)}</strong></span>
               </div>
             )}
             {recipe.cookMinutes != null && (
@@ -196,12 +196,12 @@ export default function RecipeDetailPage({ params }: PageProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.047 8.287 8.287 0 009 9.601a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
                 </svg>
-                <span>Cook: <strong className="text-slate-700">{formatTime(recipe.cookMinutes)}</strong></span>
+                <span>Kochen: <strong className="text-slate-700">{formatTime(recipe.cookMinutes)}</strong></span>
               </div>
             )}
             {totalMinutes > 0 && recipe.prepMinutes != null && recipe.cookMinutes != null && (
               <div className="inline-flex items-center gap-1.5 text-sm text-slate-500">
-                <span className="text-slate-400">Total:</span>
+                <span className="text-slate-400">Gesamt:</span>
                 <strong className="text-slate-700">{formatTime(totalMinutes)}</strong>
               </div>
             )}
@@ -211,13 +211,13 @@ export default function RecipeDetailPage({ params }: PageProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
                 </svg>
-                <span>Serves <strong className="text-slate-700">{recipe.servings}</strong></span>
+                <span>Portionen: <strong className="text-slate-700">{recipe.servings}</strong></span>
               </div>
             )}
 
             {/* Rating */}
             {recipe.rating != null && recipe.rating > 0 && (
-              <div className="inline-flex items-center gap-0.5" aria-label={`Rating: ${recipe.rating} out of 5`}>
+              <div className="inline-flex items-center gap-0.5" aria-label={`Bewertung: ${recipe.rating} von 5`}>
                 {Array.from({ length: 5 }).map((_, i) => (
                   <svg key={i} className={`w-4 h-4 ${i < recipe.rating! ? 'text-amber-400' : 'text-slate-200'}`}
                     fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
@@ -231,8 +231,8 @@ export default function RecipeDetailPage({ params }: PageProps) {
             <div className="inline-flex items-center gap-1.5 ml-auto">
               <div
                 className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold"
-                title={`Created by ${recipe.createdBy.name}`}
-                aria-label={`Created by ${recipe.createdBy.name}`}
+                title={`Erstellt von ${recipe.createdBy.name}`}
+                aria-label={`Erstellt von ${recipe.createdBy.name}`}
               >
                 {getInitials(recipe.createdBy.name)}
               </div>
@@ -258,7 +258,7 @@ export default function RecipeDetailPage({ params }: PageProps) {
           <>
             <div className="hairline mx-4" />
             <div className="px-6 py-5">
-              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Notes</h2>
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Notizen</h2>
               <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{recipe.notes}</p>
             </div>
           </>
@@ -270,12 +270,12 @@ export default function RecipeDetailPage({ params }: PageProps) {
             <div className="hairline mx-4" />
             <div className="px-6 py-5">
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">
-                Ingredients
+                Zutaten
                 <span className="ml-2 font-normal normal-case tracking-normal text-slate-400">
                   ({sortedIngredients.length})
                 </span>
               </h2>
-              <ul className="space-y-2" aria-label="Ingredients list">
+              <ul className="space-y-2" aria-label="Zutatenliste">
                 {sortedIngredients.map((ing) => (
                   <li key={ing.id} className="flex items-center gap-3">
                     <span className="w-1.5 h-1.5 rounded-full bg-indigo-300 shrink-0" aria-hidden="true" />
@@ -298,12 +298,12 @@ export default function RecipeDetailPage({ params }: PageProps) {
             <div className="hairline mx-4" />
             <div className="px-6 py-5">
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">
-                Instructions
+                Zubereitung
                 <span className="ml-2 font-normal normal-case tracking-normal text-slate-400">
-                  ({sortedSteps.length} step{sortedSteps.length !== 1 ? 's' : ''})
+                  ({sortedSteps.length} Schritt{sortedSteps.length !== 1 ? 'e' : ''})
                 </span>
               </h2>
-              <ol className="space-y-4" aria-label="Recipe instructions">
+              <ol className="space-y-4" aria-label="Zubereitungsschritte">
                 {sortedSteps.map((step) => (
                   <li key={step.id} className="flex items-start gap-4">
                     <div
@@ -327,7 +327,7 @@ export default function RecipeDetailPage({ params }: PageProps) {
         <div className="hairline mx-4" /><div className="px-6 py-4 flex justify-end">
           {showDeleteConfirm ? (
             <div className="flex items-center gap-3">
-              <span className="text-sm text-slate-600">Delete this recipe?</span>
+              <span className="text-sm text-slate-600">Dieses Rezept löschen?</span>
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800
@@ -335,7 +335,7 @@ export default function RecipeDetailPage({ params }: PageProps) {
                            focus:outline-none focus:ring-2 focus:ring-slate-400
                            transition-all duration-150"
               >
-                Cancel
+                Abbrechen
               </button>
               <button
                 onClick={handleDelete}
@@ -346,7 +346,7 @@ export default function RecipeDetailPage({ params }: PageProps) {
                            focus:outline-none focus:ring-2 focus:ring-red-500
                            transition-all duration-150"
               >
-                {deleting ? 'Deleting…' : 'Yes, delete'}
+                {deleting ? 'Wird gelöscht…' : 'Ja, löschen'}
               </button>
             </div>
           ) : (
@@ -362,7 +362,7 @@ export default function RecipeDetailPage({ params }: PageProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
               </svg>
-              Delete recipe
+              Rezept löschen
             </button>
           )}
         </div>

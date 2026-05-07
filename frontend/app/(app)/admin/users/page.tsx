@@ -42,7 +42,7 @@ export default function AdminUsersPage() {
       const data = await apiFetch<UserEntry[]>('/api/admin/users');
       setUsers(data);
     } catch {
-      setError('Failed to load users.');
+      setError('Benutzer konnten nicht geladen werden.');
     } finally {
       setLoading(false);
     }
@@ -54,19 +54,19 @@ export default function AdminUsersPage() {
   }, []);
 
   async function handleDelete(id: string) {
-    if (!confirm('Delete this family member? This cannot be undone.')) return;
+    if (!confirm('Dieses Familienmitglied löschen? Dies kann nicht rückgängig gemacht werden.')) return;
     try {
       await apiFetch(`/api/admin/users/${id}`, { method: 'DELETE' });
       setUsers((prev) => prev.filter((u) => u.id !== id));
     } catch {
-      setError('Failed to delete user.');
+      setError('Benutzer konnte nicht gelöscht werden.');
     }
   }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
-        Loading…
+        Wird geladen…
       </div>
     );
   }
@@ -76,14 +76,14 @@ export default function AdminUsersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Family Members</h1>
-          <p className="text-sm text-slate-500 mt-1">Manage who has access to FamilyAdmin.</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Familienmitglieder</h1>
+          <p className="text-sm text-slate-500 mt-1">Verwalte, wer Zugang zu FamilyAdmin hat.</p>
         </div>
         <button onClick={() => setModal({ type: 'create' })} className="btn-primary">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
-          Add member
+          Mitglied hinzufügen
         </button>
       </div>
 
@@ -96,7 +96,7 @@ export default function AdminUsersPage() {
       {/* User list */}
       <div className="glass rounded-3xl overflow-hidden">
         {users.length === 0 ? (
-          <p className="px-6 py-8 text-center text-slate-400 text-sm">No family members yet.</p>
+          <p className="px-6 py-8 text-center text-slate-400 text-sm">Noch keine Familienmitglieder.</p>
         ) : (
           <ul role="list">
             {users.map((u, idx) => (
@@ -135,14 +135,14 @@ export default function AdminUsersPage() {
                     ? 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200/60'
                     : 'bg-slate-50 text-slate-600 ring-1 ring-slate-200/60',
                 ].join(' ')}>
-                  {u.role === 'ADMIN' ? 'Admin' : 'Member'}
+                  {u.role === 'ADMIN' ? 'Admin' : 'Mitglied'}
                 </span>
 
                 {/* Actions */}
                 <div className="shrink-0 flex items-center gap-1">
                   <button
                     onClick={() => setModal({ type: 'password', user: u })}
-                    title="Reset password"
+                    title="Passwort zurücksetzen"
                     className="p-1.5 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/80 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -151,7 +151,7 @@ export default function AdminUsersPage() {
                   </button>
                   <button
                     onClick={() => setModal({ type: 'edit', user: u })}
-                    title="Edit"
+                    title="Bearbeiten"
                     className="p-1.5 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/80 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -161,7 +161,7 @@ export default function AdminUsersPage() {
                   {u.id !== currentUser?.id && (
                     <button
                       onClick={() => handleDelete(u.id)}
-                      title="Delete"
+                      title="Löschen"
                       className="p-1.5 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50/80 transition-colors focus:outline-none focus:ring-2 focus:ring-red-400"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -213,7 +213,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
           <button
             onClick={onClose}
             className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100/80 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            aria-label="Close"
+            aria-label="Schließen"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M6 18L18 6M6 6l12 12" />
@@ -265,34 +265,34 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
         onCreated(user);
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to create user.');
+      setError(err instanceof Error ? err.message : 'Benutzer konnte nicht erstellt werden.');
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <Modal title="Add family member" onClose={onClose}>
+    <Modal title="Familienmitglied hinzufügen" onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <p className="text-sm text-red-600 bg-red-50/80 border border-red-200/60 rounded-2xl px-3 py-2">{error}</p>}
         <Field label="Name">
           <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="input-field" placeholder="Jane Baier" />
         </Field>
-        <Field label="Email">
-          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="input-field" placeholder="jane@example.com" />
+        <Field label="E-Mail">
+          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="input-field" placeholder="jane@beispiel.com" />
         </Field>
-        <Field label="Password">
-          <input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} className="input-field" placeholder="Min. 8 characters" />
+        <Field label="Passwort">
+          <input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} className="input-field" placeholder="Mind. 8 Zeichen" />
         </Field>
-        <Field label="Role">
+        <Field label="Rolle">
           <select value={role} onChange={(e) => setRole(e.target.value as 'ADMIN' | 'MEMBER')} className="input-field">
-            <option value="MEMBER">Member</option>
+            <option value="MEMBER">Mitglied</option>
             <option value="ADMIN">Admin</option>
           </select>
         </Field>
         <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
-          <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Creating…' : 'Create member'}</button>
+          <button type="button" onClick={onClose} className="btn-secondary">Abbrechen</button>
+          <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Wird erstellt…' : 'Mitglied erstellen'}</button>
         </div>
       </form>
     </Modal>
@@ -321,34 +321,34 @@ function EditUserModal({ user, onClose, onSaved }: { user: UserEntry; onClose: (
       });
       onSaved(updated);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to save changes.');
+      setError(err instanceof Error ? err.message : 'Änderungen konnten nicht gespeichert werden.');
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <Modal title="Edit family member" onClose={onClose}>
+    <Modal title="Familienmitglied bearbeiten" onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <p className="text-sm text-red-600 bg-red-50/80 border border-red-200/60 rounded-2xl px-3 py-2">{error}</p>}
         <Field label="Name">
           <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="input-field" />
         </Field>
-        <Field label="Email">
+        <Field label="E-Mail">
           <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="input-field" />
         </Field>
-        <Field label="Role">
+        <Field label="Rolle">
           <select value={role} onChange={(e) => setRole(e.target.value as 'ADMIN' | 'MEMBER')} className="input-field">
-            <option value="MEMBER">Member</option>
+            <option value="MEMBER">Mitglied</option>
             <option value="ADMIN">Admin</option>
           </select>
         </Field>
-        <Field label="WhatsApp phone">
+        <Field label="WhatsApp-Nummer">
           <input type="tel" value={whatsappPhone} onChange={(e) => setWhatsappPhone(e.target.value)} className="input-field" placeholder="+491234567890" />
         </Field>
         <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
-          <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Saving…' : 'Save changes'}</button>
+          <button type="button" onClick={onClose} className="btn-secondary">Abbrechen</button>
+          <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Wird gespeichert…' : 'Änderungen speichern'}</button>
         </div>
       </form>
     </Modal>
@@ -375,27 +375,27 @@ function ResetPasswordModal({ user, onClose }: { user: UserEntry; onClose: () =>
       });
       setDone(true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to reset password.');
+      setError(err instanceof Error ? err.message : 'Passwort konnte nicht zurückgesetzt werden.');
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <Modal title={`Reset password — ${user.name}`} onClose={onClose}>
+    <Modal title={`Passwort zurücksetzen — ${user.name}`} onClose={onClose}>
       {done ? (
         <div className="space-y-4">
           <p className="text-sm text-emerald-700 bg-emerald-50/80 border border-emerald-200/60 px-4 py-3 rounded-2xl">
-            Password updated. The user&apos;s existing sessions have been invalidated.
+            Passwort aktualisiert. Die bestehenden Sitzungen des Benutzers wurden beendet.
           </p>
           <div className="flex justify-end">
-            <button onClick={onClose} className="btn-primary">Done</button>
+            <button onClick={onClose} className="btn-primary">Fertig</button>
           </div>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && <p className="text-sm text-red-600 bg-red-50/80 border border-red-200/60 rounded-2xl px-3 py-2">{error}</p>}
-          <Field label="New password">
+          <Field label="Neues Passwort">
             <input
               type="password"
               required
@@ -403,12 +403,12 @@ function ResetPasswordModal({ user, onClose }: { user: UserEntry; onClose: () =>
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className="input-field"
-              placeholder="Min. 8 characters"
+              placeholder="Mind. 8 Zeichen"
             />
           </Field>
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
-            <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Resetting…' : 'Reset password'}</button>
+            <button type="button" onClick={onClose} className="btn-secondary">Abbrechen</button>
+            <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Wird zurückgesetzt…' : 'Passwort zurücksetzen'}</button>
           </div>
         </form>
       )}

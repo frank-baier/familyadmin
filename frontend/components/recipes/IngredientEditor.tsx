@@ -93,7 +93,7 @@ export function IngredientEditor({ items, onChange }: IngredientEditorProps) {
     <div className="space-y-2">
       {items.length === 0 && (
         <p className="text-xs text-slate-400 italic py-1">
-          No ingredients — add one below.
+          Keine Zutaten — unten eine hinzufügen.
         </p>
       )}
 
@@ -119,14 +119,14 @@ export function IngredientEditor({ items, onChange }: IngredientEditorProps) {
             type="number"
             value={item.amount}
             onChange={(e) => updateAmount(index, e.target.value)}
-            placeholder="Qty"
+            placeholder="Menge"
             min="0"
             step="any"
             className="w-16 shrink-0 text-sm bg-transparent border-0 border-b border-slate-200
                        focus:border-indigo-400 focus:outline-none px-0 py-1
                        text-slate-700 placeholder:text-slate-300
                        transition-colors duration-150"
-            aria-label={`Amount for ingredient ${index + 1}`}
+            aria-label={`Menge für Zutat ${index + 1}`}
           />
 
           {/* Unit */}
@@ -137,7 +137,7 @@ export function IngredientEditor({ items, onChange }: IngredientEditorProps) {
                        focus:border-indigo-400 focus:outline-none px-0 py-1
                        text-slate-700
                        transition-colors duration-150"
-            aria-label={`Unit for ingredient ${index + 1}`}
+            aria-label={`Einheit für Zutat ${index + 1}`}
           >
             {UNITS.map((u) => (
               <option key={u} value={u}>
@@ -155,12 +155,12 @@ export function IngredientEditor({ items, onChange }: IngredientEditorProps) {
             value={item.name}
             onChange={(e) => updateName(index, e.target.value)}
             onKeyDown={(e) => handleNameKeyDown(e, index)}
-            placeholder={`Ingredient ${index + 1}`}
+            placeholder={`Zutat ${index + 1}`}
             className="flex-1 min-w-0 text-sm bg-transparent border-0 border-b border-slate-200
                        focus:border-indigo-400 focus:outline-none px-0 py-1
                        text-slate-700 placeholder:text-slate-300
                        transition-colors duration-150"
-            aria-label={`Name for ingredient ${index + 1}`}
+            aria-label={`Name für Zutat ${index + 1}`}
           />
 
           {/* Remove */}
@@ -172,7 +172,7 @@ export function IngredientEditor({ items, onChange }: IngredientEditorProps) {
                        opacity-0 group-hover:opacity-100 focus:opacity-100
                        transition-all duration-150
                        focus:outline-none focus:ring-2 focus:ring-red-400"
-            aria-label={`Remove ingredient ${index + 1}`}
+            aria-label={`Zutat ${index + 1} entfernen`}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
@@ -194,7 +194,7 @@ export function IngredientEditor({ items, onChange }: IngredientEditorProps) {
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />
         </svg>
-        Add ingredient
+        Zutat hinzufügen
       </button>
     </div>
   );

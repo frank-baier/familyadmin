@@ -20,9 +20,9 @@ function getGradient(destination: string) {
 function formatDateRange(startStr: string, endStr: string): string {
   const start = new Date(`${startStr}T00:00:00`);
   const end = new Date(`${endStr}T00:00:00`);
-  const dayFmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric' });
-  const monthFmt = new Intl.DateTimeFormat('en-GB', { month: 'short' });
-  const yearFmt = new Intl.DateTimeFormat('en-GB', { year: 'numeric' });
+  const dayFmt = new Intl.DateTimeFormat('de-DE', { day: 'numeric' });
+  const monthFmt = new Intl.DateTimeFormat('de-DE', { month: 'short' });
+  const yearFmt = new Intl.DateTimeFormat('de-DE', { year: 'numeric' });
   const startDay = dayFmt.format(start), startMonth = monthFmt.format(start), startYear = yearFmt.format(start);
   const endDay = dayFmt.format(end), endMonth = monthFmt.format(end), endYear = yearFmt.format(end);
   if (startYear === endYear && startMonth === endMonth) return `${startDay}–${endDay} ${startMonth} ${startYear}`;
@@ -36,11 +36,11 @@ function getDaysUntil(startStr: string, endStr: string): { label: string; varian
   const end = new Date(`${endStr}T00:00:00`);
   if (start > today) {
     const diff = Math.round((start.getTime() - today.getTime()) / 86400000);
-    return { label: `In ${diff} day${diff !== 1 ? 's' : ''}`, variant: 'upcoming' };
+    return { label: `In ${diff} Tag${diff !== 1 ? 'en' : ''}`, variant: 'upcoming' };
   }
-  if (end >= today) return { label: 'In progress', variant: 'active' };
+  if (end >= today) return { label: 'Läuft gerade', variant: 'active' };
   const diff = Math.round((today.getTime() - end.getTime()) / 86400000);
-  return { label: `${diff} day${diff !== 1 ? 's' : ''} ago`, variant: 'past' };
+  return { label: `Vor ${diff} Tag${diff !== 1 ? 'en' : ''}`, variant: 'past' };
 }
 
 export function TripCard({ trip }: { trip: Trip }) {
@@ -59,7 +59,7 @@ export function TripCard({ trip }: { trip: Trip }) {
       href={`/travel/${trip.id}`}
       className="glass-interactive rounded-3xl overflow-hidden flex flex-col group
                  focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-      aria-label={`Trip to ${trip.destination}: ${dateRange}`}
+      aria-label={`Reise nach ${trip.destination}: ${dateRange}`}
     >
       {/* Cover */}
       <div className="relative w-full aspect-[16/7] overflow-hidden shrink-0">

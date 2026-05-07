@@ -33,7 +33,7 @@ export function UserMenu() {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-slate-800 truncate">
-            {user?.name ?? 'Family Member'}
+            {user?.name ?? 'Familienmitglied'}
           </p>
           {user?.role === 'ADMIN' && (
             <p className="text-xs font-medium" style={{ color: '#6366f1' }}>Admin</p>
@@ -51,13 +51,13 @@ export function UserMenu() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
             d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
         </svg>
-        My Profile
+        Mein Profil
       </Link>
 
       <button
         onClick={handleLogout}
         disabled={isLoggingOut}
-        aria-label="Sign out"
+        aria-label="Abmelden"
         className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-slate-500
                    hover:bg-red-50/80 hover:text-red-600 transition-colors duration-150
                    focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400
@@ -67,7 +67,7 @@ export function UserMenu() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
             d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
         </svg>
-        {isLoggingOut ? 'Signing out…' : 'Sign out'}
+        {isLoggingOut ? 'Wird abgemeldet…' : 'Abmelden'}
       </button>
     </div>
   );
