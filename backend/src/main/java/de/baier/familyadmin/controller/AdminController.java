@@ -5,6 +5,7 @@ import de.baier.familyadmin.dto.ResetPasswordRequest;
 import de.baier.familyadmin.dto.UpdateUserRequest;
 import de.baier.familyadmin.dto.UserResponse;
 import de.baier.familyadmin.model.Role;
+import de.baier.familyadmin.scheduler.RecipePhotoScheduler;
 import de.baier.familyadmin.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +22,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AdminController {
 
-    private final UserService userService;
+    private final UserService             userService;
+    private final RecipePhotoScheduler    recipePhotoScheduler;
 
     @PostMapping("/users")
     @PreAuthorize("hasRole('ADMIN')")
@@ -62,5 +64,11 @@ public class AdminController {
                                               @Valid @RequestBody ResetPasswordRequest request) {
         userService.resetPassword(id, request.newPassword());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/recipes/fetch-photos")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<RecipePhotoScheduler.FetchResult> triggerRecipePhotoFetch() {
+        return ResponseEntity.ok(recipePhotoScheduler.runFetchJob());
     }
 }

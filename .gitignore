@@ -23,3 +23,4 @@ backend/.env
 backend/src/main/resources/application-dev.properties
 .env
 .env.production
+/README_notCommitted.md
