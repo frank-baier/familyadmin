@@ -21,6 +21,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
+      SPRING_PROFILES_ACTIVE: prod
       DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-familyadmin}
       DATABASE_USERNAME: ${POSTGRES_USER:-familyadmin}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
