@@ -5,6 +5,7 @@ import de.baier.familyadmin.dto.ResetPasswordRequest;
 import de.baier.familyadmin.dto.UpdateUserRequest;
 import de.baier.familyadmin.dto.UserResponse;
 import de.baier.familyadmin.model.Role;
+import de.baier.familyadmin.repository.RecipeRepository;
 import de.baier.familyadmin.scheduler.RecipePhotoScheduler;
 import de.baier.familyadmin.service.UserService;
 import jakarta.validation.Valid;
@@ -24,6 +25,7 @@ public class AdminController {
 
     private final UserService             userService;
     private final RecipePhotoScheduler    recipePhotoScheduler;
+    private final RecipeRepository        recipeRepository;
 
     @PostMapping("/users")
     @PreAuthorize("hasRole('ADMIN')")
@@ -66,9 +68,23 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/recipes/photo-stats")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<RecipePhotoStats> getRecipePhotoStats() {
+        long total        = recipeRepository.count();
+        long withoutPhoto = recipeRepository.countByPhotoUrlIsNull();
+        List<MissingRecipe> missing = recipeRepository.findByPhotoUrlIsNull().stream()
+                .map(r -> new MissingRecipe(r.getId().toString(), r.getTitle()))
+                .toList();
+        return ResponseEntity.ok(new RecipePhotoStats(total, total - withoutPhoto, withoutPhoto, missing));
+    }
+
     @PostMapping("/recipes/fetch-photos")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<RecipePhotoScheduler.FetchResult> triggerRecipePhotoFetch() {
         return ResponseEntity.ok(recipePhotoScheduler.runFetchJob());
     }
+
+    record RecipePhotoStats(long total, long withPhoto, long withoutPhoto, List<MissingRecipe> missingRecipes) {}
+    record MissingRecipe(String id, String title) {}
 }
