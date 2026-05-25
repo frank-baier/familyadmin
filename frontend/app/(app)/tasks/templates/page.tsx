@@ -48,13 +48,13 @@ function TemplateCard({ template, onDelete, isAdmin }: { template: TaskTemplate;
         {template.subtasks.length > 0 && (
           <ul className="mt-3 space-y-1">
             {template.subtasks.slice(0, 4).map((s) => (
-              <li key={s.id} className="flex items-center gap-2 text-xs text-slate-500">
-                <span className="w-3.5 h-3.5 rounded border border-slate-300 shrink-0" aria-hidden="true" />
+              <li key={s.id} className="flex items-center gap-2 text-xs text-slate-700">
+                <span className="w-3.5 h-3.5 rounded border border-slate-400 shrink-0" aria-hidden="true" />
                 <span className="truncate">{s.text}</span>
               </li>
             ))}
             {template.subtasks.length > 4 && (
-              <li className="text-xs text-slate-400 pl-5">
+              <li className="text-xs text-slate-500 pl-5">
                 +{template.subtasks.length - 4} weitere
               </li>
             )}
