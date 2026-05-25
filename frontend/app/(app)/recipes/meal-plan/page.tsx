@@ -58,8 +58,8 @@ export default function MealPlanPage() {
     async function loadRecipes() {
       setLoadingRecipes(true);
       try {
-        const data = await getRecipes();
-        setRecipes(data.map(toRecipeSummary));
+        const data = await getRecipes(0, 1000);
+        setRecipes(data.content.map(toRecipeSummary));
       } catch (err) {
         console.error('Failed to load recipes:', err);
         // Non-fatal: picker will show empty list
