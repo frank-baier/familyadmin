@@ -1,11 +1,5 @@
 'use client';
 
-/**
- * Task Templates library — /tasks/templates
- * Lists all templates. Each card links to the "use" flow.
- * Admins can create, edit, and delete templates.
- */
-
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getTemplates, deleteTemplate } from '@/lib/templates';
@@ -132,6 +126,138 @@ function TemplateCard({ template, onDelete, isAdmin }: { template: TaskTemplate;
   );
 }
 
+// ─── Table view ───────────────────────────────────────────────────────────────
+
+function TemplateTableRow({ template, onDelete, isAdmin }: { template: TaskTemplate; onDelete: () => void; isAdmin: boolean }) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await deleteTemplate(template.id);
+      onDelete();
+    } catch {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  }
+
+  return (
+    <tr className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
+      <td className="px-4 py-3">
+        <Link
+          href={`/tasks/templates/${template.id}/use`}
+          className="font-medium text-slate-900 hover:text-indigo-600 transition-colors"
+        >
+          {template.name}
+        </Link>
+      </td>
+      <td className="px-4 py-3 text-sm text-slate-600 max-w-xs">
+        {template.description
+          ? <span className="line-clamp-1">{template.description}</span>
+          : <span className="text-slate-300">—</span>
+        }
+      </td>
+      <td className="px-4 py-3">
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+          {template.subtasks.length}
+        </span>
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/tasks/templates/${template.id}/use`}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold
+                       text-white bg-indigo-600 hover:bg-indigo-700
+                       focus:outline-none focus:ring-2 focus:ring-indigo-500
+                       transition-all duration-150"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Verwenden
+          </Link>
+
+          {isAdmin && (
+            <>
+              <Link
+                href={`/tasks/templates/${template.id}/edit`}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100
+                           focus:outline-none focus:ring-2 focus:ring-indigo-500
+                           transition-all duration-150"
+                title="Vorlage bearbeiten"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                </svg>
+              </Link>
+
+              {showDeleteConfirm ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-slate-500">Löschen?</span>
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="px-2 py-1 text-xs text-slate-500 border border-slate-200 rounded-lg
+                               hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  >
+                    Nein
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="px-2 py-1 text-xs font-medium text-white bg-red-600 rounded-lg
+                               hover:bg-red-700 disabled:opacity-60
+                               focus:outline-none focus:ring-2 focus:ring-red-500"
+                  >
+                    {deleting ? '…' : 'Ja'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50
+                             focus:outline-none focus:ring-2 focus:ring-red-400
+                             transition-all duration-150"
+                  title="Vorlage löschen"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                  </svg>
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function TemplateTableView({ templates, onDelete, isAdmin }: { templates: TaskTemplate[]; onDelete: () => void; isAdmin: boolean }) {
+  return (
+    <div className="overflow-x-auto rounded-xl border border-slate-200">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-slate-50 border-b border-slate-200">
+            <th className="text-left px-4 py-3 font-semibold text-slate-600">Name</th>
+            <th className="text-left px-4 py-3 font-semibold text-slate-600">Beschreibung</th>
+            <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Unteraufgaben</th>
+            <th className="text-left px-4 py-3 font-semibold text-slate-600">Aktionen</th>
+          </tr>
+        </thead>
+        <tbody>
+          {templates.map((t) => (
+            <TemplateTableRow key={t.id} template={t} onDelete={onDelete} isAdmin={isAdmin} />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
 function TemplateSkeleton() {
@@ -150,12 +276,15 @@ function TemplateSkeleton() {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
+type ViewMode = 'grid' | 'table';
+
 export default function TemplatesPage() {
   const { user } = useUser();
   const isAdmin = user?.role === 'ADMIN';
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
   function load() {
     setLoading(true);
@@ -190,17 +319,42 @@ export default function TemplatesPage() {
             Wiederverwendbare Aufgabenvorlagen — Unteraufgaben auswählen und Aufgabe in Sekunden erstellen.
           </p>
         </div>
-        {isAdmin && (
-          <Link
-            href="/tasks/templates/new"
-            className="btn-primary shrink-0"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Neue Vorlage
-          </Link>
-        )}
+
+        <div className="flex items-center gap-2 shrink-0">
+          {/* View toggle */}
+          <div className="glass flex rounded-2xl overflow-hidden" role="group" aria-label="Ansichtsmodus">
+            <button
+              onClick={() => setViewMode('grid')}
+              aria-pressed={viewMode === 'grid'}
+              className={`px-3 py-2 transition-colors ${viewMode === 'grid' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}
+              title="Kachelansicht"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              aria-pressed={viewMode === 'table'}
+              className={`px-3 py-2 transition-colors ${viewMode === 'table' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}
+              title="Tabellenansicht"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M3 10h18M3 14h18M10 3v18M14 3v18M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" />
+              </svg>
+            </button>
+          </div>
+
+          {isAdmin && (
+            <Link href="/tasks/templates/new" className="btn-primary">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Neue Vorlage
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Error */}
@@ -211,9 +365,21 @@ export default function TemplatesPage() {
       )}
 
       {/* Loading */}
-      {loading && (
+      {loading && viewMode === 'grid' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => <TemplateSkeleton key={i} />)}
+        </div>
+      )}
+      {loading && viewMode === 'table' && (
+        <div className="rounded-xl border border-slate-200 animate-pulse">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex gap-4 px-4 py-3 border-b border-slate-100">
+              <div className="h-4 bg-slate-100 rounded w-1/4" />
+              <div className="h-4 bg-slate-100 rounded w-1/3" />
+              <div className="h-4 bg-slate-100 rounded w-8" />
+              <div className="h-4 bg-slate-100 rounded w-20" />
+            </div>
+          ))}
         </div>
       )}
 
@@ -245,12 +411,17 @@ export default function TemplatesPage() {
       )}
 
       {/* Grid */}
-      {!loading && templates.length > 0 && (
+      {!loading && templates.length > 0 && viewMode === 'grid' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {templates.map((t) => (
             <TemplateCard key={t.id} template={t} onDelete={load} isAdmin={isAdmin} />
           ))}
         </div>
+      )}
+
+      {/* Table */}
+      {!loading && templates.length > 0 && viewMode === 'table' && (
+        <TemplateTableView templates={templates} onDelete={load} isAdmin={isAdmin} />
       )}
     </div>
   );
