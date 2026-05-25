@@ -50,7 +50,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/actuator/health", "/api/webhooks/whatsapp").permitAll()
+                        .requestMatchers("/api/auth/**", "/actuator/health", "/api/webhooks/whatsapp", "/api/recipes/*/photo", "/api/trips/ingest/email").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))

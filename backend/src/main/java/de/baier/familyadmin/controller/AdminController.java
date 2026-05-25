@@ -72,8 +72,8 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<RecipePhotoStats> getRecipePhotoStats() {
         long total        = recipeRepository.count();
-        long withoutPhoto = recipeRepository.countByPhotoUrlIsNull();
-        List<MissingRecipe> missing = recipeRepository.findByPhotoUrlIsNull().stream()
+        long withoutPhoto = recipeRepository.countByPhotoDataIsNull();
+        List<MissingRecipe> missing = recipeRepository.findByPhotoDataIsNull().stream()
                 .map(r -> new MissingRecipe(r.getId().toString(), r.getTitle()))
                 .toList();
         return ResponseEntity.ok(new RecipePhotoStats(total, total - withoutPhoto, withoutPhoto, missing));

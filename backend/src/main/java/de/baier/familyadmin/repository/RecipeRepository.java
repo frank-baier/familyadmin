@@ -12,6 +12,6 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
     List<Recipe> findByTitleContainingIgnoreCase(String title);
     List<Recipe> findAllByOrderByTitleAsc();
     Page<Recipe> findAllByOrderByTitleAsc(Pageable pageable);
-    List<Recipe> findByPhotoUrlIsNull();
-    long countByPhotoUrlIsNull();
+    List<Recipe> findByPhotoDataIsNull();
+    long countByPhotoDataIsNull();
 }

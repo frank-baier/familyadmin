@@ -16,18 +16,13 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @Slf4j
 public class RecipePhotoFetchService {
 
     private static final String UNSPLASH_BASE = "https://api.unsplash.com";
-    private static final String UPLOAD_DIR    = "uploads";
 
     private final RecipeRepository recipeRepository;
     private final ObjectMapper     objectMapper;
@@ -43,8 +38,8 @@ public class RecipePhotoFetchService {
     }
 
     /**
-     * Searches Unsplash for a food photo matching the recipe, downloads it,
-     * saves to disk, and updates the recipe's photoUrl in the DB.
+     * Searches Unsplash for a food photo matching the recipe, downloads and compresses it,
+     * then stores the bytes in the recipe's photo_data column.
      * Never throws — returns false on any failure so callers can continue.
      */
     public boolean fetchAndSave(Recipe recipe) {
@@ -90,11 +85,18 @@ public class RecipePhotoFetchService {
                 return false;
             }
 
-            String photoUrl = saveImageBytes(imageBytes);
-            recipe.setPhotoUrl(photoUrl);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            Thumbnails.of(new ByteArrayInputStream(imageBytes))
+                    .size(600, 600)
+                    .outputFormat("JPEG")
+                    .outputQuality(0.82)
+                    .toOutputStream(baos);
+
+            recipe.setPhotoData(baos.toByteArray());
+            recipe.setPhotoContentType("image/jpeg");
             recipeRepository.save(recipe);
 
-            log.info("Auto-fetched photo for recipe '{}' → {}", recipe.getTitle(), photoUrl);
+            log.info("Auto-fetched photo for recipe '{}'", recipe.getTitle());
             return true;
 
         } catch (Exception e) {
@@ -109,23 +111,6 @@ public class RecipePhotoFetchService {
             sb.append(' ').append(recipe.getCategories());
         }
         return sb.toString();
-    }
-
-    private String saveImageBytes(byte[] bytes) throws IOException {
-        Path uploadPath = Paths.get(UPLOAD_DIR);
-        if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
-
-        String filename = UUID.randomUUID() + ".jpg";
-
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        Thumbnails.of(new ByteArrayInputStream(bytes))
-                .size(600, 600)
-                .outputFormat("JPEG")
-                .outputQuality(0.82)
-                .toOutputStream(baos);
-
-        Files.write(uploadPath.resolve(filename), baos.toByteArray());
-        return "/uploads/" + filename;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

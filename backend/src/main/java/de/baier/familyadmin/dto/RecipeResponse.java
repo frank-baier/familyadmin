@@ -44,6 +44,9 @@ public record RecipeResponse(
     }
 
     public static RecipeResponse from(Recipe recipe) {
+        String photoUrl = recipe.getPhotoData() != null
+                ? "/api/recipes/" + recipe.getId() + "/photo"
+                : null;
         return new RecipeResponse(
                 recipe.getId(),
                 recipe.getTitle(),
@@ -59,7 +62,7 @@ public record RecipeResponse(
                 recipe.getNotes(),
                 recipe.getNutritionalInfo(),
                 recipe.getCategories(),
-                recipe.getPhotoUrl(),
+                photoUrl,
                 UserResponse.from(recipe.getCreatedBy()),
                 recipe.getIngredients().stream().map(IngredientResponse::from).toList(),
                 recipe.getSteps().stream().map(StepResponse::from).toList(),

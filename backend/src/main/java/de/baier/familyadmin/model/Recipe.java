@@ -41,6 +41,12 @@ public class Recipe {
     @Column(name = "photo_url", length = 512)
     private String photoUrl;
 
+    @Column(name = "photo_data", columnDefinition = "BYTEA")
+    private byte[] photoData;
+
+    @Column(name = "photo_content_type", length = 100)
+    private String photoContentType;
+
     private String source;
 
     @Column(name = "source_url", length = 512)

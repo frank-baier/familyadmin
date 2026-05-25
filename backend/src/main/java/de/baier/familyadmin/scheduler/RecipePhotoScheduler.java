@@ -41,7 +41,7 @@ public class RecipePhotoScheduler {
      * on demand and return the result without duplicating the loop.
      */
     public FetchResult runFetchJob() {
-        List<Recipe> recipes = recipeRepository.findByPhotoUrlIsNull();
+        List<Recipe> recipes = recipeRepository.findByPhotoDataIsNull();
         log.info("Found {} recipe(s) without a photo", recipes.size());
 
         int updated   = 0;

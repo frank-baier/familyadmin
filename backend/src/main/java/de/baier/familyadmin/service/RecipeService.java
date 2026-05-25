@@ -132,10 +132,11 @@ public class RecipeService {
         recipeRepository.delete(recipe);
     }
 
-    public Recipe updatePhotoUrl(UUID id, String photoUrl, User currentUser) {
+    public Recipe updatePhoto(UUID id, byte[] photoData, String contentType, User currentUser) {
         var recipe = getById(id);
         requireOwnerOrAdmin(recipe, currentUser);
-        recipe.setPhotoUrl(photoUrl);
+        recipe.setPhotoData(photoData);
+        recipe.setPhotoContentType(contentType);
         return recipeRepository.save(recipe);
     }
 
