@@ -6,6 +6,7 @@ import { RecipeCard } from '@/components/recipes/RecipeCard';
 import { getRecipes, searchRecipes, importPaprikaFile } from '@/lib/recipes';
 import type { Recipe, PaprikaImportResult } from '@/lib/recipes';
 import { useUser } from '@/lib/user-context';
+import { useViewMode } from '@/lib/use-view-mode';
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
 
@@ -93,8 +94,6 @@ function RecipeTableView({ recipes }: { recipes: Recipe[] }) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-type ViewMode = 'grid' | 'table';
-
 export default function RecipesPage() {
   const { sessionReady } = useUser();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -113,7 +112,7 @@ export default function RecipesPage() {
   const [importError, setImportError] = useState<string | null>(null);
 
   // View & filter state
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [viewMode, setViewMode] = useViewMode('recipes');
   const [minRating, setMinRating] = useState<number>(0);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
 

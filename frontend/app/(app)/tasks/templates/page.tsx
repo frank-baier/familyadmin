@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { getTemplates, deleteTemplate } from '@/lib/templates';
 import type { TaskTemplate } from '@/lib/templates';
 import { useUser } from '@/lib/user-context';
+import { useViewMode } from '@/lib/use-view-mode';
 
 // ─── Template card ─────────────────────────────────────────────────────────
 
@@ -276,15 +277,13 @@ function TemplateSkeleton() {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-type ViewMode = 'grid' | 'table';
-
 export default function TemplatesPage() {
   const { user } = useUser();
   const isAdmin = user?.role === 'ADMIN';
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [viewMode, setViewMode] = useViewMode('templates');
 
   function load() {
     setLoading(true);
