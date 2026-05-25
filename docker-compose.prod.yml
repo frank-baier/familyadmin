@@ -20,6 +20,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - backend_uploads:/app/uploads
     environment:
       SPRING_PROFILES_ACTIVE: prod
       DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-familyadmin}
@@ -62,5 +64,6 @@ services:
 
 volumes:
   postgres_data:
+  backend_uploads:
   caddy_data:
   caddy_config:
