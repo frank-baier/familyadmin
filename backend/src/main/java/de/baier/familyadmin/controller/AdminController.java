@@ -30,7 +30,7 @@ public class AdminController {
     @PostMapping("/users")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody RegisterRequest request) {
-        var user = userService.createUser(request.name(), request.email(), request.password(), Role.MEMBER);
+        var user = userService.createUser(request.name(), request.email(), request.password(), Role.MEMBER, request.whatsappPhone());
         return ResponseEntity
                 .created(URI.create("/api/admin/users/" + user.getId()))
                 .body(UserResponse.from(user));

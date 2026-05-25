@@ -28,7 +28,7 @@ public class UserService implements UserDetailsService {
     }
 
     @Transactional
-    public User createUser(String name, String email, String rawPassword, Role role) {
+    public User createUser(String name, String email, String rawPassword, Role role, String whatsappPhone) {
         if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Email already registered: " + email);
         }
@@ -37,6 +37,7 @@ public class UserService implements UserDetailsService {
                 .email(email)
                 .password(passwordEncoder.encode(rawPassword))
                 .role(role)
+                .whatsappPhone(whatsappPhone)
                 .build();
         return userRepository.save(user);
     }

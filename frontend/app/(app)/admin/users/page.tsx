@@ -98,14 +98,11 @@ export default function AdminUsersPage() {
         {users.length === 0 ? (
           <p className="px-6 py-8 text-center text-slate-400 text-sm">Noch keine Familienmitglieder.</p>
         ) : (
-          <ul role="list">
-            {users.map((u, idx) => (
+          <ul role="list" className="divide-y divide-slate-100/60">
+            {users.map((u) => (
               <li
                 key={u.id}
-                className={[
-                  'flex items-center gap-4 px-6 py-4',
-                  idx > 0 ? 'hairline' : '',
-                ].join(' ')}
+                className="flex items-center gap-4 px-6 py-4"
               >
                 {/* Avatar */}
                 <div
@@ -243,6 +240,7 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [whatsappPhone, setWhatsappPhone] = useState('');
   const [role, setRole] = useState<'ADMIN' | 'MEMBER'>('MEMBER');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -253,12 +251,12 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
     try {
       const user = await apiFetch<UserEntry>('/api/admin/users', {
         method: 'POST',
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, whatsappPhone: whatsappPhone || null }),
       });
       if (role === 'ADMIN') {
         const updated = await apiFetch<UserEntry>(`/api/admin/users/${user.id}`, {
           method: 'PUT',
-          body: JSON.stringify({ name, email, role }),
+          body: JSON.stringify({ name, email, role, whatsappPhone: whatsappPhone || null }),
         });
         onCreated(updated);
       } else {
@@ -283,6 +281,9 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
         </Field>
         <Field label="Passwort">
           <input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} className="input-field" placeholder="Mind. 8 Zeichen" />
+        </Field>
+        <Field label="Mobilnummer">
+          <input type="tel" value={whatsappPhone} onChange={(e) => setWhatsappPhone(e.target.value)} className="input-field" placeholder="+491234567890" />
         </Field>
         <Field label="Rolle">
           <select value={role} onChange={(e) => setRole(e.target.value as 'ADMIN' | 'MEMBER')} className="input-field">
@@ -343,7 +344,7 @@ function EditUserModal({ user, onClose, onSaved }: { user: UserEntry; onClose: (
             <option value="ADMIN">Admin</option>
           </select>
         </Field>
-        <Field label="WhatsApp-Nummer">
+        <Field label="Mobilnummer">
           <input type="tel" value={whatsappPhone} onChange={(e) => setWhatsappPhone(e.target.value)} className="input-field" placeholder="+491234567890" />
         </Field>
         <div className="flex justify-end gap-3 pt-2">
