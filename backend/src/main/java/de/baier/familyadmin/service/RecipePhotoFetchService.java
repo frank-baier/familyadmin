@@ -5,12 +5,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import de.baier.familyadmin.model.Recipe;
 import de.baier.familyadmin.repository.RecipeRepository;
 import lombok.extern.slf4j.Slf4j;
+import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
@@ -110,11 +113,18 @@ public class RecipePhotoFetchService {
 
     private String saveImageBytes(byte[] bytes) throws IOException {
         Path uploadPath = Paths.get(UPLOAD_DIR);
-        if (!Files.exists(uploadPath)) {
-            Files.createDirectories(uploadPath);
-        }
+        if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
+
         String filename = UUID.randomUUID() + ".jpg";
-        Files.write(uploadPath.resolve(filename), bytes);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Thumbnails.of(new ByteArrayInputStream(bytes))
+                .size(600, 600)
+                .outputFormat("JPEG")
+                .outputQuality(0.82)
+                .toOutputStream(baos);
+
+        Files.write(uploadPath.resolve(filename), baos.toByteArray());
         return "/uploads/" + filename;
     }
 

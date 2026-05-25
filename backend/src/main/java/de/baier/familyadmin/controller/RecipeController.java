@@ -7,6 +7,7 @@ import de.baier.familyadmin.service.PaprikaImportService;
 import de.baier.familyadmin.service.RecipeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -25,9 +26,19 @@ public class RecipeController {
     private final RecipeService recipeService;
     private final PaprikaImportService paprikaImportService;
 
+    record RecipePage(List<RecipeResponse> content, int page, int totalPages, boolean hasNext) {}
+
     @GetMapping
-    public ResponseEntity<List<RecipeResponse>> getAll() {
-        return ResponseEntity.ok(recipeService.getAll().stream().map(RecipeResponse::from).toList());
+    public ResponseEntity<RecipePage> getAll(
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "24") int size) {
+        Page<de.baier.familyadmin.model.Recipe> result = recipeService.getAll(page, size);
+        return ResponseEntity.ok(new RecipePage(
+                result.getContent().stream().map(RecipeResponse::from).toList(),
+                result.getNumber(),
+                result.getTotalPages(),
+                result.hasNext()
+        ));
     }
 
     @GetMapping("/search")

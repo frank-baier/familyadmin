@@ -1,17 +1,6 @@
 'use client';
 
-/**
- * Recipes list page — /recipes
- * - Search bar (debounced 300ms)
- * - Grid / Table view toggle
- * - Filter by minimum rating and category
- * - Grid of RecipeCard components (1-col mobile, 2-col md, 3-col lg)
- * - Table view with name, rating, category columns
- * - "Add Recipe" button
- * - Empty state with friendly message
- */
-
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { RecipeCard } from '@/components/recipes/RecipeCard';
 import { getRecipes, searchRecipes, importPaprikaFile } from '@/lib/recipes';
@@ -111,9 +100,14 @@ export default function RecipesPage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [nextPage, setNextPage] = useState(0);
+  const [isSearchMode, setIsSearchMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const [importing, setImporting] = useState(false);
   const [importResults, setImportResults] = useState<PaprikaImportResult[] | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
@@ -123,44 +117,72 @@ export default function RecipesPage() {
   const [minRating, setMinRating] = useState<number>(0);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
 
-  useEffect(() => {
-    if (sessionReady) loadAll();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionReady]);
-
-  async function loadAll() {
-    setLoading(true);
-    setError(null);
+  // Load a page of recipes and optionally replace the current list
+  const loadPage = useCallback(async (pageNum: number, replace: boolean) => {
+    if (replace) { setLoading(true); setError(null); }
+    else setLoadingMore(true);
     try {
-      const data = await getRecipes();
-      setRecipes(data);
+      const data = await getRecipes(pageNum);
+      setRecipes(prev => replace ? data.content : [...prev, ...data.content]);
+      setNextPage(data.page + 1);
+      setHasMore(data.hasNext);
+      setIsSearchMode(false);
     } catch (err) {
       setError('Rezepte konnten nicht geladen werden. Bitte erneut versuchen.');
       console.error(err);
     } finally {
-      setLoading(false);
+      if (replace) setLoading(false);
+      else setLoadingMore(false);
     }
-  }
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    if (sessionReady) loadPage(0, true);
+  }, [sessionReady, loadPage]);
+
+  // Infinite scroll: stable observer that reads latest state via ref
+  const loadMoreRef = useRef<(() => void) | null>(null);
+  loadMoreRef.current = () => {
+    if (hasMore && !loadingMore && !loading && !isSearchMode) {
+      loadPage(nextPage, false);
+    }
+  };
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) loadMoreRef.current?.(); },
+      { rootMargin: '200px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []); // set up once — loadMoreRef always has the latest callback
 
   // Debounced search
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     const value = e.target.value;
     setQuery(value);
-
     if (debounceRef.current) clearTimeout(debounceRef.current);
-
     debounceRef.current = setTimeout(async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const trimmed = value.trim();
-        const data = trimmed ? await searchRecipes(trimmed) : await getRecipes();
-        setRecipes(data);
-      } catch (err) {
-        setError('Suche fehlgeschlagen. Bitte erneut versuchen.');
-        console.error(err);
-      } finally {
-        setLoading(false);
+      const trimmed = value.trim();
+      if (trimmed) {
+        setLoading(true);
+        setError(null);
+        try {
+          const data = await searchRecipes(trimmed);
+          setRecipes(data);
+          setHasMore(false);
+          setIsSearchMode(true);
+        } catch (err) {
+          setError('Suche fehlgeschlagen. Bitte erneut versuchen.');
+          console.error(err);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        loadPage(0, true);
       }
     }, 300);
   }
@@ -174,13 +196,12 @@ export default function RecipesPage() {
     try {
       const results = await importPaprikaFile(file);
       setImportResults(results);
-      await loadAll(); // refresh the recipe list
+      loadPage(0, true);
     } catch (err) {
       setImportError('Import fehlgeschlagen. Bitte Datei prüfen und erneut versuchen.');
       console.error(err);
     } finally {
       setImporting(false);
-      // Reset input so same file can be re-imported if needed
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   }
@@ -199,7 +220,7 @@ export default function RecipesPage() {
     return Array.from(cats).sort();
   }, [recipes]);
 
-  // Apply filters
+  // Apply filters client-side to whatever is loaded
   const filteredRecipes = useMemo(() => {
     return recipes.filter(r => {
       if (minRating > 0 && (r.rating == null || r.rating < minRating)) return false;
@@ -248,10 +269,7 @@ export default function RecipesPage() {
             )}
           </button>
 
-          <Link
-            href="/recipes/new"
-            className="btn-primary shrink-0"
-          >
+          <Link href="/recipes/new" className="btn-primary shrink-0">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
@@ -386,7 +404,7 @@ export default function RecipesPage() {
       {/* Active filters summary */}
       {hasFilters && !loading && (
         <p className="text-xs text-slate-500 mb-4">
-          {filteredRecipes.length} von {recipes.length} Rezepten
+          {filteredRecipes.length} von {recipes.length} geladenen Rezepten
           {minRating > 0 && ` · ${minRating}+ Sterne`}
           {selectedCategory && ` · "${selectedCategory}"`}
           {' '}
@@ -404,7 +422,7 @@ export default function RecipesPage() {
         >
           {error}
           <button
-            onClick={loadAll}
+            onClick={() => loadPage(0, true)}
             className="ml-4 text-xs font-medium text-red-700 underline hover:no-underline"
           >
             Erneut versuchen
@@ -412,12 +430,10 @@ export default function RecipesPage() {
         </div>
       )}
 
-      {/* Loading skeleton */}
+      {/* Initial loading skeleton */}
       {loading && viewMode === 'grid' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <RecipeCardSkeleton key={i} />
-          ))}
+          {Array.from({ length: 6 }).map((_, i) => <RecipeCardSkeleton key={i} />)}
         </div>
       )}
       {loading && viewMode === 'table' && (
@@ -483,6 +499,19 @@ export default function RecipesPage() {
       {/* Recipe table */}
       {!loading && !isEmpty && viewMode === 'table' && (
         <RecipeTableView recipes={filteredRecipes} />
+      )}
+
+      {/* Infinite scroll sentinel */}
+      <div ref={sentinelRef} className="h-1" aria-hidden="true" />
+
+      {/* Loading more indicator */}
+      {loadingMore && (
+        <div className="flex justify-center py-8">
+          <svg className="w-6 h-6 text-indigo-400 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 010 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z" />
+          </svg>
+        </div>
       )}
 
       {/* Hidden file input for Paprika import */}

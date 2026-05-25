@@ -5,6 +5,8 @@ import de.baier.familyadmin.exception.ResourceNotFoundException;
 import de.baier.familyadmin.model.*;
 import de.baier.familyadmin.repository.RecipeRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,11 @@ public class RecipeService {
     @Transactional(readOnly = true)
     public List<Recipe> getAll() {
         return recipeRepository.findAllByOrderByTitleAsc();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Recipe> getAll(int page, int size) {
+        return recipeRepository.findAllByOrderByTitleAsc(PageRequest.of(page, size));
     }
 
     @Transactional(readOnly = true)

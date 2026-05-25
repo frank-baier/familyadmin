@@ -63,11 +63,21 @@ export interface RecipeRequest {
   steps?: RecipeStepRequest[];
 }
 
+// ─── Paginated response ─────────────────────────────────────────────────────
+
+export interface RecipePage {
+  content: Recipe[];
+  page: number;
+  totalPages: number;
+  hasNext: boolean;
+}
+
 // ─── API Functions ──────────────────────────────────────────────────────────
 
-/** Get all recipes */
-export async function getRecipes(): Promise<Recipe[]> {
-  return apiFetch<Recipe[]>('/api/recipes');
+/** Get a page of recipes (24 per page by default) */
+export async function getRecipes(page = 0, size = 24): Promise<RecipePage> {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  return apiFetch<RecipePage>(`/api/recipes?${params}`);
 }
 
 /** Search recipes by query */

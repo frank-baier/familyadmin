@@ -1,9 +1,11 @@
 package de.baier.familyadmin.service;
 
 import lombok.extern.slf4j.Slf4j;
+import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,24 +17,25 @@ import java.util.UUID;
 public class PhotoService {
 
     private static final String UPLOAD_DIR = "uploads";
+    private static final int    MAX_PX     = 600;
+    private static final double QUALITY    = 0.82;
 
     public String savePhoto(MultipartFile file) throws IOException {
         Path uploadPath = Paths.get(UPLOAD_DIR);
-        if (!Files.exists(uploadPath)) {
-            Files.createDirectories(uploadPath);
-        }
+        if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
 
-        String originalFilename = file.getOriginalFilename();
-        String extension = "";
-        if (originalFilename != null && originalFilename.contains(".")) {
-            extension = originalFilename.substring(originalFilename.lastIndexOf('.'));
-        }
+        String filename = UUID.randomUUID() + ".jpg";
+        Path   filePath = uploadPath.resolve(filename);
 
-        String filename = UUID.randomUUID() + extension;
-        Path filePath = uploadPath.resolve(filename);
-        file.transferTo(filePath.toFile());
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Thumbnails.of(file.getInputStream())
+                .size(MAX_PX, MAX_PX)
+                .outputFormat("JPEG")
+                .outputQuality(QUALITY)
+                .toOutputStream(baos);
 
-        log.info("Saved photo to {}", filePath);
+        Files.write(filePath, baos.toByteArray());
+        log.info("Saved photo {} ({} KB)", filePath, baos.size() / 1024);
         return "/uploads/" + filename;
     }
 }
