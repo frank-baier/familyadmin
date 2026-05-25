@@ -142,7 +142,7 @@ export default function RecipeDetailPage({ params }: PageProps) {
           <Image
             src={recipe.photoUrl}
             alt={recipe.title}
-            fill
+            fill unoptimized
             className="object-cover"
             priority
             sizes="(max-width: 768px) 100vw, 768px"

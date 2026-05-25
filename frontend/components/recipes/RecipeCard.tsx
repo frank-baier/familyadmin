@@ -43,7 +43,7 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
       <div className="relative w-full aspect-[4/3] overflow-hidden shrink-0">
         {recipe.photoUrl ? (
           <Image
-            src={recipe.photoUrl} alt={recipe.title} fill
+            src={recipe.photoUrl} alt={recipe.title} fill unoptimized
             className="object-cover group-hover:scale-105 transition-transform duration-300"
             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
