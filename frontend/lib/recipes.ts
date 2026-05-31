@@ -136,3 +136,20 @@ export async function importPaprikaFile(file: File): Promise<PaprikaImportResult
   formData.append('file', file);
   return apiFetchMultipart<PaprikaImportResult[]>('/api/recipes/import/paprika', formData);
 }
+
+// ─── URL Import ─────────────────────────────────────────────────────────────
+
+export interface UrlImportResult {
+  id: string | null;
+  title: string;
+  status: 'success' | 'error';
+  error: string | null;
+}
+
+/** Import a recipe from a URL (chefkoch.de, rezeptewelt.de, etc.) */
+export async function importFromUrl(url: string): Promise<UrlImportResult> {
+  return apiFetch<UrlImportResult>('/api/recipes/import/web', {
+    method: 'POST',
+    body: JSON.stringify({ url }),
+  });
+}

@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { RecipeCard } from '@/components/recipes/RecipeCard';
-import { getRecipes, searchRecipes, importPaprikaFile } from '@/lib/recipes';
-import type { Recipe, PaprikaImportResult } from '@/lib/recipes';
+import { getRecipes, searchRecipes, importPaprikaFile, importFromUrl } from '@/lib/recipes';
+import type { Recipe, PaprikaImportResult, UrlImportResult } from '@/lib/recipes';
 import { useUser } from '@/lib/user-context';
 import { useViewMode } from '@/lib/use-view-mode';
 
@@ -110,6 +110,11 @@ export default function RecipesPage() {
   const [importing, setImporting] = useState(false);
   const [importResults, setImportResults] = useState<PaprikaImportResult[] | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [urlInputValue, setUrlInputValue] = useState('');
+  const [importingUrl, setImportingUrl] = useState(false);
+  const [urlImportResult, setUrlImportResult] = useState<UrlImportResult | null>(null);
+  const [urlImportError, setUrlImportError] = useState<string | null>(null);
 
   // View & filter state
   const [viewMode, setViewMode] = useViewMode('recipes');
@@ -205,6 +210,27 @@ export default function RecipesPage() {
     }
   }
 
+  async function handleUrlImport() {
+    const trimmed = urlInputValue.trim();
+    if (!trimmed) return;
+    setImportingUrl(true);
+    setUrlImportResult(null);
+    setUrlImportError(null);
+    try {
+      const result = await importFromUrl(trimmed);
+      setUrlImportResult(result);
+      if (result.status === 'success') {
+        setUrlInputValue('');
+        setShowUrlInput(false);
+        loadPage(0, true);
+      }
+    } catch {
+      setUrlImportError('Import fehlgeschlagen. Bitte URL prüfen und erneut versuchen.');
+    } finally {
+      setImportingUrl(false);
+    }
+  }
+
   // Derive unique categories from loaded recipes
   const allCategories = useMemo(() => {
     const cats = new Set<string>();
@@ -268,6 +294,22 @@ export default function RecipesPage() {
             )}
           </button>
 
+          <button
+            onClick={() => {
+              setShowUrlInput(v => !v);
+              setUrlImportResult(null);
+              setUrlImportError(null);
+            }}
+            disabled={importingUrl}
+            className="btn-secondary shrink-0"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            </svg>
+            Von URL importieren
+          </button>
+
           <Link href="/recipes/new" className="btn-primary shrink-0">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />
@@ -276,6 +318,65 @@ export default function RecipesPage() {
           </Link>
         </div>
       </div>
+
+      {/* URL import input panel */}
+      {showUrlInput && (
+        <div className="glass rounded-xl px-4 py-3 mb-4 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+          <input
+            type="url"
+            value={urlInputValue}
+            onChange={e => setUrlInputValue(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleUrlImport(); }}
+            placeholder="https://www.chefkoch.de/rezepte/..."
+            aria-label="Rezept-URL eingeben"
+            className="input-field flex-1"
+            disabled={importingUrl}
+            autoFocus
+          />
+          <button
+            onClick={handleUrlImport}
+            disabled={importingUrl || !urlInputValue.trim()}
+            className="btn-primary shrink-0"
+          >
+            {importingUrl ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 010 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z"/>
+                </svg>
+                Importiere…
+              </>
+            ) : 'Importieren'}
+          </button>
+        </div>
+      )}
+
+      {/* URL import result panel */}
+      {(urlImportResult !== null || urlImportError !== null) && (
+        <div className={`rounded-xl border px-4 py-3 mb-4 text-sm ${
+          urlImportError || urlImportResult?.status === 'error'
+            ? 'bg-red-50 border-red-200 text-red-700'
+            : 'bg-green-50 border-green-200 text-green-800'
+        }`}>
+          <div className="flex items-center justify-between">
+            <span className="font-medium">
+              {urlImportError
+                ? urlImportError
+                : urlImportResult?.status === 'success'
+                ? `"${urlImportResult.title}" wurde importiert`
+                : `Import fehlgeschlagen: ${urlImportResult?.error ?? 'Unbekannter Fehler'}`
+              }
+            </span>
+            <button
+              onClick={() => { setUrlImportResult(null); setUrlImportError(null); }}
+              className="ml-4 text-xs underline hover:no-underline"
+              aria-label="Ergebnis schließen"
+            >
+              Schließen
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Paprika import result panel */}
       {(importResults !== null || importError !== null) && (

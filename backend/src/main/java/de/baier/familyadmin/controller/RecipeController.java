@@ -5,7 +5,9 @@ import de.baier.familyadmin.dto.RecipeResponse;
 import de.baier.familyadmin.model.User;
 import de.baier.familyadmin.service.PaprikaImportService;
 import de.baier.familyadmin.service.RecipeService;
+import de.baier.familyadmin.service.RecipeUrlImportService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -23,10 +25,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class RecipeController {
 
-    private final RecipeService recipeService;
-    private final PaprikaImportService paprikaImportService;
+    private final RecipeService           recipeService;
+    private final PaprikaImportService    paprikaImportService;
+    private final RecipeUrlImportService  recipeUrlImportService;
 
     record RecipePage(List<RecipeResponse> content, int page, int totalPages, boolean hasNext) {}
+    record UrlImportRequest(@NotBlank String url) {}
 
     @GetMapping
     public ResponseEntity<RecipePage> getAll(
@@ -79,5 +83,12 @@ public class RecipeController {
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal User currentUser) throws IOException {
         return ResponseEntity.ok(paprikaImportService.importPaprikaFile(file, currentUser));
+    }
+
+    @PostMapping("/import/web")
+    public ResponseEntity<PaprikaImportService.ImportResult> importFromWeb(
+            @Valid @RequestBody UrlImportRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(recipeUrlImportService.importFromUrl(request.url(), currentUser));
     }
 }
