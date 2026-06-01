@@ -41,6 +41,17 @@ public class RecipeUrlImportService {
             .defaultHeader("Accept-Language", "de-DE,de;q=0.9,en;q=0.8")
             .build();
 
+    /** Fetches the page at the given URL and returns the image URL from its schema.org/Recipe JSON-LD, or null. */
+    public String extractPhotoUrl(String pageUrl) {
+        try {
+            JsonNode node = extractRecipeJsonLd(pageUrl);
+            return extractImageUrl(node.path("image"));
+        } catch (Exception e) {
+            log.debug("No recipe image found at {}: {}", pageUrl, e.getMessage());
+            return null;
+        }
+    }
+
     @Transactional
     public PaprikaImportService.ImportResult importFromUrl(String url, User currentUser) {
         try {
