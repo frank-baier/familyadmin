@@ -29,4 +29,18 @@ public record DocumentResponse(
                 doc.getCreatedAt()
         );
     }
+
+    public static DocumentResponse fromGlobal(Document doc) {
+        return new DocumentResponse(
+                doc.getId(),
+                doc.getFilename(),
+                doc.getContentType(),
+                doc.getFileSize(),
+                doc.getSource().name(),
+                doc.getEmailSubject(),
+                UserResponse.from(doc.getUploadedBy()),
+                "/api/documents/" + doc.getId() + "/download",
+                doc.getCreatedAt()
+        );
+    }
 }

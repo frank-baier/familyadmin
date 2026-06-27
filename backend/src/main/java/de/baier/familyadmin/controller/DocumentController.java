@@ -1,0 +1,65 @@
+package de.baier.familyadmin.controller;
+
+import de.baier.familyadmin.dto.DocumentResponse;
+import de.baier.familyadmin.model.Document;
+import de.baier.familyadmin.model.DocumentSource;
+import de.baier.familyadmin.model.User;
+import de.baier.familyadmin.repository.DocumentRepository;
+import de.baier.familyadmin.service.DocumentService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/api/documents")
+@RequiredArgsConstructor
+public class DocumentController {
+
+    private final DocumentRepository documentRepository;
+    private final DocumentService documentService;
+
+    @GetMapping
+    public List<DocumentResponse> getAll() {
+        return documentRepository.findAllByOrderByCreatedAtDesc().stream()
+                .map(DocumentResponse::fromGlobal)
+                .toList();
+    }
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public DocumentResponse upload(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal User currentUser) throws IOException {
+        Document doc = documentService.store(file, currentUser, DocumentSource.UPLOAD, null);
+        return DocumentResponse.fromGlobal(doc);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable UUID id) {
+        Document doc = documentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        documentService.delete(doc);
+    }
+
+    @GetMapping("/{id}/download")
+    public ResponseEntity<byte[]> download(@PathVariable UUID id) {
+        Document doc = documentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(doc.getContentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + doc.getFilename() + "\"")
+                .body(doc.getData());
+    }
+}
