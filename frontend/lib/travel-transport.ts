@@ -90,6 +90,24 @@ export async function refreshFlightStatus(tripId: string, legId: string): Promis
   });
 }
 
+export interface FlightLookupResult {
+  flightIata: string;
+  depCode: string;
+  depCity: string;
+  arrCode: string;
+  arrCity: string;
+  airlineName: string;
+  durationMinutes: number | null;
+  departureAt: string | null;
+  arrivalAt: string | null;
+}
+
+export async function lookupFlight(flightIata: string, date?: string): Promise<FlightLookupResult> {
+  const params = new URLSearchParams({ flight_iata: flightIata });
+  if (date) params.set('date', date);
+  return apiFetch<FlightLookupResult>(`/api/transport/flights/lookup?${params}`);
+}
+
 export function formatInstant(iso: string | null, timeZone = 'Europe/Berlin'): string {
   if (!iso) return '–';
   return new Intl.DateTimeFormat('de-DE', {

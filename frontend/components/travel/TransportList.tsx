@@ -7,6 +7,7 @@ import {
   updateLeg,
   deleteLeg,
   refreshFlightStatus,
+  lookupFlight,
   formatInstant,
   toDatetimeLocalValue,
   fromDatetimeLocalValue,
@@ -31,6 +32,8 @@ interface LegFormProps {
 
 function LegForm({ tripId, nextPosition, initial, onSaved, onCancel }: LegFormProps) {
   const [type, setType] = useState<TransportType>(initial?.type ?? 'FLIGHT');
+  const [flightNumber, setFlightNumber] = useState(initial?.flightNumber ?? '');
+  const [flightDate, setFlightDate] = useState('');
   const [fromLocation, setFromLocation] = useState(initial?.fromLocation ?? '');
   const [toLocation, setToLocation] = useState(initial?.toLocation ?? '');
   const [departureAt, setDepartureAt] = useState(toDatetimeLocalValue(initial?.departureAt ?? null));
@@ -38,10 +41,29 @@ function LegForm({ tripId, nextPosition, initial, onSaved, onCancel }: LegFormPr
   const [carrier, setCarrier] = useState(initial?.carrier ?? '');
   const [bookingReference, setBookingReference] = useState(initial?.bookingReference ?? '');
   const [seat, setSeat] = useState(initial?.seat ?? '');
-  const [flightNumber, setFlightNumber] = useState(initial?.flightNumber ?? '');
   const [notes, setNotes] = useState(initial?.notes ?? '');
   const [saving, setSaving] = useState(false);
+  const [looking, setLooking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+
+  async function handleLookup() {
+    if (!flightNumber.trim()) return;
+    setLooking(true);
+    setLookupError(null);
+    try {
+      const result = await lookupFlight(flightNumber.trim(), flightDate || undefined);
+      setFromLocation(`${result.depCity} (${result.depCode})`);
+      setToLocation(`${result.arrCity} (${result.arrCode})`);
+      if (result.airlineName) setCarrier(result.airlineName);
+      if (result.departureAt) setDepartureAt(toDatetimeLocalValue(result.departureAt));
+      if (result.arrivalAt) setArrivalAt(toDatetimeLocalValue(result.arrivalAt));
+    } catch {
+      setLookupError('Flugdaten konnten nicht geladen werden.');
+    } finally {
+      setLooking(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -61,7 +83,7 @@ function LegForm({ tripId, nextPosition, initial, onSaved, onCancel }: LegFormPr
         carrier: carrier.trim() || undefined,
         bookingReference: bookingReference.trim() || undefined,
         seat: seat.trim() || undefined,
-        flightNumber: flightNumber.trim() || undefined,
+        flightNumber: type === 'FLIGHT' ? (flightNumber.trim() || undefined) : undefined,
         notes: notes.trim() || undefined,
         position: initial?.position ?? nextPosition,
       };
@@ -81,6 +103,7 @@ function LegForm({ tripId, nextPosition, initial, onSaved, onCancel }: LegFormPr
   return (
     <form onSubmit={handleSubmit} className="rounded-2xl border border-orange-200 bg-orange-50 p-4 space-y-3">
       <div className="grid grid-cols-2 gap-3">
+        {/* Type selector */}
         <div className="col-span-2">
           <label className={labelCls}>Typ</label>
           <select value={type} onChange={(e) => setType(e.target.value as TransportType)} className={inputCls}>
@@ -92,19 +115,57 @@ function LegForm({ tripId, nextPosition, initial, onSaved, onCancel }: LegFormPr
           </select>
         </div>
 
+        {/* Flight lookup — only for FLIGHT type */}
+        {type === 'FLIGHT' && (
+          <div className="col-span-2">
+            <div className="flex gap-2 items-end">
+              <div className="flex-1">
+                <label className={labelCls}>Flugnummer</label>
+                <input
+                  value={flightNumber}
+                  onChange={(e) => setFlightNumber(e.target.value.toUpperCase())}
+                  placeholder="LH401"
+                  className={inputCls}
+                />
+              </div>
+              <div className="flex-1">
+                <label className={labelCls}>Reisedatum</label>
+                <input
+                  type="date"
+                  value={flightDate}
+                  onChange={(e) => setFlightDate(e.target.value)}
+                  className={inputCls}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleLookup}
+                disabled={looking || !flightNumber.trim()}
+                className="shrink-0 px-3 py-2 rounded-xl text-sm font-medium text-white bg-sky-500 hover:bg-sky-600
+                           disabled:opacity-40 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400"
+              >
+                {looking ? '…' : '✈ Laden'}
+              </button>
+            </div>
+            {lookupError && <p className="mt-1 text-xs text-red-600">{lookupError}</p>}
+          </div>
+        )}
+
+        {/* Route */}
         <div>
           <label className={labelCls}>Von *</label>
           <input value={fromLocation} onChange={(e) => setFromLocation(e.target.value)}
-            placeholder="Frankfurt FRA" required className={inputCls} />
+            placeholder="Frankfurt (FRA)" required className={inputCls} />
         </div>
         <div>
           <label className={labelCls}>Nach *</label>
           <input value={toLocation} onChange={(e) => setToLocation(e.target.value)}
-            placeholder="New York JFK" required className={inputCls} />
+            placeholder="New York (JFK)" required className={inputCls} />
         </div>
 
+        {/* Times */}
         <div>
-          <label className={labelCls}>Abfahrt *</label>
+          <label className={labelCls}>Abflug *</label>
           <input type="datetime-local" value={departureAt} onChange={(e) => setDepartureAt(e.target.value)}
             required className={inputCls} />
         </div>
@@ -114,6 +175,7 @@ function LegForm({ tripId, nextPosition, initial, onSaved, onCancel }: LegFormPr
             required className={inputCls} />
         </div>
 
+        {/* Carrier + booking ref */}
         <div>
           <label className={labelCls}>Carrier / Anbieter</label>
           <input value={carrier} onChange={(e) => setCarrier(e.target.value)}
@@ -125,16 +187,9 @@ function LegForm({ tripId, nextPosition, initial, onSaved, onCancel }: LegFormPr
             placeholder="ABCDEF" className={inputCls} />
         </div>
 
-        {type === 'FLIGHT' && (
-          <div>
-            <label className={labelCls}>Flugnummer</label>
-            <input value={flightNumber} onChange={(e) => setFlightNumber(e.target.value)}
-              placeholder="LH401" className={inputCls} />
-          </div>
-        )}
-
-        <div className={type === 'FLIGHT' ? '' : 'col-span-2'}>
-          <label className={labelCls}>Sitzplatz</label>
+        {/* Seat — always manual */}
+        <div className="col-span-2">
+          <label className={labelCls}>Sitzplatz <span className="text-slate-300 font-normal">(manuell)</span></label>
           <input value={seat} onChange={(e) => setSeat(e.target.value)}
             placeholder="23A" className={inputCls} />
         </div>
@@ -146,9 +201,7 @@ function LegForm({ tripId, nextPosition, initial, onSaved, onCancel }: LegFormPr
         </div>
       </div>
 
-      {error && (
-        <p className="text-xs text-red-600">{error}</p>
-      )}
+      {error && <p className="text-xs text-red-600">{error}</p>}
 
       <div className="flex items-center gap-2 pt-1">
         <button
