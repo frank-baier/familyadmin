@@ -7,6 +7,9 @@ export interface Document {
   fileSize: number;
   source: string;
   emailSubject: string | null;
+  category: string | null;
+  subcategory: string | null;
+  year: number | null;
   downloadUrl: string;
   createdAt: string;
 }

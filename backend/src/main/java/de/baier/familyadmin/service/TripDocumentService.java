@@ -35,7 +35,7 @@ public class TripDocumentService {
 
     public TripDocument upload(UUID tripId, MultipartFile file, User uploadedBy) throws IOException {
         Trip trip = getTrip(tripId);
-        Document doc = documentService.store(file, uploadedBy, DocumentSource.UPLOAD, null);
+        Document doc = documentService.store(file, uploadedBy, DocumentSource.UPLOAD, null, null, null, null);
         return tripDocumentRepository.save(TripDocument.builder().trip(trip).document(doc).build());
     }
 

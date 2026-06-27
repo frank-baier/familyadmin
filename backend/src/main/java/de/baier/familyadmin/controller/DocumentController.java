@@ -39,8 +39,11 @@ public class DocumentController {
     @ResponseStatus(HttpStatus.CREATED)
     public DocumentResponse upload(
             @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "category", required = false) String category,
+            @RequestParam(value = "subcategory", required = false) String subcategory,
+            @RequestParam(value = "year", required = false) Integer year,
             @AuthenticationPrincipal User currentUser) throws IOException {
-        Document doc = documentService.store(file, currentUser, DocumentSource.UPLOAD, null);
+        Document doc = documentService.store(file, currentUser, DocumentSource.UPLOAD, null, category, subcategory, year);
         return DocumentResponse.fromGlobal(doc);
     }
 

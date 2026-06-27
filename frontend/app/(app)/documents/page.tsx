@@ -9,6 +9,7 @@ import {
   formatFileSize,
   type Document,
 } from '@/lib/documents';
+import { ApiError } from '@/lib/api';
 
 // ─── File type icon ───────────────────────────────────────────────────────────
 
@@ -147,8 +148,13 @@ export default function DocumentsPage() {
     try {
       const doc = await uploadDocument(file);
       setDocuments((prev) => [doc, ...prev]);
-    } catch {
-      setError('Upload fehlgeschlagen. Bitte erneut versuchen.');
+    } catch (err) {
+      console.error('Upload error:', err);
+      if (err instanceof ApiError) {
+        setError(`Upload fehlgeschlagen (${err.status}). Bitte erneut versuchen.`);
+      } else {
+        setError('Upload fehlgeschlagen — Server nicht erreichbar?');
+      }
     } finally {
       setUploading(false);
     }
@@ -236,9 +242,16 @@ export default function DocumentsPage() {
               <FileIcon contentType={doc.contentType} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-slate-800 truncate">{doc.filename}</p>
-                <p className="text-xs text-slate-400">
-                  {formatFileSize(doc.fileSize)} · {formatDate(doc.createdAt)}
-                </p>
+                <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                  <span className="text-xs text-slate-400">
+                    {formatFileSize(doc.fileSize)} · {formatDate(doc.createdAt)}
+                  </span>
+                  {doc.category && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 font-medium leading-tight">
+                      {doc.category}{doc.subcategory ? ` / ${doc.subcategory}` : ''}{doc.year ? ` · ${doc.year}` : ''}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <a

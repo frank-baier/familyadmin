@@ -45,6 +45,15 @@ public class Document {
     @Column(name = "email_subject", length = 512)
     private String emailSubject;
 
+    @Column(length = 255)
+    private String category;
+
+    @Column(length = 255)
+    private String subcategory;
+
+    @Column
+    private Integer year;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

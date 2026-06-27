@@ -12,6 +12,9 @@ public record DocumentResponse(
         long fileSize,
         String source,
         String emailSubject,
+        String category,
+        String subcategory,
+        Integer year,
         UserResponse uploadedBy,
         String downloadUrl,
         Instant createdAt
@@ -24,6 +27,9 @@ public record DocumentResponse(
                 doc.getFileSize(),
                 doc.getSource().name(),
                 doc.getEmailSubject(),
+                doc.getCategory(),
+                doc.getSubcategory(),
+                doc.getYear(),
                 UserResponse.from(doc.getUploadedBy()),
                 "/api/trips/" + tripId + "/documents/" + doc.getId() + "/download",
                 doc.getCreatedAt()
@@ -38,6 +44,9 @@ public record DocumentResponse(
                 doc.getFileSize(),
                 doc.getSource().name(),
                 doc.getEmailSubject(),
+                doc.getCategory(),
+                doc.getSubcategory(),
+                doc.getYear(),
                 UserResponse.from(doc.getUploadedBy()),
                 "/api/documents/" + doc.getId() + "/download",
                 doc.getCreatedAt()

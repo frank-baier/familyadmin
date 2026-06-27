@@ -22,7 +22,8 @@ public class DocumentService {
     private final DocumentRepository documentRepository;
     private final DocumentIndexingService documentIndexingService;
 
-    public Document store(MultipartFile file, User uploadedBy, DocumentSource source, String emailSubject) throws IOException {
+    public Document store(MultipartFile file, User uploadedBy, DocumentSource source,
+                          String emailSubject, String category, String subcategory, Integer year) throws IOException {
         String filename = StringUtils.hasText(file.getOriginalFilename())
                 ? file.getOriginalFilename() : "document";
         String contentType = StringUtils.hasText(file.getContentType())
@@ -36,6 +37,9 @@ public class DocumentService {
                 .uploadedBy(uploadedBy)
                 .source(source)
                 .emailSubject(emailSubject)
+                .category(category)
+                .subcategory(subcategory)
+                .year(year)
                 .build();
         Document saved = documentRepository.save(doc);
         scheduleIndexing(saved);
