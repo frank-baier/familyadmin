@@ -11,30 +11,32 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 
-const PUBLIC_PATHS = ['/login'];
+// Paths where unauthenticated access is allowed
+const PUBLIC_PATHS = ['/login', '/tasks/preview'];
+// Paths where authenticated users should be bounced away (i.e. the login page)
+const AUTH_BOUNCE_PATHS = ['/login'];
 
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
-  // Check for refresh_token cookie (set as HttpOnly by the Spring Boot backend on login, path=/)
-  // Note: request.cookies in middleware is synchronous (RequestCookies object).
-  // The async cookie API applies to next/headers (Server Components / Route Handlers).
   const authCookie = request.cookies.get('refresh_token');
   const isAuthenticated = Boolean(authCookie?.value);
 
   const isPublicPath = PUBLIC_PATHS.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`),
   );
+  const isAuthBouncePath = AUTH_BOUNCE_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
 
   // Authenticated user visiting /login → send to /dashboard
-  if (isAuthenticated && isPublicPath) {
+  if (isAuthenticated && isAuthBouncePath) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   // Unauthenticated user visiting a protected route → send to /login
   if (!isAuthenticated && !isPublicPath) {
     const loginUrl = new URL('/login', request.url);
-    // Preserve the intended destination for post-login redirect
     loginUrl.searchParams.set('next', pathname);
     return NextResponse.redirect(loginUrl);
   }
