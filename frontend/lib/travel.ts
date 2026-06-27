@@ -32,6 +32,7 @@ export interface Trip {
   endDate: string;      // ISO date string "YYYY-MM-DD"
   description: string | null;
   coverPhotoUrl: string | null;
+  emailToken: string;
   createdBy: User;
   keyInfos: TripKeyInfo[];
   itinerary: ItineraryEntry[];

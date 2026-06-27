@@ -43,6 +43,10 @@ public class Trip {
     @Column(name = "cover_photo_url", length = 512)
     private String coverPhotoUrl;
 
+    @Column(name = "email_token", nullable = false, unique = true)
+    @Builder.Default
+    private UUID emailToken = UUID.randomUUID();
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
