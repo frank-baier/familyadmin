@@ -7,6 +7,8 @@ import de.baier.familyadmin.repository.DocumentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,6 +20,7 @@ import java.io.IOException;
 public class DocumentService {
 
     private final DocumentRepository documentRepository;
+    private final DocumentIndexingService documentIndexingService;
 
     public Document store(MultipartFile file, User uploadedBy, DocumentSource source, String emailSubject) throws IOException {
         String filename = StringUtils.hasText(file.getOriginalFilename())
@@ -34,7 +37,9 @@ public class DocumentService {
                 .source(source)
                 .emailSubject(emailSubject)
                 .build();
-        return documentRepository.save(doc);
+        Document saved = documentRepository.save(doc);
+        scheduleIndexing(saved);
+        return saved;
     }
 
     public Document storeBytes(byte[] bytes, String filename, String contentType,
@@ -51,7 +56,19 @@ public class DocumentService {
                 .source(DocumentSource.EMAIL)
                 .emailSubject(emailSubject)
                 .build();
-        return documentRepository.save(doc);
+        Document saved = documentRepository.save(doc);
+        scheduleIndexing(saved);
+        return saved;
+    }
+
+    private void scheduleIndexing(Document saved) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                documentIndexingService.indexAsync(
+                        saved.getId(), saved.getData(), saved.getContentType(), saved.getFilename());
+            }
+        });
     }
 
     @Transactional(readOnly = true)
