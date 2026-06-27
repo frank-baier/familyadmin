@@ -17,6 +17,8 @@ import Image from 'next/image';
 import { getTrip, deleteTrip } from '@/lib/travel';
 import { getCurrentUser } from '@/lib/auth';
 import { PackingList } from '@/components/travel/PackingList';
+import { DocumentsList } from '@/components/travel/DocumentsList';
+import { TransportList } from '@/components/travel/TransportList';
 import type { Trip } from '@/lib/travel';
 import type { User } from '@/lib/auth';
 
@@ -141,7 +143,7 @@ function SubTabButton({
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-type MainTab = 'packing' | 'itinerary';
+type MainTab = 'packing' | 'itinerary' | 'documents' | 'transport';
 type PackingSubTab = 'shared' | 'personal';
 
 interface PageProps {
@@ -377,17 +379,25 @@ export default function TripDetailPage({ params }: PageProps) {
       </div>
 
       {/* Main tabs */}
-      <div
-        className="flex items-center gap-2 mb-4 p-1 bg-slate-100 rounded-xl w-fit"
-        role="tablist"
-        aria-label="Reisebereiche"
-      >
-        <TabButton active={activeTab === 'packing'} onClick={() => setActiveTab('packing')}>
-          Packliste
-        </TabButton>
-        <TabButton active={activeTab === 'itinerary'} onClick={() => setActiveTab('itinerary')}>
-          Reiseplan
-        </TabButton>
+      <div className="overflow-x-auto scrollbar-hide -mx-1 px-1 mb-4">
+        <div
+          className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl w-fit"
+          role="tablist"
+          aria-label="Reisebereiche"
+        >
+          <TabButton active={activeTab === 'packing'} onClick={() => setActiveTab('packing')}>
+            Packliste
+          </TabButton>
+          <TabButton active={activeTab === 'itinerary'} onClick={() => setActiveTab('itinerary')}>
+            Reiseplan
+          </TabButton>
+          <TabButton active={activeTab === 'transport'} onClick={() => setActiveTab('transport')}>
+            Transport
+          </TabButton>
+          <TabButton active={activeTab === 'documents'} onClick={() => setActiveTab('documents')}>
+            Dokumente
+          </TabButton>
+        </div>
       </div>
 
       {/* Packing List tab */}
@@ -432,7 +442,25 @@ export default function TripDetailPage({ params }: PageProps) {
         </div>
       )}
 
-      {/* Itinerary tab — placeholder for 04-03 */}
+      {/* Transport tab */}
+      {activeTab === 'transport' && (
+        <div className="glass rounded-3xl overflow-hidden">
+          <div className="px-6 py-5">
+            <TransportList tripId={id} />
+          </div>
+        </div>
+      )}
+
+      {/* Documents tab */}
+      {activeTab === 'documents' && (
+        <div className="glass rounded-3xl overflow-hidden">
+          <div className="px-6 py-5">
+            <DocumentsList tripId={id} emailToken={trip.emailToken} />
+          </div>
+        </div>
+      )}
+
+      {/* Itinerary tab — placeholder */}
       {activeTab === 'itinerary' && (
         <div className="glass rounded-3xl overflow-hidden">
           <div className="px-6 py-12 text-center">
