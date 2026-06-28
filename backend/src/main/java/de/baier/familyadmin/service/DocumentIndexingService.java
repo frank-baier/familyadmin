@@ -2,7 +2,12 @@ package de.baier.familyadmin.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.tika.Tika;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.parser.AutoDetectParser;
+import org.apache.tika.parser.ParseContext;
+import org.apache.tika.parser.Parser;
+import org.apache.tika.parser.ocr.TesseractOCRConfig;
+import org.apache.tika.sax.BodyContentHandler;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -59,9 +64,18 @@ public class DocumentIndexingService {
 
     private String extractText(byte[] data, String filename) {
         try {
-            Tika tika = new Tika();
-            tika.setMaxStringLength(500_000);
-            return tika.parseToString(new ByteArrayInputStream(data));
+            TesseractOCRConfig ocrConfig = new TesseractOCRConfig();
+            ocrConfig.setLanguage("deu+eng");
+            ocrConfig.setTimeoutSeconds(120);
+
+            AutoDetectParser parser = new AutoDetectParser();
+            ParseContext context = new ParseContext();
+            context.set(TesseractOCRConfig.class, ocrConfig);
+            context.set(Parser.class, parser);
+
+            BodyContentHandler handler = new BodyContentHandler(500_000);
+            parser.parse(new ByteArrayInputStream(data), handler, new Metadata(), context);
+            return handler.toString();
         } catch (Exception e) {
             log.warn("Text extraction failed for '{}': {}", filename, e.getMessage());
             return "";

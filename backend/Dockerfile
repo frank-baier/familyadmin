@@ -8,6 +8,7 @@ RUN mvn package -DskipTests -q
 
 # Runtime stage
 FROM eclipse-temurin:21-jre-alpine
+RUN apk add --no-cache tesseract-ocr tesseract-ocr-data-deu tesseract-ocr-data-eng
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
