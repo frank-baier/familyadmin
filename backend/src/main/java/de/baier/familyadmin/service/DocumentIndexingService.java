@@ -24,12 +24,14 @@ public class DocumentIndexingService {
 
     private final OllamaService ollamaService;
     private final JdbcTemplate jdbcTemplate;
+    private final TripAutoLinkerService tripAutoLinkerService;
 
     private static final int CHUNK_SIZE = 2000;
     private static final int OVERLAP = 200;
 
     @Async
-    public void indexAsync(UUID documentId, byte[] data, String contentType, String filename) {
+    public void indexAsync(UUID documentId, byte[] data, String contentType, String filename,
+                           String category, String subcategory, Integer year, UUID uploaderId) {
         try {
             Integer count = jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM document_chunks WHERE document_id = ?::uuid",
@@ -42,21 +44,23 @@ public class DocumentIndexingService {
             String text = extractText(data, filename);
             if (text.isBlank()) {
                 log.warn("No text extracted from {} — may be a scanned/image-only document", filename);
-                return;
+            } else {
+                List<String> chunks = chunk(text);
+                log.info("Indexing '{}' → {} chunks", filename, chunks.size());
+                for (int i = 0; i < chunks.size(); i++) {
+                    float[] embedding = ollamaService.embed(chunks.get(i));
+                    jdbcTemplate.update(
+                            "INSERT INTO document_chunks (document_id, chunk_index, chunk_text, embedding) VALUES (?::uuid, ?, ?, ?::vector)",
+                            documentId.toString(), i, chunks.get(i), toVectorString(embedding));
+                }
+                log.info("Finished indexing '{}' ({} chunks)", filename, chunks.size());
             }
 
-            List<String> chunks = chunk(text);
-            log.info("Indexing '{}' → {} chunks", filename, chunks.size());
-
-            for (int i = 0; i < chunks.size(); i++) {
-                String chunkText = chunks.get(i);
-                float[] embedding = ollamaService.embed(chunkText);
-                jdbcTemplate.update(
-                        "INSERT INTO document_chunks (document_id, chunk_index, chunk_text, embedding) VALUES (?::uuid, ?, ?, ?::vector)",
-                        documentId.toString(), i, chunkText, toVectorString(embedding));
+            // Auto-link to trip for travel documents
+            if ("Reisen".equalsIgnoreCase(category) && uploaderId != null) {
+                tripAutoLinkerService.autoLink(documentId, text, subcategory, year, uploaderId);
             }
 
-            log.info("Finished indexing '{}' ({} chunks)", filename, chunks.size());
         } catch (Exception e) {
             log.error("Failed to index document '{}': {}", filename, e.getMessage(), e);
         }

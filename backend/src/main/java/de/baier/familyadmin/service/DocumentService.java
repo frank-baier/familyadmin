@@ -13,6 +13,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -66,11 +67,20 @@ public class DocumentService {
     }
 
     private void scheduleIndexing(Document saved) {
+        // Capture non-lazy fields before transaction commits
+        UUID docId      = saved.getId();
+        byte[] data     = saved.getData();
+        String ct       = saved.getContentType();
+        String fn       = saved.getFilename();
+        String cat      = saved.getCategory();
+        String sub      = saved.getSubcategory();
+        Integer yr      = saved.getYear();
+        UUID uploaderId = saved.getUploadedBy().getId();
+
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                documentIndexingService.indexAsync(
-                        saved.getId(), saved.getData(), saved.getContentType(), saved.getFilename());
+                documentIndexingService.indexAsync(docId, data, ct, fn, cat, sub, yr, uploaderId);
             }
         });
     }
