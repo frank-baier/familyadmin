@@ -289,8 +289,8 @@ public class TripAutoLinkerService {
         LocalDate today = LocalDate.now();
         // Prefer explicit dates from LLM extraction
         if (endDate != null) return endDate.isBefore(today);
-        if (startDate != null) return startDate.isBefore(today.minusDays(30)); // 30-day buffer for ongoing trips
-        // Fall back to folder year
+        if (startDate != null) return startDate.isBefore(today.minusDays(30));
+        // Fall back to folder year: skip years strictly in the past
         if (folderYear != null) return folderYear < today.getYear();
         return false; // unknown — don't skip
     }
