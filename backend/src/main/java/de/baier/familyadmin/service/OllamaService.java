@@ -9,9 +9,13 @@ import org.springframework.web.client.RestClient;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 
 @Service
 public class OllamaService {
+
+    // phi3.5 (2.2 GB) crashes when called concurrently on Hetzner — serialize all generate() calls
+    private static final Semaphore GENERATE_SEMAPHORE = new Semaphore(1);
 
     private final RestClient restClient;
 
@@ -55,16 +59,26 @@ public class OllamaService {
     }
 
     public String generate(String prompt) {
-        var response = restClient.post()
-                .uri("/api/generate")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new GenerateRequest(chatModel, prompt, false))
-                .retrieve()
-                .body(GenerateResponse.class);
-        if (response == null) {
-            throw new IllegalStateException("Ollama returned null response");
+        try {
+            GENERATE_SEMAPHORE.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted waiting for Ollama semaphore", e);
         }
-        return response.response();
+        try {
+            var response = restClient.post()
+                    .uri("/api/generate")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new GenerateRequest(chatModel, prompt, false))
+                    .retrieve()
+                    .body(GenerateResponse.class);
+            if (response == null) {
+                throw new IllegalStateException("Ollama returned null response");
+            }
+            return response.response();
+        } finally {
+            GENERATE_SEMAPHORE.release();
+        }
     }
 
     private record EmbeddingRequest(String model, String prompt) {}
