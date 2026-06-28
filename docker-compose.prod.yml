@@ -39,6 +39,8 @@ services:
       RESEND_WEBHOOK_SECRET: ${RESEND_WEBHOOK_SECRET:-}
       AIRLABS_API_KEY: ${AIRLABS_API_KEY:-}
       OLLAMA_BASE_URL: http://ollama:11434
+      SYNC_API_KEY: ${SYNC_API_KEY:-}
+      SYNC_API_USER: ${SYNC_API_USER:-frank.baier@gmx.ch}
 
   ollama:
     image: ollama/ollama

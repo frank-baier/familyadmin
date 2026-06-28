@@ -32,6 +32,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final de.baier.familyadmin.filter.ApiKeyAuthFilter apiKeyAuthFilter;
     private final UserDetailsService userDetailsService;
 
     @Value("${app.frontend.url:http://localhost:3000}")
@@ -54,6 +55,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                .addFilterBefore(apiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
