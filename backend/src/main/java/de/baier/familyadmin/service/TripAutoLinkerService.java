@@ -49,6 +49,12 @@ public class TripAutoLinkerService {
             LocalDate startDate = resolveDate(analysis.map(TravelDocumentAnalysis::startDate).orElse(null), folderYear, true);
             LocalDate endDate   = resolveDate(analysis.map(TravelDocumentAnalysis::endDate).orElse(null), folderYear, false);
 
+            if (isPastTrip(startDate, endDate, folderYear)) {
+                log.info("Document {} belongs to a past trip (year={}, start={}), skipping auto-link",
+                        documentId, folderYear, startDate);
+                return;
+            }
+
             if (destination == null) {
                 log.info("Document {} (trip folder): no destination resolvable, skipping auto-link", documentId);
                 return;
@@ -278,6 +284,16 @@ public class TripAutoLinkerService {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private boolean isPastTrip(LocalDate startDate, LocalDate endDate, Integer folderYear) {
+        LocalDate today = LocalDate.now();
+        // Prefer explicit dates from LLM extraction
+        if (endDate != null) return endDate.isBefore(today);
+        if (startDate != null) return startDate.isBefore(today.minusDays(30)); // 30-day buffer for ongoing trips
+        // Fall back to folder year
+        if (folderYear != null) return folderYear < today.getYear();
+        return false; // unknown — don't skip
+    }
 
     private String resolveDestination(Optional<TravelDocumentAnalysis> analysis, String folderSubcategory) {
         return analysis.map(TravelDocumentAnalysis::destination)
