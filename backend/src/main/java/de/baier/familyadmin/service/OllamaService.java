@@ -9,14 +9,22 @@ import org.springframework.web.client.RestClient;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Service
 public class OllamaService {
 
-    // Ollama on CPU-only Hetzner can't handle concurrent model calls — serialize both operations
-    private static final Semaphore GENERATE_SEMAPHORE = new Semaphore(1);
-    private static final Semaphore EMBED_SEMAPHORE    = new Semaphore(2);
+    // Ollama on CPU-only Hetzner can only run one model at a time.
+    // embed() uses nomic-embed-text; generate() uses phi3.5.
+    // Concurrent calls across models force an expensive unload/reload cycle and cause
+    // the response to come back with application/octet-stream (bad content-type).
+    //
+    // ReadWriteLock solution:
+    //   embed()    → read lock  (multiple embeds in parallel, same model)
+    //   generate() → write lock (exclusive: waits for all embeds to finish before
+    //                            switching to phi3.5, then blocks new embeds)
+    private static final ReadWriteLock OLLAMA_LOCK = new ReentrantReadWriteLock(true);
 
     private final RestClient restClient;
 
@@ -31,8 +39,8 @@ public class OllamaService {
         factory.setConnectTimeout(Duration.ofSeconds(10));
         factory.setReadTimeout(Duration.ofMinutes(3));
 
-        // Ollama returns application/octet-stream instead of application/json —
-        // configure Jackson converter to accept any content type.
+        // Ollama sometimes returns application/octet-stream instead of application/json.
+        // Configure Jackson converter to accept any content type.
         var jacksonConverter = new MappingJackson2HttpMessageConverter();
         jacksonConverter.setSupportedMediaTypes(List.of(MediaType.ALL));
 
@@ -47,12 +55,7 @@ public class OllamaService {
     }
 
     public float[] embed(String text) {
-        try {
-            EMBED_SEMAPHORE.acquire();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Interrupted waiting for embed semaphore", e);
-        }
+        OLLAMA_LOCK.readLock().lock();
         try {
             var response = restClient.post()
                     .uri("/api/embeddings")
@@ -65,17 +68,12 @@ public class OllamaService {
             }
             return response.embedding();
         } finally {
-            EMBED_SEMAPHORE.release();
+            OLLAMA_LOCK.readLock().unlock();
         }
     }
 
     public String generate(String prompt) {
-        try {
-            GENERATE_SEMAPHORE.acquire();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Interrupted waiting for Ollama semaphore", e);
-        }
+        OLLAMA_LOCK.writeLock().lock();
         try {
             var response = restClient.post()
                     .uri("/api/generate")
@@ -88,7 +86,7 @@ public class OllamaService {
             }
             return response.response();
         } finally {
-            GENERATE_SEMAPHORE.release();
+            OLLAMA_LOCK.writeLock().unlock();
         }
     }
 
