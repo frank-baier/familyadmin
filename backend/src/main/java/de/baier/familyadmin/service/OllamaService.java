@@ -12,8 +12,13 @@ import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Service
 public class OllamaService {
+
+    private static final Logger log = LoggerFactory.getLogger(OllamaService.class);
 
     // Ollama on CPU-only Hetzner can only run one model at a time.
     // embed() uses nomic-embed-text; generate() uses phi3.5.
@@ -25,6 +30,8 @@ public class OllamaService {
     //   generate() → write lock (exclusive: waits for all embeds to finish before
     //                            switching to phi3.5, then blocks new embeds)
     private static final ReadWriteLock OLLAMA_LOCK = new ReentrantReadWriteLock(true);
+    private static final int GENERATE_MAX_RETRIES = 2;
+    private static final long GENERATE_RETRY_DELAY_MS = 8_000;
 
     private final RestClient restClient;
 
@@ -73,21 +80,31 @@ public class OllamaService {
     }
 
     public String generate(String prompt) {
-        OLLAMA_LOCK.writeLock().lock();
-        try {
-            var response = restClient.post()
-                    .uri("/api/generate")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(new GenerateRequest(chatModel, prompt, false))
-                    .retrieve()
-                    .body(GenerateResponse.class);
-            if (response == null) {
-                throw new IllegalStateException("Ollama returned null response");
+        Exception lastException = null;
+        for (int attempt = 1; attempt <= GENERATE_MAX_RETRIES; attempt++) {
+            OLLAMA_LOCK.writeLock().lock();
+            try {
+                var response = restClient.post()
+                        .uri("/api/generate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(new GenerateRequest(chatModel, prompt, false))
+                        .retrieve()
+                        .body(GenerateResponse.class);
+                if (response == null) {
+                    throw new IllegalStateException("Ollama returned null response");
+                }
+                return response.response();
+            } catch (Exception e) {
+                lastException = e;
+                log.warn("Ollama generate attempt {}/{} failed: {}", attempt, GENERATE_MAX_RETRIES, e.getMessage());
+                if (attempt < GENERATE_MAX_RETRIES) {
+                    try { Thread.sleep(GENERATE_RETRY_DELAY_MS); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); break; }
+                }
+            } finally {
+                OLLAMA_LOCK.writeLock().unlock();
             }
-            return response.response();
-        } finally {
-            OLLAMA_LOCK.writeLock().unlock();
         }
+        throw new RuntimeException("Ollama generate failed after " + GENERATE_MAX_RETRIES + " attempts", lastException);
     }
 
     private record EmbeddingRequest(String model, String prompt) {}

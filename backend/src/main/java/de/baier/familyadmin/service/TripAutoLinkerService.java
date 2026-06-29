@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -27,7 +28,16 @@ import java.util.regex.Pattern;
 public class TripAutoLinkerService {
 
     private static final Pattern JSON_PATTERN = Pattern.compile("\\{[\\s\\S]+\\}");
+    private static final Pattern IATA_PATTERN = Pattern.compile("\\b([A-Z]{3})\\b");
+    private static final Pattern DD_MM_PATTERN = Pattern.compile("(\\d{1,2})\\.(\\d{2})\\.");
+    private static final Pattern FOLDER_YEAR_PATTERN = Pattern.compile("^(\\d{4})");
     private static final int MAX_TEXT_FOR_LLM = 3_000;
+
+    private static final Map<String, Integer> DE_MONTHS = Map.ofEntries(
+            Map.entry("jan", 1), Map.entry("feb", 2), Map.entry("mär", 3), Map.entry("mar", 3),
+            Map.entry("apr", 4), Map.entry("mai", 5), Map.entry("jun", 6), Map.entry("jul", 7),
+            Map.entry("aug", 8), Map.entry("sep", 9), Map.entry("okt", 10), Map.entry("nov", 11),
+            Map.entry("dez", 12));
 
     private final OllamaService ollamaService;
     private final TripRepository tripRepository;
@@ -57,9 +67,9 @@ public class TripAutoLinkerService {
             LocalDate startDate = resolveDate(analysis.map(TravelDocumentAnalysis::startDate).orElse(null), folderYear, true);
             LocalDate endDate   = resolveDate(analysis.map(TravelDocumentAnalysis::endDate).orElse(null), folderYear, false);
 
-            if (isPastTrip(startDate, endDate, folderYear)) {
-                log.info("Document {} belongs to a past trip (year={}, start={}), skipping auto-link",
-                        documentId, folderYear, startDate);
+            if (isPastTrip(startDate, endDate, folderYear, folderSubcategory)) {
+                log.info("Document {} belongs to a past trip (folder={}, year={}, start={}), skipping auto-link",
+                        documentId, folderSubcategory, folderYear, startDate);
                 return;
             }
 
@@ -81,12 +91,15 @@ public class TripAutoLinkerService {
             // Create structured entries based on document type
             analysis.ifPresent(a -> {
                 String type = a.documentType();
+                log.debug("Document {} LLM type: {}", documentId, type);
                 if ("flight".equals(type) && a.flight() != null) {
                     addFlightEntry(trip, a.flight());
                 } else if ("accommodation".equals(type) && a.accommodation() != null) {
                     addAccommodationKeyInfo(trip, a.accommodation());
                 } else if ("car_rental".equals(type)) {
                     addCarRentalKeyInfo(trip, a);
+                } else {
+                    log.info("Document {} classified as '{}' — no structured entry created", documentId, type);
                 }
             });
 
@@ -118,6 +131,10 @@ public class TripAutoLinkerService {
                 Analyze this travel document and extract structured information.%s
                 Respond with ONLY a JSON object. No explanation, no markdown, no code fences.
 
+                IMPORTANT: If the document is a flight booking confirmation, e-ticket, itinerary, or receipt from any airline booking site (FlightNetwork, Check24, Expedia, etc.), set documentType to "flight".
+                If the document mentions car, campervan, motorhome, or vehicle rental, set documentType to "car_rental".
+                If the document mentions hotel, apartment, hostel, or accommodation booking, set documentType to "accommodation".
+
                 Document:
                 %s
 
@@ -131,8 +148,8 @@ public class TripAutoLinkerService {
                   "flight": {
                     "flightNumber": "e.g. LH1234 or null",
                     "airline": "airline name or null",
-                    "departureAirport": "IATA code or city or null",
-                    "arrivalAirport": "IATA code or city or null",
+                    "departureAirport": "IATA code or city (e.g. ZRH or Zurich)",
+                    "arrivalAirport": "IATA code or city (e.g. BNE or Brisbane)",
                     "departureDateTime": "YYYY-MM-DDTHH:MM or null",
                     "arrivalDateTime": "YYYY-MM-DDTHH:MM or null"
                   },
@@ -142,9 +159,18 @@ public class TripAutoLinkerService {
                     "checkinDate": "YYYY-MM-DD or null",
                     "checkoutDate": "YYYY-MM-DD or null",
                     "confirmationNumber": "booking ref or null"
+                  },
+                  "carRental": {
+                    "company": "rental company name or null",
+                    "vehicleType": "vehicle description or null",
+                    "pickupDate": "YYYY-MM-DD or null",
+                    "returnDate": "YYYY-MM-DD or null",
+                    "pickupLocation": "city or address or null",
+                    "returnLocation": "city or address or null",
+                    "confirmationNumber": "booking ref or null"
                   }
                 }
-                Set "flight" to null if not a flight document. Set "accommodation" to null if not accommodation.
+                Set "flight" to null if not a flight document. Set "accommodation" to null if not accommodation. Set "carRental" to null if not a car/vehicle rental.
                 """.formatted(hint, text);
     }
 
@@ -221,10 +247,18 @@ public class TripAutoLinkerService {
 
     private void addFlightEntry(Trip trip, TravelDocumentAnalysis.FlightInfo f) {
         String title = buildFlightTitle(f);
-        // Deduplicate: skip if an itinerary entry with same title already exists
+        // Deduplicate by IATA airport codes (handles slight title variations across re-analyses)
+        String depCode = extractIata(f.departureAirport());
+        String arrCode = extractIata(f.arrivalAirport());
         boolean exists = itineraryEntryRepository
                 .findByTripIdOrderByEntryDateAscEntryTimeAscPositionAsc(trip.getId())
-                .stream().anyMatch(e -> e.getTitle().equalsIgnoreCase(title));
+                .stream().anyMatch(e -> {
+                    if (!e.getTitle().startsWith("✈")) return false;
+                    if (e.getTitle().equalsIgnoreCase(title)) return true;
+                    // Same route by IATA codes
+                    return depCode != null && arrCode != null
+                            && e.getTitle().contains(depCode) && e.getTitle().contains(arrCode);
+                });
         if (exists) return;
 
         LocalDate date = parseLocalDate(f.departureDateTime() != null
@@ -275,8 +309,22 @@ public class TripAutoLinkerService {
     private void addCarRentalKeyInfo(Trip trip, TravelDocumentAnalysis a) {
         String label = "Mietwagen";
         if (keyInfoExists(trip, label)) return;
-        String val = StringUtils.hasText(a.destination()) ? "Ziel: " + a.destination() : "Details im Dokument";
-        addKeyInfo(trip, label, val, trip.getKeyInfos().size());
+        StringBuilder val = new StringBuilder();
+        TravelDocumentAnalysis.CarRentalInfo cr = a.carRental();
+        if (cr != null) {
+            if (StringUtils.hasText(cr.company())) val.append(cr.company()).append("\n");
+            if (StringUtils.hasText(cr.vehicleType())) val.append(cr.vehicleType()).append("\n");
+            if (StringUtils.hasText(cr.pickupDate())) val.append("Abholung: ").append(cr.pickupDate());
+            if (StringUtils.hasText(cr.pickupLocation())) val.append(" – ").append(cr.pickupLocation());
+            if (StringUtils.hasText(cr.pickupDate()) || StringUtils.hasText(cr.pickupLocation())) val.append("\n");
+            if (StringUtils.hasText(cr.returnDate())) val.append("Rückgabe: ").append(cr.returnDate());
+            if (StringUtils.hasText(cr.returnLocation())) val.append(" – ").append(cr.returnLocation());
+            if (StringUtils.hasText(cr.returnDate()) || StringUtils.hasText(cr.returnLocation())) val.append("\n");
+            if (StringUtils.hasText(cr.confirmationNumber())) val.append("Buchung: ").append(cr.confirmationNumber()).append("\n");
+        }
+        if (val.isEmpty() && StringUtils.hasText(a.destination())) val.append("Ziel: ").append(a.destination());
+        if (val.isEmpty()) val.append("Details im Dokument");
+        addKeyInfo(trip, label, val.toString().strip(), trip.getKeyInfos().size());
         log.info("Added car rental info to trip '{}'", trip.getTitle());
     }
 
@@ -293,14 +341,60 @@ public class TripAutoLinkerService {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private boolean isPastTrip(LocalDate startDate, LocalDate endDate, Integer folderYear) {
+    private boolean isPastTrip(LocalDate startDate, LocalDate endDate, Integer folderYear, String folderSubcategory) {
         LocalDate today = LocalDate.now();
-        // Prefer explicit dates from LLM extraction
+        // 1. Explicit dates from LLM are most reliable
         if (endDate != null) return endDate.isBefore(today);
         if (startDate != null) return startDate.isBefore(today.minusDays(30));
-        // Fall back to folder year: skip years strictly in the past
+        // 2. Try to extract month (and day) from German folder name like "01_Berlin_Mai_2026" or "4_Australien_10.08._02.09.2026"
+        LocalDate folderDate = parseFolderStartDate(folderSubcategory, folderYear);
+        if (folderDate != null) return folderDate.isBefore(today.minusDays(30));
+        // 3. Year-only fallback: strictly past years
         if (folderYear != null) return folderYear < today.getYear();
-        return false; // unknown — don't skip
+        return false;
+    }
+
+    /**
+     * Extracts an approximate start date from a folder name.
+     * Understands German month abbreviations (Mai, Jun, …) and DD.MM. patterns.
+     * Also detects folders that open with a year (e.g. "2015 und älter") and treats them as very old.
+     */
+    private LocalDate parseFolderStartDate(String folder, Integer folderYear) {
+        if (!StringUtils.hasText(folder)) return null;
+        LocalDate today = LocalDate.now();
+
+        // Folder starts with 4-digit year < 2 years ago → treat as old
+        Matcher yearStart = FOLDER_YEAR_PATTERN.matcher(folder);
+        if (yearStart.find()) {
+            int yr = Integer.parseInt(yearStart.group(1));
+            if (yr < today.getYear() - 1) return LocalDate.of(yr, 12, 31);
+        }
+
+        int yr = folderYear != null ? folderYear : today.getYear();
+
+        // German month name (3-letter prefix)
+        String lower = folder.toLowerCase();
+        for (Map.Entry<String, Integer> e : DE_MONTHS.entrySet()) {
+            if (lower.contains(e.getKey())) {
+                return LocalDate.of(yr, e.getValue(), 1);
+            }
+        }
+
+        // DD.MM. date pattern — first occurrence is the start date
+        Matcher dm = DD_MM_PATTERN.matcher(folder);
+        if (dm.find()) {
+            int day = Integer.parseInt(dm.group(1));
+            int month = Integer.parseInt(dm.group(2));
+            try { return LocalDate.of(yr, month, day); } catch (Exception ignore) {}
+        }
+
+        return null;
+    }
+
+    private String extractIata(String airport) {
+        if (!StringUtils.hasText(airport)) return null;
+        Matcher m = IATA_PATTERN.matcher(airport.toUpperCase());
+        return m.find() ? m.group(1) : null;
     }
 
     private String resolveDestination(Optional<TravelDocumentAnalysis> analysis, String folderSubcategory) {

@@ -10,7 +10,8 @@ public record TravelDocumentAnalysis(
         String startDate,      // "YYYY-MM-DD" or null
         String endDate,
         FlightInfo flight,
-        AccommodationInfo accommodation
+        AccommodationInfo accommodation,
+        CarRentalInfo carRental
 ) {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record FlightInfo(
@@ -28,6 +29,17 @@ public record TravelDocumentAnalysis(
             String address,
             String checkinDate,
             String checkoutDate,
+            String confirmationNumber
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record CarRentalInfo(
+            String company,
+            String vehicleType,
+            String pickupDate,
+            String returnDate,
+            String pickupLocation,
+            String returnLocation,
             String confirmationNumber
     ) {}
 }
