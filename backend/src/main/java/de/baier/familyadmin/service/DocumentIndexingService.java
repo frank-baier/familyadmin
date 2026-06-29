@@ -56,9 +56,12 @@ public class DocumentIndexingService {
                 log.info("Finished indexing '{}' ({} chunks)", filename, chunks.size());
             }
 
-            // Auto-link to trip for travel documents
+            // Auto-link to trip for travel documents.
+            // analyzeDocument() calls Ollama outside any transaction so no DB connection
+            // is held during the LLM inference. autoLink() then only does fast DB work.
             if ("Reisen".equalsIgnoreCase(category) && uploaderId != null) {
-                tripAutoLinkerService.autoLink(documentId, text, subcategory, year, uploaderId);
+                var analysis = tripAutoLinkerService.analyzeDocument(text, subcategory);
+                tripAutoLinkerService.autoLink(documentId, analysis, subcategory, year, uploaderId);
             }
 
         } catch (Exception e) {

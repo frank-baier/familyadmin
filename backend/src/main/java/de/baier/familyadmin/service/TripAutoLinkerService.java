@@ -37,13 +37,21 @@ public class TripAutoLinkerService {
     private final UserService userService;
     private final ObjectMapper objectMapper;
 
-    public void autoLink(UUID documentId, String extractedText,
+    /**
+     * Step 1: Ollama analysis — called OUTSIDE any @Transactional context so no DB connection is held
+     * while waiting for the LLM. Returns empty if text is blank or LLM fails.
+     */
+    public Optional<TravelDocumentAnalysis> analyzeDocument(String extractedText, String folderSubcategory) {
+        return analyzeWithOllama(extractedText, folderSubcategory);
+    }
+
+    /**
+     * Step 2: DB work only — transaction is short because the slow Ollama call already happened.
+     */
+    public void autoLink(UUID documentId, Optional<TravelDocumentAnalysis> analysis,
                          String folderSubcategory, Integer folderYear, UUID uploaderId) {
         try {
             User uploader = userService.findById(uploaderId);
-
-            // Analyze with LLM — but folder metadata is used as reliable fallback
-            Optional<TravelDocumentAnalysis> analysis = analyzeWithOllama(extractedText, folderSubcategory);
 
             String destination = resolveDestination(analysis, folderSubcategory);
             LocalDate startDate = resolveDate(analysis.map(TravelDocumentAnalysis::startDate).orElse(null), folderYear, true);

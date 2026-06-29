@@ -14,8 +14,9 @@ import java.util.concurrent.Semaphore;
 @Service
 public class OllamaService {
 
-    // phi3.5 (2.2 GB) crashes when called concurrently on Hetzner — serialize all generate() calls
+    // Ollama on CPU-only Hetzner can't handle concurrent model calls — serialize both operations
     private static final Semaphore GENERATE_SEMAPHORE = new Semaphore(1);
+    private static final Semaphore EMBED_SEMAPHORE    = new Semaphore(2);
 
     private final RestClient restClient;
 
@@ -46,16 +47,26 @@ public class OllamaService {
     }
 
     public float[] embed(String text) {
-        var response = restClient.post()
-                .uri("/api/embeddings")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new EmbeddingRequest(embeddingModel, text))
-                .retrieve()
-                .body(EmbeddingResponse.class);
-        if (response == null || response.embedding() == null) {
-            throw new IllegalStateException("Ollama returned null embedding");
+        try {
+            EMBED_SEMAPHORE.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted waiting for embed semaphore", e);
         }
-        return response.embedding();
+        try {
+            var response = restClient.post()
+                    .uri("/api/embeddings")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new EmbeddingRequest(embeddingModel, text))
+                    .retrieve()
+                    .body(EmbeddingResponse.class);
+            if (response == null || response.embedding() == null) {
+                throw new IllegalStateException("Ollama returned null embedding");
+            }
+            return response.embedding();
+        } finally {
+            EMBED_SEMAPHORE.release();
+        }
     }
 
     public String generate(String prompt) {
