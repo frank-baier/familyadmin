@@ -137,6 +137,34 @@ export async function apiFetchMultipart<T = unknown>(
 }
 
 /**
+ * Download a binary resource (PDF, etc.) with auth. Returns a Blob.
+ * Handles 401 → auto-refresh → retry once, same as apiFetch.
+ */
+export async function apiFetchBlob(path: string): Promise<{ blob: Blob; filename: string }> {
+  const makeRequest = () => {
+    const headers: Record<string, string> = {};
+    if (_accessToken) headers['Authorization'] = `Bearer ${_accessToken}`;
+    return fetch(`${API_BASE}${path}`, { credentials: 'include', headers });
+  };
+
+  let response = await makeRequest();
+
+  if (response.status === 401) {
+    const refreshed = await tryRefresh();
+    if (refreshed) response = await makeRequest();
+  }
+
+  if (!response.ok) {
+    throw new ApiError(response.status, `API error ${response.status}: ${response.statusText}`);
+  }
+
+  const disposition = response.headers.get('Content-Disposition') ?? '';
+  const match = disposition.match(/filename="([^"]+)"/);
+  const filename = match ? match[1] : path.split('/').pop() ?? 'download';
+  return { blob: await response.blob(), filename };
+}
+
+/**
  * Attempt to refresh the access token using the HttpOnly cookie.
  * Deduplicates concurrent calls — multiple callers share a single in-flight request.
  * Returns true if successful, false otherwise.

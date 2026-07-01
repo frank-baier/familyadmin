@@ -8,6 +8,7 @@ import {
   formatFileSize,
   type TripDocument,
 } from '@/lib/travel-documents';
+import { apiFetchBlob } from '@/lib/api';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -83,6 +84,20 @@ export function DocumentsList({ tripId, emailToken }: DocumentsListProps) {
       setError('Upload fehlgeschlagen.');
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function handleDownload(doc: TripDocument) {
+    try {
+      const { blob, filename } = await apiFetchBlob(doc.downloadUrl);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError('Download fehlgeschlagen.');
     }
   }
 
@@ -219,9 +234,8 @@ export function DocumentsList({ tripId, emailToken }: DocumentsListProps) {
               </div>
 
               <div className="shrink-0 flex items-center gap-1">
-                <a
-                  href={doc.downloadUrl}
-                  download={doc.filename}
+                <button
+                  onClick={() => handleDownload(doc)}
                   className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50
                              transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400"
                   title="Herunterladen"
@@ -230,7 +244,7 @@ export function DocumentsList({ tripId, emailToken }: DocumentsListProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                       d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                   </svg>
-                </a>
+                </button>
                 <button
                   onClick={() => handleDelete(doc.id)}
                   disabled={deletingId === doc.id}

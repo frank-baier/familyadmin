@@ -9,7 +9,7 @@ import {
   formatFileSize,
   type Document,
 } from '@/lib/documents';
-import { ApiError } from '@/lib/api';
+import { ApiError, apiFetchBlob } from '@/lib/api';
 
 // ─── File type icon ───────────────────────────────────────────────────────────
 
@@ -160,6 +160,20 @@ export default function DocumentsPage() {
     }
   }
 
+  async function handleDownload(doc: Document) {
+    try {
+      const { blob, filename } = await apiFetchBlob(doc.downloadUrl);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError('Download fehlgeschlagen.');
+    }
+  }
+
   async function handleDelete(id: string) {
     setDeleteId(id);
     try {
@@ -254,9 +268,8 @@ export default function DocumentsPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <a
-                  href={doc.downloadUrl}
-                  download
+                <button
+                  onClick={() => handleDownload(doc)}
                   className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 transition-colors"
                   title="Herunterladen"
                 >
@@ -264,7 +277,7 @@ export default function DocumentsPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                       d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                   </svg>
-                </a>
+                </button>
                 <button
                   onClick={() => handleDelete(doc.id)}
                   disabled={deleteId === doc.id}
