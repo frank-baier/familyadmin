@@ -133,7 +133,7 @@ public class TripAutoLinkerService {
 
                 IMPORTANT: If the document is a flight booking confirmation, e-ticket, itinerary, or receipt from any airline booking site (FlightNetwork, Check24, Expedia, etc.), set documentType to "flight".
                 If the document mentions car, campervan, motorhome, or vehicle rental, set documentType to "car_rental".
-                If the document mentions hotel, apartment, hostel, or accommodation booking, set documentType to "accommodation".
+                If the document mentions hotel, apartment, hostel, holiday park, caravan park, resort, campground, Airbnb, guest house, or any accommodation/lodging booking, set documentType to "accommodation".
 
                 Document:
                 %s
