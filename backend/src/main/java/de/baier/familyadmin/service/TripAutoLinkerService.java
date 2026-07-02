@@ -199,15 +199,17 @@ public class TripAutoLinkerService {
                                    Optional<TravelDocumentAnalysis> analysis, User uploader) {
         List<Trip> all = tripRepository.findAllByOrderByStartDateDesc();
 
-        // 1. Look for exact folder subcategory match (most reliable)
+        // 1. Look for folder subcategory match (exact or folder contains destination)
         if (StringUtils.hasText(folderSubcategory)) {
+            String folderLower = folderSubcategory.toLowerCase();
             for (Trip t : all) {
-                if (t.getTitle().equalsIgnoreCase(folderSubcategory)
-                        || t.getDestination().equalsIgnoreCase(folderSubcategory)) {
-                    if (startDate == null || datesOverlap(t, startDate, endDate)) {
-                        log.info("Matched existing trip '{}' by folder name", t.getTitle());
-                        return t;
-                    }
+                boolean nameMatch = t.getTitle().equalsIgnoreCase(folderSubcategory)
+                        || t.getDestination().equalsIgnoreCase(folderSubcategory)
+                        || (StringUtils.hasText(t.getDestination())
+                            && folderLower.contains(t.getDestination().toLowerCase()));
+                if (nameMatch && (startDate == null || datesOverlap(t, startDate, endDate))) {
+                    log.info("Matched existing trip '{}' by folder name", t.getTitle());
+                    return t;
                 }
             }
         }
