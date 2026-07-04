@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +33,12 @@ public class TripAutoLinkerService {
     private static final Pattern DD_MM_PATTERN = Pattern.compile("(\\d{1,2})\\.(\\d{2})\\.");
     private static final Pattern FOLDER_YEAR_PATTERN = Pattern.compile("^(\\d{4})");
     private static final int MAX_TEXT_FOR_LLM = 3_000;
+    private static final int EXCERPT_STEP = 300;
+    private static final List<String> BOOKING_KEYWORDS = List.of(
+            "übernahme", "rückgabe", "abholung", "check-in", "check-out", "checkout",
+            "arrival", "departure", "hotel", "flight", "flug", "buchungsnummer",
+            "confirmation", "bestätigung", "abflug", "ankunft", "booking ref",
+            "checkin", "pickup", "return", "reservation");
 
     private static final Map<String, Integer> DE_MONTHS = Map.ofEntries(
             Map.entry("jan", 1), Map.entry("feb", 2), Map.entry("mär", 3), Map.entry("mar", 3),
@@ -114,7 +121,7 @@ public class TripAutoLinkerService {
         if (!StringUtils.hasText(text)) {
             return Optional.empty();
         }
-        String excerpt = text.length() > MAX_TEXT_FOR_LLM ? text.substring(0, MAX_TEXT_FOR_LLM) : text;
+        String excerpt = text.length() > MAX_TEXT_FOR_LLM ? extractRelevantExcerpt(text) : text;
         String prompt = buildPrompt(excerpt, folderHint);
         try {
             String response = ollamaService.generate(prompt);
@@ -123,6 +130,27 @@ public class TripAutoLinkerService {
             log.warn("Ollama travel analysis failed: {}", e.getMessage());
             return Optional.empty();
         }
+    }
+
+    /**
+     * Slides a window of MAX_TEXT_FOR_LLM chars through the text and returns the window
+     * with the highest density of booking-related keywords. Falls back to the start if
+     * no keywords are found (e.g. scanned/image document with little text).
+     */
+    private String extractRelevantExcerpt(String text) {
+        String lower = text.toLowerCase();
+        int bestStart = 0;
+        int bestScore = -1;
+        for (int start = 0; start + MAX_TEXT_FOR_LLM <= text.length(); start += EXCERPT_STEP) {
+            String window = lower.substring(start, start + MAX_TEXT_FOR_LLM);
+            int score = BOOKING_KEYWORDS.stream().mapToInt(kw -> {
+                int count = 0, idx = 0;
+                while ((idx = window.indexOf(kw, idx)) != -1) { count++; idx += kw.length(); }
+                return count;
+            }).sum();
+            if (score > bestScore) { bestScore = score; bestStart = start; }
+        }
+        return text.substring(bestStart, Math.min(bestStart + MAX_TEXT_FOR_LLM, text.length()));
     }
 
     private String buildPrompt(String text, String folderHint) {
