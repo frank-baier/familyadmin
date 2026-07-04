@@ -411,6 +411,15 @@ function LegCard({ leg, tripId, onUpdated, onDeleted, nextPosition }: LegCardPro
               Zuletzt geprüft: {formatInstant(leg.statusCheckedAt)}
             </span>
           )}
+
+          {/* When flight is in the future: clarify that status shows today's route, not the booked date */}
+          {leg.flightStatus && leg.flightStatus !== 'not_found' &&
+            new Date(leg.departureAt) > new Date(Date.now() + 24 * 60 * 60 * 1000) && (
+            <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1 w-full">
+              ℹ Der Status zeigt den <strong>heutigen</strong> {leg.flightNumber} — die Route ist aktiv.
+              Dein gebuchter Flug am {new Date(leg.departureAt).toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' })} ist davon eine separate Instanz.
+            </span>
+          )}
         </div>
       )}
 
