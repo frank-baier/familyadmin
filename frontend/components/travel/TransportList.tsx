@@ -236,6 +236,7 @@ function FlightStatusBadge({ status }: { status: string | null }) {
     cancelled: 'bg-red-50 text-red-700 border-red-200',
     incident: 'bg-red-50 text-red-700 border-red-200',
     diverted: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+    not_found: 'bg-slate-100 text-slate-500 border-slate-300',
   };
   const cls = map[status.toLowerCase()] ?? 'bg-slate-50 text-slate-600 border-slate-200';
   const labels: Record<string, string> = {
@@ -245,6 +246,7 @@ function FlightStatusBadge({ status }: { status: string | null }) {
     cancelled: 'Gestrichen',
     incident: 'Zwischenfall',
     diverted: 'Umgeleitet',
+    not_found: 'Flug nicht gefunden',
   };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium border ${cls}`}>

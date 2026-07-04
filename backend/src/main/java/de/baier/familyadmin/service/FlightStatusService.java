@@ -70,8 +70,10 @@ public class FlightStatusService {
             AirLabsFlightResponse.FlightData data = payload.response();
 
             if (data == null) {
-                log.warn("No flight data returned for {}", leg.getFlightNumber());
-                return leg;
+                log.warn("No flight data returned for {} — marking as not_found", leg.getFlightNumber());
+                leg.setFlightStatus("not_found");
+                leg.setStatusCheckedAt(Instant.now());
+                return transportLegRepository.save(leg);
             }
 
             leg.setFlightStatus(data.status());
