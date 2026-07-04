@@ -120,7 +120,7 @@ export function DocumentsList({ tripId, emailToken }: DocumentsListProps) {
   }
 
   function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString('de-DE', { day: 'numeric', month: 'short', year: 'numeric' });
+    return new Date(iso).toLocaleDateString('de-DE', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/Zurich' });
   }
 
   return (

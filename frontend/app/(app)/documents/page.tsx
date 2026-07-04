@@ -189,6 +189,7 @@ export default function DocumentsPage() {
   function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString('de-CH', {
       day: '2-digit', month: '2-digit', year: 'numeric',
+      timeZone: 'Europe/Zurich',
     });
   }
 

@@ -108,7 +108,22 @@ export async function lookupFlight(flightIata: string, date?: string): Promise<F
   return apiFetch<FlightLookupResult>(`/api/transport/flights/lookup?${params}`);
 }
 
-export function formatInstant(iso: string | null, timeZone = 'Europe/Berlin'): string {
+const APP_TZ = 'Europe/Zurich';
+
+// Formats parts of a Date in the app timezone — used by both toDatetimeLocalValue and fromDatetimeLocalValue
+function zurichStr(d: Date): string {
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: APP_TZ,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+  const parts: Record<string, string> = {};
+  for (const { type, value } of fmt.formatToParts(d)) parts[type] = value;
+  const h = parts.hour === '24' ? '00' : parts.hour;
+  return `${parts.year}-${parts.month}-${parts.day}T${h}:${parts.minute}`;
+}
+
+export function formatInstant(iso: string | null, timeZone = APP_TZ): string {
   if (!iso) return '–';
   return new Intl.DateTimeFormat('de-DE', {
     day: '2-digit',
@@ -120,14 +135,20 @@ export function formatInstant(iso: string | null, timeZone = 'Europe/Berlin'): s
   }).format(new Date(iso));
 }
 
+// Converts a UTC ISO string → "YYYY-MM-DDTHH:MM" in Swiss local time (for datetime-local inputs).
+// Uses Intl.DateTimeFormat so the result is identical on server (UTC) and browser.
 export function toDatetimeLocalValue(iso: string | null): string {
   if (!iso) return '';
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return zurichStr(new Date(iso));
 }
 
+// Converts a "YYYY-MM-DDTHH:MM" value (Swiss local time from datetime-local input) → UTC ISO string.
+// Works by computing the UTC offset for APP_TZ at that date and applying it.
 export function fromDatetimeLocalValue(value: string): string {
   if (!value) return '';
-  return new Date(value).toISOString();
+  // Treat input as UTC to get a reference Date, then correct for the actual Zurich offset
+  const naive = new Date(value + ':00Z');
+  const naiveInZurich = zurichStr(naive);
+  const offsetMs = naive.getTime() - new Date(naiveInZurich + ':00Z').getTime();
+  return new Date(naive.getTime() + offsetMs).toISOString();
 }

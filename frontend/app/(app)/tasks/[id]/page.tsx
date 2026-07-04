@@ -33,6 +33,7 @@ function formatDate(dateStr: string): string {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
+    timeZone: 'Europe/Zurich',
   });
 }
 
@@ -43,6 +44,7 @@ function formatDateTime(dateStr: string): string {
     year: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
+    timeZone: 'Europe/Zurich',
   });
 }
 
