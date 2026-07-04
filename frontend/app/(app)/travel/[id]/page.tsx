@@ -11,16 +11,25 @@
  */
 
 import { useState, useEffect, use } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getTrip, deleteTrip } from '@/lib/travel';
 import { getCurrentUser } from '@/lib/auth';
+import { getLegs } from '@/lib/travel-transport';
 import { PackingList } from '@/components/travel/PackingList';
 import { DocumentsList } from '@/components/travel/DocumentsList';
 import { TransportList } from '@/components/travel/TransportList';
 import type { Trip } from '@/lib/travel';
 import type { User } from '@/lib/auth';
+import type { TransportLeg } from '@/lib/travel-transport';
+import type { TripMapProps } from '@/components/travel/TripMap';
+
+const TripMap = dynamic<TripMapProps>(
+  () => import('@/components/travel/TripMap').then(m => ({ default: m.TripMap })),
+  { ssr: false, loading: () => <div className="h-[420px] bg-slate-50 rounded-2xl animate-pulse" /> }
+);
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -143,7 +152,7 @@ function SubTabButton({
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-type MainTab = 'packing' | 'itinerary' | 'documents' | 'transport';
+type MainTab = 'packing' | 'itinerary' | 'documents' | 'transport' | 'map';
 type PackingSubTab = 'shared' | 'personal';
 
 interface PageProps {
@@ -156,6 +165,7 @@ export default function TripDetailPage({ params }: PageProps) {
 
   const [trip, setTrip] = useState<Trip | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [legs, setLegs] = useState<TransportLeg[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -169,12 +179,14 @@ export default function TripDetailPage({ params }: PageProps) {
       setLoading(true);
       setError(null);
       try {
-        const [tripData, userData] = await Promise.all([
+        const [tripData, userData, legsData] = await Promise.all([
           getTrip(id),
           getCurrentUser(),
+          getLegs(id),
         ]);
         setTrip(tripData);
         setCurrentUser(userData);
+        setLegs(legsData);
       } catch {
         setError('Reise nicht gefunden oder kein Zugriff.');
       } finally {
@@ -394,6 +406,9 @@ export default function TripDetailPage({ params }: PageProps) {
           <TabButton active={activeTab === 'transport'} onClick={() => setActiveTab('transport')}>
             Transport
           </TabButton>
+          <TabButton active={activeTab === 'map'} onClick={() => setActiveTab('map')}>
+            Karte
+          </TabButton>
           <TabButton active={activeTab === 'documents'} onClick={() => setActiveTab('documents')}>
             Dokumente
           </TabButton>
@@ -457,6 +472,22 @@ export default function TripDetailPage({ params }: PageProps) {
           <div className="px-6 py-5">
             <DocumentsList tripId={id} emailToken={trip.emailToken} />
           </div>
+        </div>
+      )}
+
+      {/* Map tab */}
+      {activeTab === 'map' && (
+        <div className="glass rounded-3xl overflow-hidden">
+          <div className="px-6 pt-5 pb-2">
+            <h2 className="text-sm font-semibold text-slate-700 mb-4">Reiseroute</h2>
+            <TripMap
+              tripId={id}
+              legs={legs}
+              keyInfos={sortedKeyInfos}
+              destination={trip.destination}
+            />
+          </div>
+          <div className="px-6 pb-5" />
         </div>
       )}
 
