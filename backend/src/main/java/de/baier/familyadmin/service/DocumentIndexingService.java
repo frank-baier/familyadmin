@@ -1,5 +1,7 @@
 package de.baier.familyadmin.service;
 
+import de.baier.familyadmin.model.Role;
+import de.baier.familyadmin.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.metadata.Metadata;
@@ -25,6 +27,7 @@ public class DocumentIndexingService {
     private final OllamaService ollamaService;
     private final JdbcTemplate jdbcTemplate;
     private final TripAutoLinkerService tripAutoLinkerService;
+    private final UserRepository userRepository;
 
     private static final int CHUNK_SIZE = 2000;
     private static final int OVERLAP = 200;
@@ -59,9 +62,17 @@ public class DocumentIndexingService {
             // Auto-link to trip for travel documents.
             // analyzeDocument() calls Ollama outside any transaction so no DB connection
             // is held during the LLM inference. autoLink() then only does fast DB work.
-            if ("Reisen".equalsIgnoreCase(category) && uploaderId != null) {
-                var analysis = tripAutoLinkerService.analyzeDocument(text, subcategory);
-                tripAutoLinkerService.autoLink(documentId, analysis, subcategory, year, uploaderId);
+            // When uploaderId is null (e.g. sync script), fall back to the first admin user.
+            if ("Reisen".equalsIgnoreCase(category)) {
+                UUID effectiveUploader = uploaderId;
+                if (effectiveUploader == null) {
+                    effectiveUploader = userRepository.findByRole(Role.ADMIN).stream()
+                            .findFirst().map(u -> u.getId()).orElse(null);
+                }
+                if (effectiveUploader != null) {
+                    var analysis = tripAutoLinkerService.analyzeDocument(text, subcategory);
+                    tripAutoLinkerService.autoLink(documentId, analysis, subcategory, year, effectiveUploader);
+                }
             }
 
         } catch (Exception e) {
