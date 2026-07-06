@@ -74,32 +74,70 @@ function getGradient(destination: string): string {
 
 // ─── Accommodation table (Reiseplan tab) ─────────────────────────────────────
 
+// Meta-lines to strip when extracting address (check-in/out, booking refs, transit notes)
+const META_RE = /^(check-in|check-out|buchung|ref:|nacht:|arriving|departing|staying|powered site|price|additional|your group)/i;
+// First-line patterns that indicate a hotel/camp name rather than an address
+const HOTEL_NAME_RE = /resort|hotel|parks|lodge|big4|tasman|airways|garden|coral|holiday|camping|beach house/i;
+
 function parseCheckDate(value: string, type: 'in' | 'out'): string | null {
   const keyword = type === 'in' ? 'check-in' : 'check-out';
   for (const line of value.split('\n')) {
     if (line.toLowerCase().includes(keyword)) {
       const german = line.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
-      if (german) return `${german[1].padStart(2,'0')}.${german[2].padStart(2,'0')}.${german[3]}`;
+      if (german) return `${german[1].padStart(2, '0')}.${german[2].padStart(2, '0')}.${german[3]}`;
       const iso = line.match(/(\d{4})-(\d{2})-(\d{2})/);
       if (iso) return `${iso[3]}.${iso[2]}.${iso[1]}`;
+      const eng = line.match(/(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})/i);
+      if (eng) {
+        const months: Record<string, string> = { Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12' };
+        return `${eng[1].padStart(2,'0')}.${months[eng[2]] ?? '01'}.${eng[3]}`;
+      }
     }
   }
   return null;
+}
+
+function extractAddress(value: string): string {
+  const lines = value.split('\n').map(l => l.trim()).filter(Boolean);
+  return lines
+    .filter((line, i) => {
+      if (META_RE.test(line)) return false;
+      // Skip first line if it looks like a hotel/camp name (not an address)
+      if (i === 0 && HOTEL_NAME_RE.test(line) && !line.match(/^\d/)) return false;
+      return true;
+    })
+    .join(', ');
+}
+
+function parseSortKey(value: string): number {
+  const ci = parseCheckDate(value, 'in');
+  if (ci) {
+    const m = ci.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+    if (m) return parseInt(m[3]) * 10000 + parseInt(m[2]) * 100 + parseInt(m[1]);
+  }
+  // Transit "Nacht: 10./11.08.2026" — take first date found
+  const m = value.match(/(\d{1,2})\.\/?(?:\d{1,2}\.)?(\d{2})\.(\d{4})/);
+  if (m) return parseInt(m[3]) * 10000 + parseInt(m[2]) * 100 + parseInt(m[1]);
+  return 99999999;
 }
 
 function AccommodationTable({ keyInfos }: { keyInfos: TripKeyInfo[] }) {
   const rows = keyInfos
     .filter(ki => !ki.label.toLowerCase().includes('mietwagen'))
     .map(ki => {
-      const lines = ki.value.split('\n').map(l => l.trim()).filter(Boolean);
-      const name = lines[0] || ki.label;
       const checkIn  = parseCheckDate(ki.value, 'in');
       const checkOut = parseCheckDate(ki.value, 'out');
       const period = checkIn && checkOut
-        ? `${checkIn.slice(0,5)} – ${checkOut.slice(0,5)}.${checkOut.slice(6)}`
+        ? `${checkIn.slice(0, 5)} – ${checkOut.slice(0, 5)}.${checkOut.slice(6)}`
         : checkIn ?? checkOut ?? '–';
-      return { name, period };
-    });
+      return {
+        sortKey: parseSortKey(ki.value),
+        name: ki.label,
+        address: extractAddress(ki.value),
+        period,
+      };
+    })
+    .sort((a, b) => a.sortKey - b.sortKey);
 
   if (rows.length === 0) {
     return <p className="text-sm text-slate-400 text-center py-8">Keine Unterkünfte erfasst.</p>;
@@ -110,15 +148,17 @@ function AccommodationTable({ keyInfos }: { keyInfos: TripKeyInfo[] }) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-slate-100">
-            <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide pb-2 pr-6 w-44">Zeitraum</th>
-            <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide pb-2">Unterkunft</th>
+            <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide pb-2 pr-5 whitespace-nowrap">Zeitraum</th>
+            <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide pb-2 pr-5">Unterkunft</th>
+            <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide pb-2 hidden sm:table-cell">Adresse</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-50">
           {rows.map((row, i) => (
             <tr key={i}>
-              <td className="py-2.5 pr-6 text-slate-500 font-mono text-xs whitespace-nowrap">{row.period}</td>
-              <td className="py-2.5 text-slate-800 font-medium">{row.name}</td>
+              <td className="py-2.5 pr-5 text-slate-500 font-mono text-xs whitespace-nowrap align-top">{row.period}</td>
+              <td className="py-2.5 pr-5 text-slate-800 font-medium align-top">{row.name}</td>
+              <td className="py-2.5 text-slate-400 text-xs align-top hidden sm:table-cell">{row.address}</td>
             </tr>
           ))}
         </tbody>
