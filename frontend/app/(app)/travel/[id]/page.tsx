@@ -109,58 +109,98 @@ function extractAddress(value: string): string {
     .join(', ');
 }
 
+function dateStrToKey(s: string | null): number {
+  if (!s) return 99999999;
+  const m = s.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+  if (m) return parseInt(m[3]) * 10000 + parseInt(m[2]) * 100 + parseInt(m[1]);
+  return 99999999;
+}
+
+function keyToDateStr(key: number): string {
+  const year  = Math.floor(key / 10000);
+  const month = Math.floor((key % 10000) / 100);
+  const day   = key % 100;
+  return `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${year}`;
+}
+
 function parseSortKey(value: string): number {
   const ci = parseCheckDate(value, 'in');
-  if (ci) {
-    const m = ci.match(/(\d{2})\.(\d{2})\.(\d{4})/);
-    if (m) return parseInt(m[3]) * 10000 + parseInt(m[2]) * 100 + parseInt(m[1]);
-  }
+  if (ci) return dateStrToKey(ci);
   // Transit "Nacht: 10./11.08.2026" — take first date found
   const m = value.match(/(\d{1,2})\.\/?(?:\d{1,2}\.)?(\d{2})\.(\d{4})/);
   if (m) return parseInt(m[3]) * 10000 + parseInt(m[2]) * 100 + parseInt(m[1]);
   return 99999999;
 }
 
+function formatPeriod(inKey: number, outKey: number): string {
+  const inStr  = keyToDateStr(inKey);
+  const outStr = keyToDateStr(outKey);
+  return `${inStr.slice(0, 5)} – ${outStr.slice(0, 5)}.${outStr.slice(6)}`;
+}
+
+type TableRow =
+  | { kind: 'accom'; period: string; name: string; address: string }
+  | { kind: 'gap';   period: string };
+
 function AccommodationTable({ keyInfos }: { keyInfos: TripKeyInfo[] }) {
-  const rows = keyInfos
+  const accomRows = keyInfos
     .filter(ki => !ki.label.toLowerCase().includes('mietwagen'))
     .map(ki => {
       const checkIn  = parseCheckDate(ki.value, 'in');
       const checkOut = parseCheckDate(ki.value, 'out');
-      const period = checkIn && checkOut
-        ? `${checkIn.slice(0, 5)} – ${checkOut.slice(0, 5)}.${checkOut.slice(6)}`
+      const inKey    = checkIn ? dateStrToKey(checkIn) : parseSortKey(ki.value);
+      const outKey   = checkOut ? dateStrToKey(checkOut) : 99999999;
+      const period   = checkIn && checkOut
+        ? formatPeriod(inKey, outKey)
         : checkIn ?? checkOut ?? '–';
-      return {
-        sortKey: parseSortKey(ki.value),
-        name: ki.label,
-        address: extractAddress(ki.value),
-        period,
-      };
+      return { inKey, outKey, name: ki.label, address: extractAddress(ki.value), period };
     })
-    .sort((a, b) => a.sortKey - b.sortKey);
+    .sort((a, b) => a.inKey - b.inKey);
 
-  if (rows.length === 0) {
+  if (accomRows.length === 0) {
     return <p className="text-sm text-slate-400 text-center py-8">Keine Unterkünfte erfasst.</p>;
   }
+
+  // Interleave gap rows wherever consecutive entries don't connect
+  const rows: TableRow[] = [];
+  for (let i = 0; i < accomRows.length; i++) {
+    const cur = accomRows[i];
+    rows.push({ kind: 'accom', period: cur.period, name: cur.name, address: cur.address });
+    const next = accomRows[i + 1];
+    if (next && cur.outKey < 99999999 && next.inKey > cur.outKey) {
+      rows.push({ kind: 'gap', period: formatPeriod(cur.outKey, next.inKey) });
+    }
+  }
+
+  const thCls = 'text-left text-xs font-semibold text-slate-400 uppercase tracking-wide pb-2';
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-slate-100">
-            <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide pb-2 pr-5 whitespace-nowrap">Zeitraum</th>
-            <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide pb-2 pr-5">Unterkunft</th>
-            <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide pb-2 hidden sm:table-cell">Adresse</th>
+            <th className={`${thCls} pr-5 whitespace-nowrap`}>Zeitraum</th>
+            <th className={`${thCls} pr-5`}>Unterkunft</th>
+            <th className={`${thCls} hidden sm:table-cell`}>Adresse</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-50">
-          {rows.map((row, i) => (
-            <tr key={i}>
-              <td className="py-2.5 pr-5 text-slate-500 font-mono text-xs whitespace-nowrap align-top">{row.period}</td>
-              <td className="py-2.5 pr-5 text-slate-800 font-medium align-top">{row.name}</td>
-              <td className="py-2.5 text-slate-400 text-xs align-top hidden sm:table-cell">{row.address}</td>
-            </tr>
-          ))}
+        <tbody>
+          {rows.map((row, i) =>
+            row.kind === 'gap' ? (
+              <tr key={i} className="border-t border-dashed border-amber-200 bg-amber-50/50">
+                <td className="py-2 pr-5 text-amber-400 font-mono text-xs whitespace-nowrap align-top">{row.period}</td>
+                <td className="py-2 pr-5 text-amber-400 text-xs italic align-top" colSpan={2}>
+                  Unterkunft fehlt noch
+                </td>
+              </tr>
+            ) : (
+              <tr key={i} className="border-t border-slate-50">
+                <td className="py-2.5 pr-5 text-slate-500 font-mono text-xs whitespace-nowrap align-top">{row.period}</td>
+                <td className="py-2.5 pr-5 text-slate-800 font-medium align-top">{row.name}</td>
+                <td className="py-2.5 text-slate-400 text-xs align-top hidden sm:table-cell">{row.address}</td>
+              </tr>
+            )
+          )}
         </tbody>
       </table>
     </div>
