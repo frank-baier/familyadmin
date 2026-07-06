@@ -21,7 +21,7 @@ import { getLegs } from '@/lib/travel-transport';
 import { PackingList } from '@/components/travel/PackingList';
 import { DocumentsList } from '@/components/travel/DocumentsList';
 import { TransportList } from '@/components/travel/TransportList';
-import type { Trip } from '@/lib/travel';
+import type { Trip, TripKeyInfo } from '@/lib/travel';
 import type { User } from '@/lib/auth';
 import type { TransportLeg } from '@/lib/travel-transport';
 import type { TripMapProps } from '@/components/travel/TripMap';
@@ -70,6 +70,61 @@ const GRADIENTS = [
 function getGradient(destination: string): string {
   const seed = destination.charCodeAt(0) % 6;
   return GRADIENTS[seed] ?? GRADIENTS[0];
+}
+
+// ─── Accommodation table (Reiseplan tab) ─────────────────────────────────────
+
+function parseCheckDate(value: string, type: 'in' | 'out'): string | null {
+  const keyword = type === 'in' ? 'check-in' : 'check-out';
+  for (const line of value.split('\n')) {
+    if (line.toLowerCase().includes(keyword)) {
+      const german = line.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+      if (german) return `${german[1].padStart(2,'0')}.${german[2].padStart(2,'0')}.${german[3]}`;
+      const iso = line.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (iso) return `${iso[3]}.${iso[2]}.${iso[1]}`;
+    }
+  }
+  return null;
+}
+
+function AccommodationTable({ keyInfos }: { keyInfos: TripKeyInfo[] }) {
+  const rows = keyInfos
+    .filter(ki => !ki.label.toLowerCase().includes('mietwagen'))
+    .map(ki => {
+      const lines = ki.value.split('\n').map(l => l.trim()).filter(Boolean);
+      const name = lines[0] || ki.label;
+      const checkIn  = parseCheckDate(ki.value, 'in');
+      const checkOut = parseCheckDate(ki.value, 'out');
+      const period = checkIn && checkOut
+        ? `${checkIn.slice(0,5)} – ${checkOut.slice(0,5)}.${checkOut.slice(6)}`
+        : checkIn ?? checkOut ?? '–';
+      return { name, period };
+    });
+
+  if (rows.length === 0) {
+    return <p className="text-sm text-slate-400 text-center py-8">Keine Unterkünfte erfasst.</p>;
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-slate-100">
+            <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide pb-2 pr-6 w-44">Zeitraum</th>
+            <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide pb-2">Unterkunft</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-50">
+          {rows.map((row, i) => (
+            <tr key={i}>
+              <td className="py-2.5 pr-6 text-slate-500 font-mono text-xs whitespace-nowrap">{row.period}</td>
+              <td className="py-2.5 text-slate-800 font-medium">{row.name}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
@@ -491,28 +546,12 @@ export default function TripDetailPage({ params }: PageProps) {
         </div>
       )}
 
-      {/* Itinerary tab — placeholder */}
+      {/* Itinerary tab */}
       {activeTab === 'itinerary' && (
         <div className="glass rounded-3xl overflow-hidden">
-          <div className="px-6 py-12 text-center">
-            <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <svg
-                className="w-6 h-6 text-slate-300"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.75}
-                  d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 9v7.5m-9-6h.008v.008H12V12zm0 3h.008v.008H12v-.008zm0 3h.008v.008H12v-.008zm-3-6h.008v.008H9V12zm0 3h.008v.008H9v-.008zm0 3h.008v.008H9v-.008zm6-6h.008v.008H15V12zm0 3h.008v.008H15v-.008zm0 3h.008v.008H15v-.008z"
-                />
-              </svg>
-            </div>
-            <p className="text-sm font-semibold text-slate-500 mb-1">Reiseplan demnächst verfügbar</p>
-            <p className="text-xs text-slate-400">Tagesplanung wird in Kürze verfügbar sein.</p>
+          <div className="px-6 py-5">
+            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">Unterkünfte</h2>
+            <AccommodationTable keyInfos={sortedKeyInfos} />
           </div>
         </div>
       )}
