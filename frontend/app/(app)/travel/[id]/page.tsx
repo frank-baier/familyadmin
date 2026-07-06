@@ -102,11 +102,27 @@ function extractAddress(value: string): string {
   return lines
     .filter((line, i) => {
       if (META_RE.test(line)) return false;
-      // Skip first line if it looks like a hotel/camp name (not an address)
       if (i === 0 && HOTEL_NAME_RE.test(line) && !line.match(/^\d/)) return false;
       return true;
     })
     .join(', ');
+}
+
+// Extracts the most recognisable city/suburb from a comma-joined address string.
+const STATE_COUNTRY_RE = /^(QLD|NSW|VIC|SA|WA|TAS|NT|ACT|Queensland|New South Wales|Victoria|South Australia|Western Australia|Tasmania|Australien|Australia|Katar|Qatar)\b/i;
+const STREET_KEYWORD_RE = /\b(drive|dr|road|rd|street|st\b|avenue|ave|esplanade|way|lane|place|court|ct|boulevard|blvd|highway|hwy)\b/i;
+
+function extractCity(address: string): string {
+  if (!address) return '';
+  for (const seg of address.split(',').map(s => s.trim()).filter(Boolean)) {
+    if (STATE_COUNTRY_RE.test(seg)) continue;
+    // Strip leading 4-digit postcode (e.g. "4879 Trinity Beach")
+    const s = seg.replace(/^\d{4,5}\s+/, '').trim();
+    if (/^(\d|cnr\b|corner\b)/i.test(s)) continue; // street number or "Cnr"
+    if (STREET_KEYWORD_RE.test(s)) continue;        // street name
+    if (s.length >= 3) return s;
+  }
+  return '';
 }
 
 function dateStrToKey(s: string | null): number {
@@ -139,7 +155,7 @@ function formatPeriod(inKey: number, outKey: number): string {
 }
 
 type TableRow =
-  | { kind: 'accom'; period: string; name: string; address: string }
+  | { kind: 'accom'; period: string; name: string; city: string; address: string }
   | { kind: 'gap';   period: string };
 
 function AccommodationTable({ keyInfos }: { keyInfos: TripKeyInfo[] }) {
@@ -153,7 +169,9 @@ function AccommodationTable({ keyInfos }: { keyInfos: TripKeyInfo[] }) {
       const period   = checkIn && checkOut
         ? formatPeriod(inKey, outKey)
         : checkIn ?? checkOut ?? '–';
-      return { inKey, outKey, name: ki.label, address: extractAddress(ki.value), period };
+      const address  = extractAddress(ki.value);
+      const city     = extractCity(address);
+      return { inKey, outKey, name: ki.label, city, address, period };
     })
     .sort((a, b) => a.inKey - b.inKey);
 
@@ -165,7 +183,7 @@ function AccommodationTable({ keyInfos }: { keyInfos: TripKeyInfo[] }) {
   const rows: TableRow[] = [];
   for (let i = 0; i < accomRows.length; i++) {
     const cur = accomRows[i];
-    rows.push({ kind: 'accom', period: cur.period, name: cur.name, address: cur.address });
+    rows.push({ kind: 'accom', period: cur.period, name: cur.name, city: cur.city, address: cur.address });
     const next = accomRows[i + 1];
     if (next && cur.outKey < 99999999 && next.inKey > cur.outKey) {
       rows.push({ kind: 'gap', period: formatPeriod(cur.outKey, next.inKey) });
@@ -196,7 +214,10 @@ function AccommodationTable({ keyInfos }: { keyInfos: TripKeyInfo[] }) {
             ) : (
               <tr key={i} className="border-t border-slate-50">
                 <td className="py-2.5 pr-5 text-slate-500 font-mono text-xs whitespace-nowrap align-top">{row.period}</td>
-                <td className="py-2.5 pr-5 text-slate-800 font-medium align-top">{row.name}</td>
+                <td className="py-2.5 pr-5 align-top">
+                  <div className="text-slate-800 font-medium">{row.name}</div>
+                  {row.city && <div className="text-xs text-slate-400 mt-0.5">{row.city}</div>}
+                </td>
                 <td className="py-2.5 text-slate-400 text-xs align-top hidden sm:table-cell">{row.address}</td>
               </tr>
             )
