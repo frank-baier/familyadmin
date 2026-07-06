@@ -50,6 +50,9 @@ public class TransportLeg {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    @Column(name = "baggage_allowance", columnDefinition = "TEXT")
+    private String baggageAllowance;
+
     @Builder.Default
     private int position = 0;
 

@@ -13,6 +13,7 @@ export interface TransportLeg {
   bookingReference: string | null;
   seat: string | null;
   notes: string | null;
+  baggageAllowance: string | null;
   position: number;
   flightNumber: string | null;
   flightStatus: string | null;
@@ -36,6 +37,7 @@ export interface TransportLegRequest {
   bookingReference?: string;
   seat?: string;
   notes?: string;
+  baggageAllowance?: string;
   position: number;
   flightNumber?: string;
 }

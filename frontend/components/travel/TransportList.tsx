@@ -42,6 +42,7 @@ function LegForm({ tripId, nextPosition, initial, onSaved, onCancel }: LegFormPr
   const [bookingReference, setBookingReference] = useState(initial?.bookingReference ?? '');
   const [seat, setSeat] = useState(initial?.seat ?? '');
   const [notes, setNotes] = useState(initial?.notes ?? '');
+  const [baggageAllowance, setBaggageAllowance] = useState(initial?.baggageAllowance ?? '');
   const [saving, setSaving] = useState(false);
   const [looking, setLooking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,6 +86,7 @@ function LegForm({ tripId, nextPosition, initial, onSaved, onCancel }: LegFormPr
         seat: seat.trim() || undefined,
         flightNumber: type === 'FLIGHT' ? (flightNumber.trim() || undefined) : undefined,
         notes: notes.trim() || undefined,
+        baggageAllowance: baggageAllowance.trim() || undefined,
         position: initial?.position ?? nextPosition,
       };
       const saved = initial
@@ -192,6 +194,13 @@ function LegForm({ tripId, nextPosition, initial, onSaved, onCancel }: LegFormPr
           <label className={labelCls}>Sitzplatz <span className="text-slate-300 font-normal">(manuell)</span></label>
           <input value={seat} onChange={(e) => setSeat(e.target.value)}
             placeholder="23A" className={inputCls} />
+        </div>
+
+        <div className="col-span-2">
+          <label className={labelCls}>Gepäck</label>
+          <input value={baggageAllowance} onChange={(e) => setBaggageAllowance(e.target.value)}
+            placeholder="z.B. 1 × 25 kg Aufgabe · 1 × 7 kg Handgepäck (50×37×25 cm)"
+            className={inputCls} />
         </div>
 
         <div className="col-span-2">
@@ -420,6 +429,16 @@ function LegCard({ leg, tripId, onUpdated, onDeleted, nextPosition }: LegCardPro
               Dein gebuchter Flug am {new Date(leg.departureAt).toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' })} ist davon eine separate Instanz.
             </span>
           )}
+        </div>
+      )}
+
+      {leg.baggageAllowance && (
+        <div className="border-t border-slate-100 px-4 py-2.5 flex items-center gap-2">
+          <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM8 7V5a2 2 0 012-2h4a2 2 0 012 2v2" />
+          </svg>
+          <span className="text-xs text-slate-500">{leg.baggageAllowance}</span>
         </div>
       )}
 

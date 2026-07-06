@@ -47,6 +47,7 @@ public class TransportLegService {
                 .bookingReference(req.bookingReference())
                 .seat(req.seat())
                 .notes(req.notes())
+                .baggageAllowance(req.baggageAllowance())
                 .position(req.position())
                 .flightNumber(req.flightNumber())
                 .build();
@@ -64,6 +65,7 @@ public class TransportLegService {
         leg.setBookingReference(req.bookingReference());
         leg.setSeat(req.seat());
         leg.setNotes(req.notes());
+        leg.setBaggageAllowance(req.baggageAllowance());
         leg.setPosition(req.position());
         leg.setFlightNumber(req.flightNumber());
         return transportLegRepository.save(leg);

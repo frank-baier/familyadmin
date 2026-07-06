@@ -16,6 +16,7 @@ public record TransportLegRequest(
         String bookingReference,
         String seat,
         String notes,
+        String baggageAllowance,
         int position,
         String flightNumber
 ) {}
