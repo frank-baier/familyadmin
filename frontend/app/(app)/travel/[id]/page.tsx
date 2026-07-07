@@ -154,6 +154,40 @@ function formatPeriod(inKey: number, outKey: number): string {
   return `${inStr.slice(0, 5)} – ${outStr.slice(0, 5)}.${outStr.slice(6)}`;
 }
 
+// ─── Key-info type detection & sorting ───────────────────────────────────────
+
+type KiType = 'transit' | 'car_rental' | 'accommodation' | 'other';
+
+function detectKiType(ki: { label: string; value: string }): KiType {
+  const lbl = ki.label.toLowerCase();
+  const val = ki.value.toLowerCase();
+  if (/mietwagen|camper|wohnmobil|car hire|rental car/i.test(lbl)) return 'car_rental';
+  if (/transit|stpc|stopover/i.test(lbl)) return 'transit';
+  if (/check-in|check-out/i.test(val)) return 'accommodation';
+  if (/hotel|lodge|resort|park|hostel|camp|pension|b&b|big4|tasman|coral|garden/i.test(lbl)) return 'accommodation';
+  return 'other';
+}
+
+const KI_TYPE_ORDER: Record<KiType, number> = { transit: 0, car_rental: 1, accommodation: 2, other: 9 };
+
+const KI_TYPE_STYLE: Record<KiType, { dot: string; label: string }> = {
+  transit:       { dot: 'bg-amber-400',   label: 'Transit' },
+  car_rental:    { dot: 'bg-sky-400',     label: 'Mietwagen' },
+  accommodation: { dot: 'bg-emerald-400', label: 'Unterkunft' },
+  other:         { dot: 'bg-slate-300',   label: 'Info' },
+};
+
+function sortKeyInfos(keyInfos: { label: string; value: string; id: string; position: number }[]) {
+  return [...keyInfos].sort((a, b) => {
+    const aDate = parseSortKey(a.value);
+    const bDate = parseSortKey(b.value);
+    if (aDate !== bDate) return aDate - bDate;
+    return KI_TYPE_ORDER[detectKiType(a)] - KI_TYPE_ORDER[detectKiType(b)];
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 type TableRow =
   | { kind: 'accom'; period: string; name: string; city: string; address: string }
   | { kind: 'gap';   period: string };
@@ -397,7 +431,7 @@ export default function TripDetailPage({ params }: PageProps) {
 
   const dateRange = formatDateRange(trip.startDate, trip.endDate);
   const gradient = getGradient(trip.destination);
-  const sortedKeyInfos = [...trip.keyInfos].sort((a, b) => a.position - b.position);
+  const sortedKeyInfos = sortKeyInfos(trip.keyInfos);
   const canDelete =
     !currentUser ||
     currentUser.role === 'ADMIN' ||
@@ -483,14 +517,18 @@ export default function TripDetailPage({ params }: PageProps) {
                 Wichtige Infos
               </h2>
               <dl className="space-y-2">
-                {sortedKeyInfos.map((info) => (
-                  <div key={info.id} className="flex items-start gap-3">
-                    <dt className="text-xs font-medium text-slate-500 w-32 shrink-0 pt-0.5">
-                      {info.label}
-                    </dt>
-                    <dd className="text-sm text-slate-800 flex-1">{info.value}</dd>
-                  </div>
-                ))}
+                {sortedKeyInfos.map((info) => {
+                  const { dot, label: typeLabel } = KI_TYPE_STYLE[detectKiType(info)];
+                  return (
+                    <div key={info.id} className="flex items-start gap-3">
+                      <dt className="flex items-center gap-1.5 w-36 shrink-0 pt-0.5 min-w-0">
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${dot}`} title={typeLabel} />
+                        <span className="text-xs font-medium text-slate-500 truncate">{info.label}</span>
+                      </dt>
+                      <dd className="text-sm text-slate-800 flex-1 whitespace-pre-line">{info.value}</dd>
+                    </div>
+                  );
+                })}
               </dl>
             </div>
           </>
