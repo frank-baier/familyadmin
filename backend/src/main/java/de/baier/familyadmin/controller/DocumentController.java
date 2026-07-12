@@ -1,6 +1,7 @@
 package de.baier.familyadmin.controller;
 
 import de.baier.familyadmin.dto.DocumentResponse;
+import de.baier.familyadmin.dto.DocumentTreeNode;
 import de.baier.familyadmin.model.Document;
 import de.baier.familyadmin.model.DocumentSource;
 import de.baier.familyadmin.model.User;
@@ -29,10 +30,23 @@ public class DocumentController {
     private final DocumentService documentService;
 
     @GetMapping
-    public List<DocumentResponse> getAll() {
-        return documentRepository.findAllByOrderByCreatedAtDesc().stream()
+    public List<DocumentResponse> getAll(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) String subcategory) {
+        if (category == null && year == null && subcategory == null) {
+            return documentRepository.findAllByOrderByCreatedAtDesc().stream()
+                    .map(DocumentResponse::fromGlobal)
+                    .toList();
+        }
+        return documentRepository.findFiltered(category, year, subcategory).stream()
                 .map(DocumentResponse::fromGlobal)
                 .toList();
+    }
+
+    @GetMapping("/tree")
+    public List<DocumentTreeNode> getTree() {
+        return documentRepository.findGroupedTree();
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
