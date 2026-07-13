@@ -50,15 +50,19 @@ public class DocumentController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @ResponseStatus(HttpStatus.CREATED)
-    public DocumentResponse upload(
+    public ResponseEntity<DocumentResponse> upload(
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "category", required = false) String category,
             @RequestParam(value = "subcategory", required = false) String subcategory,
             @RequestParam(value = "year", required = false) Integer year,
             @AuthenticationPrincipal User currentUser) throws IOException {
+        var existing = documentRepository.findFirstByFilenameAndCategoryAndSubcategoryAndYear(
+                file.getOriginalFilename(), category, subcategory, year);
+        if (existing.isPresent()) {
+            return ResponseEntity.ok(DocumentResponse.fromGlobal(existing.get()));
+        }
         Document doc = documentService.store(file, currentUser, DocumentSource.UPLOAD, null, category, subcategory, year);
-        return DocumentResponse.fromGlobal(doc);
+        return ResponseEntity.status(HttpStatus.CREATED).body(DocumentResponse.fromGlobal(doc));
     }
 
     @DeleteMapping("/{id}")

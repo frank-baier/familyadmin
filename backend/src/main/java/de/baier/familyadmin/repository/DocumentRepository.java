@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface DocumentRepository extends JpaRepository<Document, UUID> {
@@ -22,6 +23,9 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
             ORDER BY d.category NULLS LAST, d.year DESC NULLS LAST, d.subcategory NULLS LAST
             """)
     List<DocumentTreeNode> findGroupedTree();
+
+    Optional<Document> findFirstByFilenameAndCategoryAndSubcategoryAndYear(
+            String filename, String category, String subcategory, Integer year);
 
     @Query("""
             SELECT d FROM Document d
