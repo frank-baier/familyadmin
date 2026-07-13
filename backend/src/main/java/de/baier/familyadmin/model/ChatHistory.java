@@ -35,6 +35,10 @@ public class ChatHistory {
     @Builder.Default
     private String sources = "";
 
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private String status = "DONE";
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

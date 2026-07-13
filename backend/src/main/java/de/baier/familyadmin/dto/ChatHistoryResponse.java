@@ -12,12 +12,13 @@ public record ChatHistoryResponse(
         String question,
         String answer,
         List<String> sources,
+        String status,
         Instant createdAt
 ) {
     public static ChatHistoryResponse from(ChatHistory h) {
         List<String> src = h.getSources().isBlank()
                 ? List.of()
                 : Arrays.asList(h.getSources().split(","));
-        return new ChatHistoryResponse(h.getId(), h.getQuestion(), h.getAnswer(), src, h.getCreatedAt());
+        return new ChatHistoryResponse(h.getId(), h.getQuestion(), h.getAnswer(), src, h.getStatus(), h.getCreatedAt());
     }
 }

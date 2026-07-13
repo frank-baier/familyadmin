@@ -21,16 +21,12 @@ export interface DocumentTreeNode {
   count: number;
 }
 
-export interface ChatResponse {
-  answer: string;
-  sources: string[];
-}
-
 export interface ChatHistoryEntry {
   id: string;
   question: string;
   answer: string;
   sources: string[];
+  status: string;
   createdAt: string;
 }
 
@@ -59,8 +55,8 @@ export function deleteDocument(id: string): Promise<void> {
   return apiFetch<void>(`/api/documents/${id}`, { method: 'DELETE' });
 }
 
-export function askQuestion(question: string): Promise<ChatResponse> {
-  return apiFetch<ChatResponse>('/api/chat/query', {
+export function askQuestion(question: string): Promise<ChatHistoryEntry> {
+  return apiFetch<ChatHistoryEntry>('/api/chat/query', {
     method: 'POST',
     body: JSON.stringify({ question }),
   });
