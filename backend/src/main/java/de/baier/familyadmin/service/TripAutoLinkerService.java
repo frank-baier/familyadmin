@@ -10,9 +10,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +22,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -46,10 +47,13 @@ public class TripAutoLinkerService {
             Map.entry("aug", 8), Map.entry("sep", 9), Map.entry("okt", 10), Map.entry("nov", 11),
             Map.entry("dez", 12));
 
+    private static final ZoneId ZURICH = ZoneId.of("Europe/Zurich");
+    private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
+
     private final OllamaService ollamaService;
     private final TripRepository tripRepository;
     private final TripDocumentRepository tripDocumentRepository;
-    private final ItineraryEntryRepository itineraryEntryRepository;
+    private final TransportLegRepository transportLegRepository;
     private final DocumentRepository documentRepository;
     private final UserService userService;
     private final ObjectMapper objectMapper;
@@ -276,50 +280,61 @@ public class TripAutoLinkerService {
     // ── Entry creation ─────────────────────────────────────────────────────────
 
     private void addFlightEntry(Trip trip, TravelDocumentAnalysis.FlightInfo f) {
-        String title = buildFlightTitle(f);
-        // Deduplicate by IATA airport codes (handles slight title variations across re-analyses)
         String depCode = extractIata(f.departureAirport());
         String arrCode = extractIata(f.arrivalAirport());
-        boolean exists = itineraryEntryRepository
-                .findByTripIdOrderByEntryDateAscEntryTimeAscPositionAsc(trip.getId())
-                .stream().anyMatch(e -> {
-                    if (!e.getTitle().startsWith("✈")) return false;
-                    if (e.getTitle().equalsIgnoreCase(title)) return true;
-                    // Same route by IATA codes
+        String flightNum = StringUtils.hasText(f.flightNumber())
+                ? f.flightNumber().toUpperCase().replaceAll("\\s+", "") : null;
+
+        // Deduplicate by flight number or IATA route
+        boolean exists = transportLegRepository.findByTripIdOrderByDepartureAtAscPositionAsc(trip.getId())
+                .stream().anyMatch(leg -> {
+                    if (flightNum != null && flightNum.equalsIgnoreCase(leg.getFlightNumber())) return true;
                     return depCode != null && arrCode != null
-                            && e.getTitle().contains(depCode) && e.getTitle().contains(arrCode);
+                            && containsIata(leg.getFromLocation(), depCode)
+                            && containsIata(leg.getToLocation(), arrCode);
                 });
-        if (exists) return;
+        if (exists) {
+            log.debug("Transport leg for {} ({} → {}) already exists, skipping", flightNum,
+                    f.departureAirport(), f.arrivalAirport());
+            return;
+        }
 
-        LocalDate date = parseLocalDate(f.departureDateTime() != null
-                ? f.departureDateTime().split("T")[0] : null);
-        LocalTime time = parseLocalTime(f.departureDateTime());
-        if (date == null) date = trip.getStartDate();
+        Instant dep = toInstant(f.departureDateTime(), trip.getStartDate());
+        Instant arr = toInstant(f.arrivalDateTime(), null);
+        if (arr == null || !arr.isAfter(dep)) arr = dep.plusSeconds(3600);
 
-        itineraryEntryRepository.save(ItineraryEntry.builder()
+        int position = transportLegRepository.findByTripIdOrderByDepartureAtAscPositionAsc(trip.getId()).size();
+
+        transportLegRepository.save(TransportLeg.builder()
                 .trip(trip)
-                .entryDate(date)
-                .entryTime(time)
-                .title(title)
-                .description(buildFlightDescription(f))
-                .location(f.departureAirport())
+                .type(TransportType.FLIGHT)
+                .fromLocation(StringUtils.hasText(f.departureAirport()) ? f.departureAirport() : "?")
+                .toLocation(StringUtils.hasText(f.arrivalAirport()) ? f.arrivalAirport() : "?")
+                .departureAt(dep)
+                .arrivalAt(arr)
+                .carrier(f.airline())
+                .flightNumber(flightNum)
+                .position(position)
                 .build());
-        log.info("Added flight entry '{}' to trip '{}'", title, trip.getTitle());
+        log.info("Auto-linked transport leg {} {} → {} to trip '{}'",
+                flightNum, f.departureAirport(), f.arrivalAirport(), trip.getTitle());
     }
 
-    private String buildFlightTitle(TravelDocumentAnalysis.FlightInfo f) {
-        String num = StringUtils.hasText(f.flightNumber()) ? f.flightNumber() : "";
-        String dep = StringUtils.hasText(f.departureAirport()) ? f.departureAirport() : "?";
-        String arr = StringUtils.hasText(f.arrivalAirport()) ? f.arrivalAirport() : "?";
-        return ("✈ " + (StringUtils.hasText(num) ? num + " " : "") + dep + " → " + arr).strip();
+    private boolean containsIata(String location, String iata) {
+        return location != null && iata != null && location.toUpperCase().contains(iata.toUpperCase());
     }
 
-    private String buildFlightDescription(TravelDocumentAnalysis.FlightInfo f) {
-        StringBuilder sb = new StringBuilder();
-        if (StringUtils.hasText(f.airline())) sb.append(f.airline()).append("\n");
-        if (StringUtils.hasText(f.departureDateTime())) sb.append("Abflug: ").append(f.departureDateTime()).append("\n");
-        if (StringUtils.hasText(f.arrivalDateTime())) sb.append("Ankunft: ").append(f.arrivalDateTime()).append("\n");
-        return sb.toString().strip();
+    private Instant toInstant(String localDateTime, LocalDate fallbackDate) {
+        if (StringUtils.hasText(localDateTime)) {
+            try {
+                String s = localDateTime.length() > 16 ? localDateTime.substring(0, 16) : localDateTime;
+                return LocalDateTime.parse(s, DT_FMT).atZone(ZURICH).toInstant();
+            } catch (Exception ignored) {}
+        }
+        if (fallbackDate != null) {
+            return fallbackDate.atStartOfDay(ZURICH).toInstant();
+        }
+        return null;
     }
 
     private void addAccommodationKeyInfo(Trip trip, TravelDocumentAnalysis.AccommodationInfo a) {
@@ -446,12 +461,6 @@ public class TripAutoLinkerService {
         if (!StringUtils.hasText(s)) return null;
         try { return LocalDate.parse(s.length() > 10 ? s.substring(0, 10) : s); }
         catch (DateTimeParseException e) { return null; }
-    }
-
-    private LocalTime parseLocalTime(String datetime) {
-        if (!StringUtils.hasText(datetime) || !datetime.contains("T")) return null;
-        try { return LocalTime.parse(datetime.split("T")[1].substring(0, 5)); }
-        catch (Exception e) { return null; }
     }
 
     private boolean datesOverlap(Trip t, LocalDate start, LocalDate end) {

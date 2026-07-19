@@ -7,6 +7,6 @@ import java.util.List;
 import java.util.UUID;
 
 public interface PackingItemRepository extends JpaRepository<PackingItem, UUID> {
-    List<PackingItem> findByTripIdAndOwnerIsNullOrderByPosition(UUID tripId);
-    List<PackingItem> findByTripIdAndOwnerIdOrderByPosition(UUID tripId, UUID ownerId);
+    List<PackingItem> findByTripIdAndOwnerIsNullOrderByCategoryAscPositionAsc(UUID tripId);
+    List<PackingItem> findByTripIdAndOwnerIdOrderByCategoryAscPositionAsc(UUID tripId, UUID ownerId);
 }

@@ -45,7 +45,9 @@ export interface PackingItem {
   label: string;
   packed: boolean;
   personal: boolean;
-  addedBy: User;
+  category: string | null;
+  position: number;
+  addedBy: { id: string | null; name: string };
   createdAt: string;
 }
 
@@ -60,6 +62,8 @@ export interface TripRequest {
 export interface PackingItemRequest {
   label: string;
   personal?: boolean;
+  category?: string;
+  position?: number;
 }
 
 // ─── API Functions ──────────────────────────────────────────────────────────
@@ -105,7 +109,8 @@ export async function addPackingItem(
 ): Promise<PackingItem> {
   return apiFetch<PackingItem>(`/api/trips/${tripId}/packing`, {
     method: 'POST',
-    body: JSON.stringify(data),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...data, position: data.position ?? 0 }),
   });
 }
 
@@ -115,7 +120,7 @@ export async function togglePackingItem(
   itemId: string,
 ): Promise<PackingItem> {
   return apiFetch<PackingItem>(`/api/trips/${tripId}/packing/${itemId}/toggle`, {
-    method: 'POST',
+    method: 'PATCH',
   });
 }
 
