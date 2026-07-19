@@ -78,6 +78,39 @@ function getGradient(destination: string): string {
 const META_RE = /^(check-in|check-out|buchung|ref:|nacht:|arriving|departing|staying|powered site|price|additional|your group)/i;
 // First-line patterns that indicate a hotel/camp name rather than an address
 const HOTEL_NAME_RE = /resort|hotel|parks|lodge|big4|tasman|airways|garden|coral|holiday|camping|beach house/i;
+const STREET_LINE_RE = /\b(drive|dr|road|rd|street|st\b|avenue|ave|esplanade|way|lane|parade|circuit|crescent|boulevard|blvd|harbour)\b/i;
+
+function mapsUrl(query: string) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+function isAddressLine(line: string, index: number): boolean {
+  if (META_RE.test(line)) return false;
+  if (index === 0 && HOTEL_NAME_RE.test(line) && !/^\d/.test(line)) return false;
+  if (STREET_LINE_RE.test(line) || /^\d+\s/.test(line)) return true;
+  if (index > 0 && line.includes(',') && !/Buchung|Ref:|Check/i.test(line)) return true;
+  return false;
+}
+
+function KeyInfoValue({ info }: { info: TripKeyInfo }) {
+  const lines = info.value.split('\n').map(l => l.trim()).filter(Boolean);
+  const query = `${info.label} ${extractAddress(info.value)}`.trim();
+  return (
+    <>
+      {lines.map((line, i) => (
+        <span key={i}>
+          {i > 0 && '\n'}
+          {isAddressLine(line, i) ? (
+            <a href={mapsUrl(query)} target="_blank" rel="noopener noreferrer"
+               className="text-indigo-500 hover:text-indigo-700 hover:underline">
+              {line}
+            </a>
+          ) : line}
+        </span>
+      ))}
+    </>
+  );
+}
 
 function parseCheckDate(value: string, type: 'in' | 'out'): string | null {
   const keyword = type === 'in' ? 'check-in' : 'check-out';
@@ -252,7 +285,14 @@ function AccommodationTable({ keyInfos }: { keyInfos: TripKeyInfo[] }) {
                   <div className="text-slate-800 font-medium">{row.name}</div>
                   {row.city && <div className="text-xs text-slate-400 mt-0.5">{row.city}</div>}
                 </td>
-                <td className="py-2.5 text-slate-400 text-xs align-top hidden sm:table-cell">{row.address}</td>
+                <td className="py-2.5 text-slate-400 text-xs align-top hidden sm:table-cell">
+                  {row.address ? (
+                    <a href={mapsUrl(`${row.name} ${row.address}`)} target="_blank" rel="noopener noreferrer"
+                       className="hover:text-indigo-500 hover:underline transition-colors">
+                      {row.address}
+                    </a>
+                  ) : null}
+                </td>
               </tr>
             )
           )}
@@ -525,7 +565,7 @@ export default function TripDetailPage({ params }: PageProps) {
                         <span className={`w-2 h-2 rounded-full shrink-0 ${dot}`} title={typeLabel} />
                         <span className="text-xs font-medium text-slate-500 truncate">{info.label}</span>
                       </dt>
-                      <dd className="text-sm text-slate-800 flex-1 whitespace-pre-line">{info.value}</dd>
+                      <dd className="text-sm text-slate-800 flex-1 whitespace-pre-line"><KeyInfoValue info={info} /></dd>
                     </div>
                   );
                 })}
