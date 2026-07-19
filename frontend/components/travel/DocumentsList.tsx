@@ -50,6 +50,7 @@ export function DocumentsList({ tripId, emailToken }: DocumentsListProps) {
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [sortBy, setSortBy] = useState<'date' | 'name'>('date');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const inboundDomain = process.env.NEXT_PUBLIC_INBOUND_EMAIL_DOMAIN ?? 'familyadmin.local';
@@ -150,9 +151,27 @@ export function DocumentsList({ tripId, emailToken }: DocumentsListProps) {
 
       {/* Upload button */}
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-slate-600">
-          {docs.length === 0 ? 'Noch keine Dokumente' : `${docs.length} Dokument${docs.length === 1 ? '' : 'e'}`}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-medium text-slate-600">
+            {docs.length === 0 ? 'Noch keine Dokumente' : `${docs.length} Dokument${docs.length === 1 ? '' : 'e'}`}
+          </p>
+          {docs.length > 1 && (
+            <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs font-medium">
+              <button
+                onClick={() => setSortBy('date')}
+                className={`px-2 py-1 transition-colors ${sortBy === 'date' ? 'bg-slate-700 text-white' : 'text-slate-500 hover:bg-slate-50'}`}
+              >
+                Datum
+              </button>
+              <button
+                onClick={() => setSortBy('name')}
+                className={`px-2 py-1 transition-colors border-l border-slate-200 ${sortBy === 'name' ? 'bg-slate-700 text-white' : 'text-slate-500 hover:bg-slate-50'}`}
+              >
+                A–Z
+              </button>
+            </div>
+          )}
+        </div>
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
@@ -207,7 +226,11 @@ export function DocumentsList({ tripId, emailToken }: DocumentsListProps) {
         </div>
       ) : (
         <ul className="space-y-2">
-          {docs.map((doc) => (
+          {[...docs].sort((a, b) =>
+            sortBy === 'name'
+              ? a.filename.localeCompare(b.filename, 'de', { sensitivity: 'base' })
+              : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          ).map((doc) => (
             <li
               key={doc.id}
               className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-4 py-3"
