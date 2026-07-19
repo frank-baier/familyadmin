@@ -53,11 +53,13 @@ async function geocode(query: string): Promise<[number, number] | null> {
   return null;
 }
 
-function parseAccommodationAddress(value: string): string | null {
-  const lines = value.split('\n').map(l => l.trim()).filter(Boolean);
-  // Second line is usually the address (after hotel name)
-  if (lines.length >= 2) return lines[1];
-  return lines[0] ?? null;
+const SKIP_LINE_RE = /^(check-in|check-out|buchung|ref:|storno|abholung|rückgabe|arrival|departure)/i;
+const STREET_RE = /\b(drive|dr|road|rd|street|st\b|avenue|ave|esplanade|way|lane|parade|circuit|crescent|boulevard|blvd|harbour)\b/i;
+
+function extractAddress(value: string): string | null {
+  const lines = value.split('\n').map(l => l.trim()).filter(l => l && !SKIP_LINE_RE.test(l));
+  // Prefer a line that looks like a street address
+  return lines.find(l => STREET_RE.test(l) || /^\d+\s/.test(l)) ?? lines[lines.length - 1] ?? null;
 }
 
 function mapsUrl(query: string): string {
@@ -173,17 +175,16 @@ function TripMapInner({ legs, keyInfos, destination }: TripMapInnerProps) {
 
         if (!isAccom) continue;
 
-        const lines = ki.value.split('\n').map(l => l.trim()).filter(Boolean);
-        const name = lines[0] ?? ki.label;
-        const address = parseAccommodationAddress(ki.value) ?? name;
-        const geocoded = await geocode(address);
+        const address = extractAddress(ki.value);
+        const mapsQuery = address ? `${ki.label} ${address}` : ki.label;
+        const geocoded = await geocode(mapsQuery);
         if (geocoded && !cancelled) {
           stops.push({
-            label: name,
+            label: ki.label,
             coords: geocoded,
             type: 'accommodation',
             detail: ki.value,
-            googleMapsQuery: address,
+            googleMapsQuery: mapsQuery,
           });
         }
       }
