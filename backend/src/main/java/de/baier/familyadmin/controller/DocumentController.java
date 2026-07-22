@@ -2,12 +2,15 @@ package de.baier.familyadmin.controller;
 
 import de.baier.familyadmin.dto.DocumentResponse;
 import de.baier.familyadmin.dto.DocumentTreeNode;
+import de.baier.familyadmin.dto.PagedDocumentsResponse;
 import de.baier.familyadmin.model.Document;
 import de.baier.familyadmin.model.DocumentSource;
 import de.baier.familyadmin.model.User;
 import de.baier.familyadmin.repository.DocumentRepository;
 import de.baier.familyadmin.service.DocumentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -30,18 +33,17 @@ public class DocumentController {
     private final DocumentService documentService;
 
     @GetMapping
-    public List<DocumentResponse> getAll(
+    public PagedDocumentsResponse getAll(
             @RequestParam(required = false) String category,
             @RequestParam(required = false) Integer year,
-            @RequestParam(required = false) String subcategory) {
+            @RequestParam(required = false) String subcategory,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        var pageable = PageRequest.of(page, Math.min(size, 200), Sort.by(Sort.Direction.DESC, "createdAt"));
         if (category == null && year == null && subcategory == null) {
-            return documentRepository.findAllByOrderByCreatedAtDesc().stream()
-                    .map(DocumentResponse::fromGlobal)
-                    .toList();
+            return PagedDocumentsResponse.from(documentRepository.findAllByOrderByCreatedAtDesc(pageable));
         }
-        return documentRepository.findFiltered(category, year, subcategory).stream()
-                .map(DocumentResponse::fromGlobal)
-                .toList();
+        return PagedDocumentsResponse.from(documentRepository.findFiltered(category, year, subcategory, pageable));
     }
 
     @GetMapping("/tree")

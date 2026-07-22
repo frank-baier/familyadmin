@@ -10,6 +10,7 @@ import {
   formatFileSize,
   type Document,
   type DocumentTreeNode,
+  type PagedDocuments,
 } from '@/lib/documents';
 import { ApiError, apiFetchBlob } from '@/lib/api';
 
@@ -244,8 +245,8 @@ export default function DocumentsPage() {
   // Expanded state: Set of keys like "cat:Reisen", "year:Reisen:2026", "sub:Reisen:2026:Australien"
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  // Loaded documents per leaf key
-  const [docsMap, setDocsMap] = useState<Map<string, Document[]>>(new Map());
+  // Loaded documents per leaf key  { docs, total, nextPage }
+  const [docsMap, setDocsMap] = useState<Map<string, { docs: Document[]; total: number; nextPage: number }>>(new Map());
   const [loadingLeaf, setLoadingLeaf] = useState<Set<string>>(new Set());
 
   useEffect(() => { loadTree(); }, []);
@@ -270,16 +271,25 @@ export default function DocumentsPage() {
     });
   }
 
-  async function loadDocs(leafKey: string, category: string | null, year: number | null, subcategory: string | null) {
-    if (docsMap.has(leafKey)) return;
+  async function loadDocs(leafKey: string, category: string | null, year: number | null, subcategory: string | null, page = 0) {
+    if (page === 0 && docsMap.has(leafKey)) return;
     setLoadingLeaf((prev) => new Set(prev).add(leafKey));
     try {
-      const docs = await getDocuments({
+      const result = await getDocuments({
         category: category ?? undefined,
         year: year ?? undefined,
         subcategory: subcategory ?? undefined,
+        page,
       });
-      setDocsMap((prev) => new Map(prev).set(leafKey, docs));
+      setDocsMap((prev) => {
+        const existing = prev.get(leafKey);
+        const merged = page === 0 ? result.content : [...(existing?.docs ?? []), ...result.content];
+        return new Map(prev).set(leafKey, {
+          docs: merged,
+          total: result.totalElements,
+          nextPage: page + 1,
+        });
+      });
     } catch {
       setError('Dokumente konnten nicht geladen werden.');
     } finally {
@@ -290,7 +300,7 @@ export default function DocumentsPage() {
   function openLeaf(leafKey: string, category: string | null, year: number | null, subcategory: string | null) {
     toggle(leafKey);
     if (!expanded.has(leafKey)) {
-      loadDocs(leafKey, category, year, subcategory);
+      loadDocs(leafKey, category, year, subcategory, 0);
     }
   }
 
@@ -298,7 +308,6 @@ export default function DocumentsPage() {
     setUploading(true); setError(null);
     try {
       await uploadDocument(file);
-      // Reload tree + clear docs cache
       setDocsMap(new Map());
       await loadTree();
     } catch (err) {
@@ -324,10 +333,13 @@ export default function DocumentsPage() {
     setDeleteId(id);
     try {
       await deleteDocument(id);
-      // Remove from all doc lists
       setDocsMap((prev) => {
         const next = new Map(prev);
-        next.forEach((docs, key) => next.set(key, docs.filter((d) => d.id !== id)));
+        next.forEach((entry, key) => next.set(key, {
+          ...entry,
+          docs: entry.docs.filter((d) => d.id !== id),
+          total: entry.total - 1,
+        }));
         return next;
       });
       await loadTree();
@@ -436,7 +448,9 @@ export default function DocumentsPage() {
                         const leafKey = `sub:${cat.name ?? '__none__'}:${yr.year ?? '__none__'}:${sub.name ?? '__none__'}`;
                         const leafOpen = expanded.has(leafKey);
                         const isLoading = loadingLeaf.has(leafKey);
-                        const docs = docsMap.get(leafKey);
+                        const leafData = docsMap.get(leafKey);
+                        const docs = leafData?.docs;
+                        const hasMore = leafData != null && leafData.docs.length < leafData.total;
 
                         // If only one subcategory == null, skip subcategory level and show docs directly
                         const skipSubLevel = sub.name === null;
@@ -468,15 +482,7 @@ export default function DocumentsPage() {
                             {/* Documents */}
                             {leafOpen && (
                               <div className="bg-slate-50/40">
-                                {isLoading ? (
-                                  <div className="flex items-center gap-2 py-3" style={{ paddingLeft: '80px' }}>
-                                    <svg className="w-4 h-4 text-amber-400 animate-spin" fill="none" viewBox="0 0 24 24">
-                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                                    </svg>
-                                    <span className="text-xs text-slate-400">Laden…</span>
-                                  </div>
-                                ) : docs?.map((doc) => (
+                                {docs?.map((doc) => (
                                   <DocRow
                                     key={doc.id}
                                     doc={doc}
@@ -486,6 +492,24 @@ export default function DocumentsPage() {
                                     deleting={deleteId === doc.id}
                                   />
                                 ))}
+                                {isLoading && (
+                                  <div className="flex items-center gap-2 py-3" style={{ paddingLeft: '80px' }}>
+                                    <svg className="w-4 h-4 text-amber-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                    </svg>
+                                    <span className="text-xs text-slate-400">Laden…</span>
+                                  </div>
+                                )}
+                                {!isLoading && hasMore && leafData && (
+                                  <button
+                                    onClick={() => loadDocs(leafKey, cat.name, yr.year, sub.name, leafData.nextPage)}
+                                    className="w-full text-xs text-slate-400 hover:text-amber-600 py-2.5 transition-colors"
+                                    style={{ paddingLeft: '80px', textAlign: 'left' }}
+                                  >
+                                    + {leafData.total - leafData.docs.length} weitere laden…
+                                  </button>
+                                )}
                               </div>
                             )}
                           </div>

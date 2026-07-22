@@ -30,15 +30,28 @@ export interface ChatHistoryEntry {
   createdAt: string;
 }
 
-export function getDocuments(params?: { category?: string; year?: number; subcategory?: string }): Promise<Document[]> {
-  if (!params || (!params.category && !params.year && !params.subcategory)) {
-    return apiFetch<Document[]>('/api/documents');
-  }
+export interface PagedDocuments {
+  content: Document[];
+  totalElements: number;
+  totalPages: number;
+  page: number;
+  size: number;
+}
+
+export function getDocuments(params?: {
+  category?: string;
+  year?: number;
+  subcategory?: string;
+  page?: number;
+  size?: number;
+}): Promise<PagedDocuments> {
   const q = new URLSearchParams();
-  if (params.category) q.set('category', params.category);
-  if (params.year != null) q.set('year', String(params.year));
-  if (params.subcategory) q.set('subcategory', params.subcategory);
-  return apiFetch<Document[]>(`/api/documents?${q}`);
+  if (params?.category) q.set('category', params.category);
+  if (params?.year != null) q.set('year', String(params.year));
+  if (params?.subcategory) q.set('subcategory', params.subcategory);
+  q.set('page', String(params?.page ?? 0));
+  q.set('size', String(params?.size ?? 50));
+  return apiFetch<PagedDocuments>(`/api/documents?${q}`);
 }
 
 export function getDocumentTree(): Promise<DocumentTreeNode[]> {

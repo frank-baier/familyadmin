@@ -2,7 +2,8 @@ package de.baier.familyadmin.repository;
 
 import de.baier.familyadmin.dto.DocumentTreeNode;
 import de.baier.familyadmin.model.Document;
-import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,8 +14,7 @@ import java.util.UUID;
 
 public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
-    @EntityGraph(attributePaths = "uploadedBy")
-    List<Document> findAllByOrderByCreatedAtDesc();
+    Page<Document> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
     @Query("""
             SELECT new de.baier.familyadmin.dto.DocumentTreeNode(d.category, d.year, d.subcategory, COUNT(d))
@@ -34,8 +34,9 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
               AND (:subcategory IS NULL OR d.subcategory = :subcategory)
             ORDER BY d.createdAt DESC
             """)
-    List<Document> findFiltered(
+    Page<Document> findFiltered(
             @Param("category") String category,
             @Param("year") Integer year,
-            @Param("subcategory") String subcategory);
+            @Param("subcategory") String subcategory,
+            Pageable pageable);
 }
