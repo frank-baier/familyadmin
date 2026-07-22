@@ -35,6 +35,11 @@ public class DocumentIndexingService {
     @Async
     public void indexAsync(UUID documentId, byte[] data, String contentType, String filename,
                            String category, String subcategory, Integer year, UUID uploaderId) {
+        doIndex(documentId, data, contentType, filename, category, subcategory, year, uploaderId);
+    }
+
+    public void doIndex(UUID documentId, byte[] data, String contentType, String filename,
+                        String category, String subcategory, Integer year, UUID uploaderId) {
         try {
             Integer count = jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM document_chunks WHERE document_id = ?::uuid",
@@ -59,10 +64,6 @@ public class DocumentIndexingService {
                 log.info("Finished indexing '{}' ({} chunks)", filename, chunks.size());
             }
 
-            // Auto-link to trip for travel documents.
-            // analyzeDocument() calls Ollama outside any transaction so no DB connection
-            // is held during the LLM inference. autoLink() then only does fast DB work.
-            // When uploaderId is null (e.g. sync script), fall back to the first admin user.
             if ("Reisen".equalsIgnoreCase(category)) {
                 UUID effectiveUploader = uploaderId;
                 if (effectiveUploader == null) {
