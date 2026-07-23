@@ -83,3 +83,7 @@ export async function deleteNoteNode(id: string): Promise<void> {
     method: 'DELETE',
   });
 }
+
+export async function searchNoteNodes(query: string): Promise<NoteNode[]> {
+  return apiFetch<NoteNode[]>(`/api/notes/search?q=${encodeURIComponent(query)}`);
+}

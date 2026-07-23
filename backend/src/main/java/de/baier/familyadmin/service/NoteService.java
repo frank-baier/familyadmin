@@ -8,6 +8,7 @@ import de.baier.familyadmin.model.User;
 import de.baier.familyadmin.repository.NoteCategoryRepository;
 import de.baier.familyadmin.repository.NoteNodeRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,6 +60,15 @@ public class NoteService {
     public List<NoteNode> getNodes(UUID categoryId, User owner) {
         getOwnedCategory(categoryId, owner);
         return noteNodeRepository.findByCategoryIdAndOwnerId(categoryId, owner.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public List<NoteNode> search(User owner, String query) {
+        String trimmed = query == null ? "" : query.trim();
+        if (trimmed.isEmpty()) {
+            return List.of();
+        }
+        return noteNodeRepository.search(owner.getId(), trimmed, PageRequest.of(0, 50));
     }
 
     public NoteNode createNode(UUID categoryId, User owner, NoteNodeRequest req) {

@@ -31,6 +31,15 @@ public class NoteController {
                 .toList();
     }
 
+    @GetMapping("/search")
+    public List<NoteNodeResponse> search(
+            @RequestParam("q") String query,
+            @AuthenticationPrincipal User currentUser) {
+        return noteService.search(currentUser, query).stream()
+                .map(NoteNodeResponse::from)
+                .toList();
+    }
+
     @PostMapping("/categories")
     public ResponseEntity<NoteCategoryResponse> createCategory(
             @Valid @RequestBody NoteCategoryRequest request,

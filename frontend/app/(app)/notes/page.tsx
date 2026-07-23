@@ -17,8 +17,15 @@ import {
   createNoteNode,
   updateNoteNode,
   deleteNoteNode,
+  searchNoteNodes,
 } from '@/lib/notes';
 import type { NoteCategory, NoteNode } from '@/lib/notes';
+
+function contentSnippet(content: string | null, max = 80): string {
+  if (!content) return '';
+  const flat = content.replace(/\s+/g, ' ').trim();
+  return flat.length > max ? `${flat.slice(0, max)}…` : flat;
+}
 
 const ACCENT = { background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' };
 
@@ -114,9 +121,35 @@ export default function NotesPage() {
   const [addCategoryError, setAddCategoryError] = useState<string | null>(null);
   const categoryInputRef = useRef<HTMLInputElement>(null);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<NoteNode[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+
   useEffect(() => {
     loadCategories();
   }, []);
+
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (!query) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    const timeout = setTimeout(async () => {
+      try {
+        const results = await searchNoteNodes(query);
+        setSearchResults(results);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [searchQuery]);
 
   useEffect(() => {
     if (selectedCategoryId) {
@@ -184,6 +217,14 @@ export default function NotesPage() {
     }
   }
 
+  function handleSelectSearchResult(result: NoteNode) {
+    setSelectedCategoryId(result.categoryId);
+    setSelectedNodeId(result.id);
+    setSearchQuery('');
+    setSearchResults([]);
+    setShowSearchResults(false);
+  }
+
   async function handleAddNode(parentId: string | null) {
     if (!selectedCategoryId) return;
     try {
@@ -223,6 +264,57 @@ export default function NotesPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Notizen</h1>
           <p className="text-slate-500 text-sm mt-1">Deine persönlichen Notizen — nur für dich sichtbar</p>
+        </div>
+
+        <div className="relative w-full max-w-xs shrink-0">
+          <svg
+            className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+          </svg>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setShowSearchResults(true); }}
+            onFocus={() => setShowSearchResults(true)}
+            onBlur={() => setTimeout(() => setShowSearchResults(false), 150)}
+            placeholder="Notizen durchsuchen…"
+            className="input-field pl-9 w-full"
+          />
+
+          {showSearchResults && searchQuery.trim() && (
+            <div className="absolute z-10 mt-2 w-full max-h-96 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-lg">
+              {searching ? (
+                <p className="px-4 py-3 text-xs text-slate-400">Suche…</p>
+              ) : searchResults.length === 0 ? (
+                <p className="px-4 py-3 text-xs text-slate-400">Keine Treffer.</p>
+              ) : (
+                <ul>
+                  {searchResults.map((result) => {
+                    const categoryName = categories.find((c) => c.id === result.categoryId)?.name ?? '';
+                    return (
+                      <li key={result.id}>
+                        <button
+                          type="button"
+                          onMouseDown={() => handleSelectSearchResult(result)}
+                          className="w-full text-left px-4 py-2.5 hover:bg-emerald-50 transition-colors border-b border-slate-50 last:border-0"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-sm font-medium text-slate-800 truncate">{result.name}</span>
+                            <span className="text-[11px] text-emerald-600 bg-emerald-50 rounded-full px-2 py-0.5 shrink-0">{categoryName}</span>
+                          </div>
+                          {result.content && (
+                            <p className="text-xs text-slate-400 mt-0.5 truncate">{contentSnippet(result.content)}</p>
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
