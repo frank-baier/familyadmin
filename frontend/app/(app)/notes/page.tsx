@@ -255,6 +255,17 @@ export default function NotesPage() {
     }
   }
 
+  async function handleMoveNode(nodeId: string, newParentId: string | null) {
+    const node = nodes.find((n) => n.id === nodeId);
+    if (!node || node.parentId === newParentId) return;
+    try {
+      const updated = await updateNoteNode(nodeId, { parentId: newParentId, name: node.name, content: node.content });
+      setNodes((prev) => prev.map((n) => (n.id === nodeId ? updated : n)));
+    } catch {
+      setError('Notiz konnte nicht verschoben werden (evtl. Zielort ungültig).');
+    }
+  }
+
   const selectedNode = nodes.find((n) => n.id === selectedNodeId) ?? null;
 
   return (
@@ -423,6 +434,7 @@ export default function NotesPage() {
                   onSelect={setSelectedNodeId}
                   onAddChild={handleAddNode}
                   onDelete={handleDeleteNode}
+                  onMove={handleMoveNode}
                 />
               )}
             </div>

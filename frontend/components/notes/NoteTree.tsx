@@ -3,15 +3,18 @@
 import { useMemo, useState } from 'react';
 import type { NoteNode } from '@/lib/notes';
 
+const ROOT_DROP_ZONE = '__root__';
+
 interface NoteTreeProps {
   nodes: NoteNode[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   onAddChild: (parentId: string | null) => void;
   onDelete: (id: string) => void;
+  onMove: (nodeId: string, newParentId: string | null) => void;
 }
 
-export function NoteTree({ nodes, selectedId, onSelect, onAddChild, onDelete }: NoteTreeProps) {
+export function NoteTree({ nodes, selectedId, onSelect, onAddChild, onDelete, onMove }: NoteTreeProps) {
   const childrenByParent = useMemo(() => {
     const map = new Map<string | null, NoteNode[]>();
     for (const node of nodes) {
@@ -26,6 +29,16 @@ export function NoteTree({ nodes, selectedId, onSelect, onAddChild, onDelete }: 
   }, [nodes]);
 
   const roots = childrenByParent.get(null) ?? [];
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+
+  function handleDrop(newParentId: string | null) {
+    if (draggingId && draggingId !== newParentId) {
+      onMove(draggingId, newParentId);
+    }
+    setDraggingId(null);
+    setDragOverId(null);
+  }
 
   return (
     <div className="space-y-0.5">
@@ -43,7 +56,13 @@ export function NoteTree({ nodes, selectedId, onSelect, onAddChild, onDelete }: 
       {roots.length === 0 ? (
         <p className="px-3 py-6 text-center text-xs text-slate-400">Noch keine Notizen in dieser Kategorie.</p>
       ) : (
-        <ul role="tree">
+        <ul
+          role="tree"
+          onDragOver={(e) => { e.preventDefault(); setDragOverId(ROOT_DROP_ZONE); }}
+          onDragLeave={() => setDragOverId((id) => (id === ROOT_DROP_ZONE ? null : id))}
+          onDrop={(e) => { e.preventDefault(); handleDrop(null); }}
+          className={dragOverId === ROOT_DROP_ZONE ? 'rounded-xl ring-2 ring-inset ring-emerald-400' : ''}
+        >
           {roots.map((node) => (
             <NoteTreeItem
               key={node.id}
@@ -54,6 +73,11 @@ export function NoteTree({ nodes, selectedId, onSelect, onAddChild, onDelete }: 
               onSelect={onSelect}
               onAddChild={onAddChild}
               onDelete={onDelete}
+              draggingId={draggingId}
+              setDraggingId={setDraggingId}
+              dragOverId={dragOverId}
+              setDragOverId={setDragOverId}
+              onDropNode={handleDrop}
             />
           ))}
         </ul>
@@ -70,21 +94,39 @@ interface NoteTreeItemProps {
   onSelect: (id: string) => void;
   onAddChild: (parentId: string | null) => void;
   onDelete: (id: string) => void;
+  draggingId: string | null;
+  setDraggingId: (id: string | null) => void;
+  dragOverId: string | null;
+  setDragOverId: (id: string | null | ((prev: string | null) => string | null)) => void;
+  onDropNode: (newParentId: string | null) => void;
 }
 
-function NoteTreeItem({ node, depth, childrenByParent, selectedId, onSelect, onAddChild, onDelete }: NoteTreeItemProps) {
+function NoteTreeItem({
+  node, depth, childrenByParent, selectedId, onSelect, onAddChild, onDelete,
+  draggingId, setDraggingId, dragOverId, setDragOverId, onDropNode,
+}: NoteTreeItemProps) {
   const kids = childrenByParent.get(node.id) ?? [];
   const isBranch = kids.length > 0;
   const [expanded, setExpanded] = useState(true);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const isSelected = selectedId === node.id;
+  const isDragging = draggingId === node.id;
+  const isDragOver = dragOverId === node.id;
 
   return (
     <li role="treeitem" aria-selected={isSelected}>
       <div
+        draggable
+        onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', node.id); setDraggingId(node.id); }}
+        onDragEnd={() => setDraggingId(null)}
+        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'move'; setDragOverId(node.id); }}
+        onDragLeave={() => setDragOverId((id) => (id === node.id ? null : id))}
+        onDrop={(e) => { e.preventDefault(); e.stopPropagation(); onDropNode(node.id); }}
         className={[
-          'group flex items-center gap-1 rounded-xl pr-2 py-1.5 text-sm transition-colors duration-150',
+          'group flex items-center gap-1 rounded-xl pr-2 py-1.5 text-sm transition-colors duration-150 cursor-grab active:cursor-grabbing',
           isSelected ? 'bg-emerald-50 text-emerald-800 font-medium' : 'text-slate-600 hover:bg-slate-50',
+          isDragging ? 'opacity-40' : '',
+          isDragOver ? 'ring-2 ring-inset ring-emerald-400' : '',
         ].join(' ')}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
       >
@@ -184,6 +226,11 @@ function NoteTreeItem({ node, depth, childrenByParent, selectedId, onSelect, onA
               onSelect={onSelect}
               onAddChild={onAddChild}
               onDelete={onDelete}
+              draggingId={draggingId}
+              setDraggingId={setDraggingId}
+              dragOverId={dragOverId}
+              setDragOverId={setDragOverId}
+              onDropNode={onDropNode}
             />
           ))}
         </ul>
