@@ -110,6 +110,7 @@ export default function NotesPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [nodes, setNodes] = useState<NoteNode[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [justCreatedNodeId, setJustCreatedNodeId] = useState<string | null>(null);
 
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [loadingNodes, setLoadingNodes] = useState(false);
@@ -231,6 +232,7 @@ export default function NotesPage() {
       const node = await createNoteNode(selectedCategoryId, { parentId, name: 'Neue Notiz' });
       setNodes((prev) => [...prev, node]);
       setSelectedNodeId(node.id);
+      setJustCreatedNodeId(node.id);
     } catch {
       setError('Notiz konnte nicht erstellt werden.');
     }
@@ -440,7 +442,12 @@ export default function NotesPage() {
             </div>
 
             <div className="min-h-[420px]">
-              <NoteEditor node={selectedNode} onSave={handleSaveNode} />
+              <NoteEditor
+                node={selectedNode}
+                onSave={handleSaveNode}
+                autoFocusName={selectedNode?.id === justCreatedNodeId}
+                onAutoFocused={() => setJustCreatedNodeId(null)}
+              />
             </div>
           </div>
         )

@@ -31,6 +31,7 @@ export function NoteTree({ nodes, selectedId, onSelect, onAddChild, onDelete, on
   const roots = childrenByParent.get(null) ?? [];
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const selectedNode = selectedId ? nodes.find((n) => n.id === selectedId) : undefined;
 
   function handleDrop(newParentId: string | null) {
     if (draggingId && draggingId !== newParentId) {
@@ -44,13 +45,13 @@ export function NoteTree({ nodes, selectedId, onSelect, onAddChild, onDelete, on
     <div className="space-y-0.5">
       <button
         type="button"
-        onClick={() => onAddChild(null)}
+        onClick={() => onAddChild(selectedId ?? null)}
         className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition-colors mb-1"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />
         </svg>
-        Neue Notiz
+        {selectedNode ? `Neue Notiz in "${selectedNode.name}"` : 'Neue Notiz'}
       </button>
 
       {roots.length === 0 ? (

@@ -1,23 +1,32 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { NoteNode } from '@/lib/notes';
 
 interface NoteEditorProps {
   node: NoteNode | null;
   onSave: (id: string, name: string, content: string) => Promise<void>;
+  autoFocusName?: boolean;
+  onAutoFocused?: () => void;
 }
 
-export function NoteEditor({ node, onSave }: NoteEditorProps) {
+export function NoteEditor({ node, onSave, autoFocusName, onAutoFocused }: NoteEditorProps) {
   const [name, setName] = useState(node?.name ?? '');
   const [content, setContent] = useState(node?.content ?? '');
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setName(node?.name ?? '');
     setContent(node?.content ?? '');
     setDirty(false);
+
+    if (autoFocusName && node) {
+      nameInputRef.current?.focus();
+      nameInputRef.current?.select();
+      onAutoFocused?.();
+    }
   }, [node?.id]);
 
   if (!node) {
@@ -49,6 +58,7 @@ export function NoteEditor({ node, onSave }: NoteEditorProps) {
   return (
     <div className="glass rounded-3xl h-full flex flex-col p-6">
       <input
+        ref={nameInputRef}
         value={name}
         onChange={(e) => { setName(e.target.value); setDirty(true); }}
         onBlur={handleSave}
