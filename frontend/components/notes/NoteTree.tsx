@@ -108,7 +108,7 @@ function NoteTreeItem({
 }: NoteTreeItemProps) {
   const kids = childrenByParent.get(node.id) ?? [];
   const isBranch = kids.length > 0;
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const isSelected = selectedId === node.id;
   const isDragging = draggingId === node.id;
