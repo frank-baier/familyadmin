@@ -284,6 +284,17 @@ function AccommodationTable({ keyInfos }: { keyInfos: TripKeyInfo[] }) {
                 <td className="py-2.5 pr-5 align-top">
                   <div className="text-slate-800 font-medium">{row.name}</div>
                   {row.city && <div className="text-xs text-slate-400 mt-0.5">{row.city}</div>}
+                  {/* Address link on mobile — desktop shows it in its own column */}
+                  {row.address && (
+                    <a
+                      href={mapsUrl(`${row.name} ${row.address}`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="sm:hidden block text-xs text-indigo-400 hover:text-indigo-600 hover:underline mt-0.5 transition-colors"
+                    >
+                      {row.address}
+                    </a>
+                  )}
                 </td>
                 <td className="py-2.5 text-slate-400 text-xs align-top hidden sm:table-cell">
                   {row.address ? (

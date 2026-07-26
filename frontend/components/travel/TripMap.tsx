@@ -53,13 +53,12 @@ async function geocode(query: string): Promise<[number, number] | null> {
   return null;
 }
 
-const SKIP_LINE_RE = /^(check-in|check-out|buchung|ref:|storno|abholung|rückgabe|arrival|departure)/i;
-const STREET_RE = /\b(drive|dr|road|rd|street|st\b|avenue|ave|esplanade|way|lane|parade|circuit|crescent|boulevard|blvd|harbour)\b/i;
+const SKIP_LINE_RE = /^(check-in|check-out|buchung|ref:|storno|abholung|rückgabe|arrival|departure|powered site|nacht:|staying|arriving|departing|price|additional|your group)/i;
 
-function extractAddress(value: string): string | null {
+// Joins all non-noise lines from a key-info value into a rich geocoding query
+function buildGeoQuery(label: string, value: string): string {
   const lines = value.split('\n').map(l => l.trim()).filter(l => l && !SKIP_LINE_RE.test(l));
-  // Prefer a line that looks like a street address
-  return lines.find(l => STREET_RE.test(l) || /^\d+\s/.test(l)) ?? lines[lines.length - 1] ?? null;
+  return lines.length > 0 ? `${label} ${lines.join(', ')}` : label;
 }
 
 function mapsUrl(query: string): string {
@@ -173,11 +172,13 @@ function TripMapInner({ legs, keyInfos, destination }: TripMapInnerProps) {
       for (const ki of keyInfos) {
         const isAccom = !ki.label.toLowerCase().includes('mietwagen');
 
+        console.log('[TripMap] keyInfo:', ki.label, '| isAccom:', isAccom);
         if (!isAccom) continue;
 
-        const address = extractAddress(ki.value);
-        const mapsQuery = address ? `${ki.label} ${address}` : ki.label;
+        const mapsQuery = buildGeoQuery(ki.label, ki.value);
+        console.log('[TripMap] geocoding query:', mapsQuery);
         const geocoded = await geocode(mapsQuery);
+        console.log('[TripMap] geocoded result:', geocoded);
         if (geocoded && !cancelled) {
           stops.push({
             label: ki.label,
