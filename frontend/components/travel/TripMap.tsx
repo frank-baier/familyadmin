@@ -45,10 +45,13 @@ async function geocode(query: string): Promise<[number, number] | null> {
   try {
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
     const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
-    const data = await res.json();
+    console.log('[TripMap] geocode HTTP status:', res.status, res.statusText);
+    const text = await res.text();
+    console.log('[TripMap] geocode raw response:', text.slice(0, 200));
+    const data = JSON.parse(text);
     if (data?.[0]) return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
-  } catch {
-    // silently fail
+  } catch (e) {
+    console.log('[TripMap] geocode exception:', e);
   }
   return null;
 }
