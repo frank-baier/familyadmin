@@ -51,6 +51,14 @@ public class DocumentController {
         return documentRepository.findGroupedTree();
     }
 
+    @GetMapping("/unindexed")
+    public PagedDocumentsResponse getUnindexed(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "100") int size) {
+        var pageable = PageRequest.of(page, Math.min(size, 200), Sort.by(Sort.Direction.DESC, "createdAt"));
+        return PagedDocumentsResponse.from(documentRepository.findUnindexed(pageable));
+    }
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DocumentResponse> upload(
             @RequestParam("file") MultipartFile file,

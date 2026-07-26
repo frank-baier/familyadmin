@@ -58,6 +58,10 @@ export function getDocumentTree(): Promise<DocumentTreeNode[]> {
   return apiFetch<DocumentTreeNode[]>('/api/documents/tree');
 }
 
+export function getUnindexedDocuments(): Promise<PagedDocuments> {
+  return apiFetch<PagedDocuments>('/api/documents/unindexed');
+}
+
 export function uploadDocument(file: File): Promise<Document> {
   const formData = new FormData();
   formData.append('file', file);

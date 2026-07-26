@@ -39,4 +39,16 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
             @Param("year") Integer year,
             @Param("subcategory") String subcategory,
             Pageable pageable);
+
+    @Query(value = """
+            SELECT * FROM documents d
+            WHERE NOT EXISTS (SELECT 1 FROM document_chunks dc WHERE dc.document_id = d.id)
+            ORDER BY d.created_at DESC
+            """,
+            countQuery = """
+            SELECT COUNT(*) FROM documents d
+            WHERE NOT EXISTS (SELECT 1 FROM document_chunks dc WHERE dc.document_id = d.id)
+            """,
+            nativeQuery = true)
+    Page<Document> findUnindexed(Pageable pageable);
 }
