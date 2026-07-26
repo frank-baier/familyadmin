@@ -58,10 +58,20 @@ async function geocode(query: string): Promise<[number, number] | null> {
 
 const SKIP_LINE_RE = /^(check-in|check-out|buchung|ref:|storno|abholung|rückgabe|arrival|departure|powered site|nacht:|staying|arriving|departing|price|additional|your group)/i;
 
-// Joins all non-noise lines from a key-info value into a rich geocoding query
+// Builds a clean geocoding query from the key-info value (without prepending the label,
+// since the value often already starts with the property name — duplicating it confuses Nominatim).
 function buildGeoQuery(label: string, value: string): string {
-  const lines = value.split('\n').map(l => l.trim()).filter(l => l && !SKIP_LINE_RE.test(l));
-  return lines.length > 0 ? `${label} ${lines.join(', ')}` : label;
+  const lines = value
+    .split('\n')
+    .map(l => l.trim()
+      .replace(/\bAustralien\b/gi, 'Australia')
+      .replace(/\bKatar\b/gi, 'Qatar')
+      .replace(/\bNeuseeland\b/gi, 'New Zealand')
+      .replace(/\([^)]*\)/g, '')  // remove parenthetical notes like "(bei Cairns)"
+      .trim()
+    )
+    .filter(l => l && !SKIP_LINE_RE.test(l));
+  return lines.length > 0 ? lines.join(', ') : label;
 }
 
 function mapsUrl(query: string): string {
