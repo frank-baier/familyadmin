@@ -382,8 +382,8 @@ export default function DocumentsPage() {
     try {
       const result = await getUnindexedDocuments();
       setUnindexed(result.content);
-    } catch {
-      // non-critical — don't block the page
+    } catch (e) {
+      console.warn('loadUnindexed failed:', e);
     } finally {
       setUnindexedLoading(false);
     }

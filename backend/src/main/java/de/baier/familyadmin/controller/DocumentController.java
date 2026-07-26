@@ -55,7 +55,8 @@ public class DocumentController {
     public PagedDocumentsResponse getUnindexed(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "100") int size) {
-        var pageable = PageRequest.of(page, Math.min(size, 200), Sort.by(Sort.Direction.DESC, "createdAt"));
+        // Native query already has ORDER BY — don't pass Sort (Spring would append "ORDER BY createdAt" which fails on the DB column created_at)
+        var pageable = PageRequest.of(page, Math.min(size, 200));
         return PagedDocumentsResponse.from(documentRepository.findUnindexed(pageable));
     }
 
