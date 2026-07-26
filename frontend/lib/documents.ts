@@ -62,6 +62,10 @@ export function getUnindexedDocuments(): Promise<PagedDocuments> {
   return apiFetch<PagedDocuments>('/api/documents/unindexed');
 }
 
+export function acceptUnindexedDocuments(): Promise<void> {
+  return apiFetch<void>('/api/documents/accept-unindexed', { method: 'POST' });
+}
+
 export function uploadDocument(file: File): Promise<Document> {
   const formData = new FormData();
   formData.append('file', file);

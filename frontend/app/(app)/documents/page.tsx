@@ -6,6 +6,7 @@ import {
   getDocuments,
   getDocumentTree,
   getUnindexedDocuments,
+  acceptUnindexedDocuments,
   uploadDocument,
   deleteDocument,
   formatFileSize,
@@ -13,6 +14,13 @@ import {
   type DocumentTreeNode,
   type PagedDocuments,
 } from '@/lib/documents';
+import {
+  getMyShares,
+  getShareableUsers,
+  shareWith,
+  revokeShare,
+  type ShareableUser,
+} from '@/lib/document-shares';
 import { ApiError, apiFetchBlob } from '@/lib/api';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -242,14 +250,17 @@ function UnindexedPanel({
   onDownload,
   onDelete,
   deletingId,
+  onAcceptAll,
 }: {
   docs: Document[];
   loading: boolean;
   onDownload: (d: Document) => void;
   onDelete: (id: string) => void;
   deletingId: string | null;
+  onAcceptAll: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
+  const [accepting, setAccepting] = useState(false);
 
   if (loading) return null;
   if (docs.length === 0) return null;
@@ -273,9 +284,20 @@ function UnindexedPanel({
         <span className="flex-1 text-sm font-semibold text-amber-800">
           {docs.length} {docs.length === 1 ? 'Dokument' : 'Dokumente'} ohne Textindex
         </span>
-        <span className="text-xs text-amber-600 bg-amber-100 rounded-full px-2 py-0.5 mr-1">
+        <span className="text-xs text-amber-600 bg-amber-100 rounded-full px-2 py-0.5">
           nicht durchsuchbar
         </span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setAccepting(true);
+            onAcceptAll().finally(() => setAccepting(false));
+          }}
+          disabled={accepting}
+          className="ml-2 text-xs font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-full px-3 py-0.5 transition-colors disabled:opacity-50 shrink-0"
+        >
+          {accepting ? 'Wird gespeichert…' : 'Alle akzeptieren'}
+        </button>
         <ChevronIcon open={open} />
       </button>
 
@@ -353,6 +375,11 @@ export default function DocumentsPage() {
   const [unindexed, setUnindexed] = useState<Document[]>([]);
   const [unindexedLoading, setUnindexedLoading] = useState(true);
 
+  // Sharing
+  const [shares, setShares] = useState<ShareableUser[]>([]);
+  const [shareableUsers, setShareableUsers] = useState<ShareableUser[]>([]);
+  const [sharesLoading, setSharesLoading] = useState(true);
+
   // Expanded state: Set of keys like "cat:Reisen", "year:Reisen:2026", "sub:Reisen:2026:Australien"
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
@@ -363,6 +390,7 @@ export default function DocumentsPage() {
   useEffect(() => {
     loadTree();
     loadUnindexed();
+    loadShares();
   }, []);
 
   async function loadTree() {
@@ -387,6 +415,34 @@ export default function DocumentsPage() {
     } finally {
       setUnindexedLoading(false);
     }
+  }
+
+  async function handleAcceptAll() {
+    await acceptUnindexedDocuments();
+    setUnindexed([]);
+  }
+
+  async function loadShares() {
+    setSharesLoading(true);
+    try {
+      const [myShares, others] = await Promise.all([getMyShares(), getShareableUsers()]);
+      setShares(myShares);
+      setShareableUsers(others);
+    } catch (e) {
+      console.warn('loadShares failed:', e);
+    } finally {
+      setSharesLoading(false);
+    }
+  }
+
+  async function handleShare(userId: string) {
+    await shareWith(userId);
+    await loadShares();
+  }
+
+  async function handleRevoke(userId: string) {
+    await revokeShare(userId);
+    setShares((prev) => prev.filter((u) => u.id !== userId));
   }
 
   function toggle(key: string) {
@@ -512,7 +568,49 @@ export default function DocumentsPage() {
         onDownload={handleDownload}
         onDelete={handleDelete}
         deletingId={deleteId}
+        onAcceptAll={handleAcceptAll}
       />
+
+      {/* Sharing panel */}
+      {!sharesLoading && shareableUsers.length > 0 && (
+        <div className="mb-6 glass rounded-2xl overflow-hidden">
+          <div className="px-4 py-3.5 flex items-center gap-3 border-b border-slate-100">
+            <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+                d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+            </svg>
+            <span className="text-sm font-semibold text-slate-700 flex-1">Dokumente freigeben</span>
+          </div>
+          <div className="px-4 py-3 space-y-2">
+            {shareableUsers.map((user) => {
+              const isShared = shares.some((s) => s.id === user.id);
+              return (
+                <div key={user.id} className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-semibold text-indigo-600 shrink-0">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="flex-1 text-sm text-slate-700">{user.name}</span>
+                  {isShared ? (
+                    <button
+                      onClick={() => handleRevoke(user.id)}
+                      className="text-xs font-medium text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-full px-3 py-1 transition-colors"
+                    >
+                      Freigabe entfernen
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleShare(user.id)}
+                      className="text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-full px-3 py-1 transition-colors"
+                    >
+                      Freigeben
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Tree */}
       {loading ? (

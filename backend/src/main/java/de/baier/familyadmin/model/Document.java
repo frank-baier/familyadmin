@@ -54,6 +54,10 @@ public class Document {
     @Column
     private Integer year;
 
+    @Column(name = "indexing_skipped", nullable = false)
+    @Builder.Default
+    private boolean indexingSkipped = false;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

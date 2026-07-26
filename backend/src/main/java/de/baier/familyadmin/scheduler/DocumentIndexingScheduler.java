@@ -23,7 +23,7 @@ public class DocumentIndexingScheduler {
     public void indexPendingDocuments() {
         AtomicInteger total = new AtomicInteger();
         Integer pending = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM documents d WHERE NOT EXISTS (SELECT 1 FROM document_chunks dc WHERE dc.document_id = d.id)",
+                "SELECT COUNT(*) FROM documents d WHERE NOT EXISTS (SELECT 1 FROM document_chunks dc WHERE dc.document_id = d.id) AND d.indexing_skipped = false",
                 Integer.class);
 
         if (pending == null || pending == 0) {
@@ -42,6 +42,7 @@ public class DocumentIndexingScheduler {
                 WHERE NOT EXISTS (
                     SELECT 1 FROM document_chunks dc WHERE dc.document_id = d.id
                 )
+                AND d.indexing_skipped = false
                 ORDER BY d.created_at ASC
                 """,
                 rs -> {

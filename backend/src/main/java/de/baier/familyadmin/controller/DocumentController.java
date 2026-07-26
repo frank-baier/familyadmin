@@ -8,9 +8,9 @@ import de.baier.familyadmin.model.DocumentSource;
 import de.baier.familyadmin.model.User;
 import de.baier.familyadmin.repository.DocumentRepository;
 import de.baier.familyadmin.service.DocumentService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -38,26 +38,34 @@ public class DocumentController {
             @RequestParam(required = false) Integer year,
             @RequestParam(required = false) String subcategory,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size) {
-        var pageable = PageRequest.of(page, Math.min(size, 200), Sort.by(Sort.Direction.DESC, "createdAt"));
+            @RequestParam(defaultValue = "50") int size,
+            @AuthenticationPrincipal User currentUser) {
+        var pageable = PageRequest.of(page, Math.min(size, 200));
+        UUID userId = currentUser.getId();
         if (category == null && year == null && subcategory == null) {
-            return PagedDocumentsResponse.from(documentRepository.findAllByOrderByCreatedAtDesc(pageable));
+            return PagedDocumentsResponse.from(documentRepository.findVisibleByUser(userId, pageable));
         }
-        return PagedDocumentsResponse.from(documentRepository.findFiltered(category, year, subcategory, pageable));
+        return PagedDocumentsResponse.from(documentRepository.findFiltered(category, year, subcategory, userId, pageable));
     }
 
     @GetMapping("/tree")
-    public List<DocumentTreeNode> getTree() {
-        return documentRepository.findGroupedTree();
+    public List<DocumentTreeNode> getTree(@AuthenticationPrincipal User currentUser) {
+        return documentRepository.findGroupedTreeForUser(currentUser.getId());
     }
 
     @GetMapping("/unindexed")
     public PagedDocumentsResponse getUnindexed(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "100") int size) {
-        // Native query already has ORDER BY — don't pass Sort (Spring would append "ORDER BY createdAt" which fails on the DB column created_at)
         var pageable = PageRequest.of(page, Math.min(size, 200));
         return PagedDocumentsResponse.from(documentRepository.findUnindexed(pageable));
+    }
+
+    @PostMapping("/accept-unindexed")
+    @Transactional
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void acceptUnindexed() {
+        documentRepository.markAllUnindexedAsSkipped();
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
