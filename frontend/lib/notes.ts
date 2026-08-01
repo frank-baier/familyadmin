@@ -27,6 +27,7 @@ export interface NoteNode {
 }
 
 export interface NoteNodeRequest {
+  categoryId?: string | null;
   parentId?: string | null;
   name: string;
   content?: string | null;

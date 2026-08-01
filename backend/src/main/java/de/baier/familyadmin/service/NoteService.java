@@ -13,7 +13,12 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -98,8 +103,14 @@ public class NoteService {
     public NoteNode updateNode(UUID nodeId, User owner, NoteNodeRequest req) {
         NoteNode node = getOwnedNode(nodeId, owner);
 
+        NoteCategory targetCategory = node.getCategory();
+        if (req.categoryId() != null && !req.categoryId().equals(node.getCategory().getId())) {
+            targetCategory = getOwnedCategory(req.categoryId(), owner);
+        }
+        boolean categoryChanged = !targetCategory.getId().equals(node.getCategory().getId());
+
         UUID currentParentId = node.getParent() != null ? node.getParent().getId() : null;
-        boolean parentChanged = !Objects.equals(currentParentId, req.parentId());
+        boolean parentChanged = categoryChanged || !Objects.equals(currentParentId, req.parentId());
 
         if (parentChanged) {
             NoteNode newParent = null;
@@ -108,18 +119,48 @@ public class NoteService {
                     throw new IllegalArgumentException("A node cannot be its own parent");
                 }
                 newParent = getOwnedNode(req.parentId(), owner);
-                if (!newParent.getCategory().getId().equals(node.getCategory().getId())) {
-                    throw new IllegalArgumentException("Cannot move a node into a different category");
+                if (!newParent.getCategory().getId().equals(targetCategory.getId())) {
+                    throw new IllegalArgumentException("Parent must belong to the target category");
                 }
-                assertNotDescendant(node, newParent, owner);
+                if (!categoryChanged) {
+                    // A cross-category move can never create a cycle: node's whole subtree is
+                    // still entirely in the old category at this point, and newParent already
+                    // belongs to a different (target) category, so it can't be a descendant.
+                    assertNotDescendant(node, newParent, owner);
+                }
             }
             node.setParent(newParent);
-            node.setPosition(siblingPosition(node.getCategory().getId(), owner, req.parentId()));
+            node.setPosition(siblingPosition(targetCategory.getId(), owner, req.parentId()));
+        }
+
+        if (categoryChanged) {
+            reassignCategoryRecursively(node, targetCategory, owner);
         }
 
         node.setName(req.name());
         node.setContent(req.content());
         return noteNodeRepository.save(node);
+    }
+
+    private void reassignCategoryRecursively(NoteNode node, NoteCategory targetCategory, User owner) {
+        UUID oldCategoryId = node.getCategory().getId();
+        List<NoteNode> siblingsInOldCategory = noteNodeRepository.findByCategoryIdAndOwnerId(oldCategoryId, owner.getId());
+
+        Map<UUID, List<NoteNode>> childrenByParentId = new HashMap<>();
+        for (NoteNode n : siblingsInOldCategory) {
+            if (n.getParent() != null) {
+                childrenByParentId.computeIfAbsent(n.getParent().getId(), k -> new ArrayList<>()).add(n);
+            }
+        }
+
+        Deque<NoteNode> toReassign = new ArrayDeque<>();
+        toReassign.push(node);
+        while (!toReassign.isEmpty()) {
+            NoteNode current = toReassign.pop();
+            current.setCategory(targetCategory);
+            noteNodeRepository.save(current);
+            toReassign.addAll(childrenByParentId.getOrDefault(current.getId(), List.of()));
+        }
     }
 
     public void deleteNode(UUID nodeId, User owner) {

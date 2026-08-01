@@ -36,19 +36,31 @@ function CategoryTab({
   active,
   onSelect,
   onDelete,
+  onDropNode,
 }: {
   category: NoteCategory;
   active: boolean;
   onSelect: () => void;
   onDelete: () => void;
+  onDropNode: (nodeId: string, categoryId: string) => void;
 }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   return (
     <div
+      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOver(true); }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragOver(false);
+        const nodeId = e.dataTransfer.getData('text/plain');
+        if (nodeId) onDropNode(nodeId, category.id);
+      }}
       className={[
         'flex items-center rounded-xl transition-colors duration-150 shrink-0',
         active ? 'text-white' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100',
+        dragOver ? 'ring-2 ring-inset ring-emerald-400' : '',
       ].join(' ')}
       style={active ? ACCENT : undefined}
     >
@@ -268,6 +280,22 @@ export default function NotesPage() {
     }
   }
 
+  async function handleMoveNodeToCategory(nodeId: string, targetCategoryId: string) {
+    const node = nodes.find((n) => n.id === nodeId);
+    if (!node || node.categoryId === targetCategoryId) return;
+    try {
+      await updateNoteNode(nodeId, { categoryId: targetCategoryId, parentId: null, name: node.name, content: node.content });
+      // The node and its whole subtree now live in the target category — drop them from this view.
+      const idsToRemove = collectDescendantIds(nodes, nodeId);
+      setNodes((prev) => prev.filter((n) => !idsToRemove.has(n.id)));
+      if (selectedNodeId && idsToRemove.has(selectedNodeId)) {
+        setSelectedNodeId(null);
+      }
+    } catch {
+      setError('Notiz konnte nicht in die andere Kategorie verschoben werden.');
+    }
+  }
+
   const selectedNode = nodes.find((n) => n.id === selectedNodeId) ?? null;
 
   return (
@@ -350,6 +378,7 @@ export default function NotesPage() {
                 active={category.id === selectedCategoryId}
                 onSelect={() => setSelectedCategoryId(category.id)}
                 onDelete={() => handleDeleteCategory(category.id)}
+                onDropNode={handleMoveNodeToCategory}
               />
             ))}
 
