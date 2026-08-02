@@ -41,9 +41,6 @@ public class User implements UserDetails {
     @Builder.Default
     private Role role = Role.MEMBER;
 
-    @Column(name = "refresh_jti")
-    private String refreshJti;
-
     /** WhatsApp phone number in E.164 format, e.g. +491234567890 */
     @Column(name = "whatsapp_phone")
     private String whatsappPhone;

@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task UI — Preview 2</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;600&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=Outfit:wght@300;400;500;600&family=Inter:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0F0F0F;
+    padding: 72px 24px 96px;
+    min-height: 100vh;
+  }
+
+  .page-header {
+    text-align: center;
+    margin-bottom: 72px;
+  }
+  .page-header h1 {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.18);
+  }
+
+  .styles-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 88px;
+    max-width: 440px;
+    margin: 0 auto;
+  }
+
+  .style-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .style-letter {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.18);
+    letter-spacing: 0.1em;
+  }
+  .style-name {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 0.02em;
+  }
+
+  /* ═══════════════════════════════════════════
+     A — VAULT   (Plus Jakarta Sans · near-white)
+     Signature: circular checkbox + amber left-strip on urgent row
+     ══════════════════════════════════════════ */
+
+  .vault {
+    background: #F9F9F7;
+    padding: 32px 28px 28px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  .vault-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+  }
+  .vault-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: #111;
+    letter-spacing: -0.03em;
+  }
+  .vault-add {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: #fff;
+    background: #111;
+    border: none;
+    padding: 7px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    letter-spacing: 0;
+  }
+
+  .vault-group + .vault-group { margin-top: 22px; }
+  .vault-glabel {
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: #CACACA;
+    margin-bottom: 2px;
+  }
+
+  .vault-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    padding: 9px 0 9px 4px;
+    border-left: 2px solid transparent;
+    cursor: pointer;
+    transition: border-color 120ms;
+  }
+  .vault-row.urgent { border-left-color: #F59E0B; }
+  .vault-row:not(.urgent):hover { border-left-color: #E8E8E8; }
+
+  .vault-circle {
+    width: 17px;
+    height: 17px;
+    border: 1.5px solid #D0D0D0;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 2px;
+    position: relative;
+    transition: border-color 150ms, background 150ms;
+  }
+  .vault-circle.half {
+    border-color: #111;
+    background: linear-gradient(to right, #111 50%, transparent 50%);
+  }
+  .vault-circle.full {
+    background: #111;
+    border-color: #111;
+  }
+  .vault-circle.full::after {
+    content: '';
+    position: absolute;
+    left: 3px; top: 7px;
+    width: 8px; height: 4px;
+    border-left: 1.5px solid white;
+    border-bottom: 1.5px solid white;
+    transform: rotate(-45deg) translateY(-2px);
+  }
+
+  .vault-body { flex: 1; min-width: 0; }
+  .vault-name {
+    font-size: 13.5px;
+    font-weight: 400;
+    color: #1A1A1A;
+    line-height: 1.4;
+  }
+  .vault-name.done { color: #D0D0D0; }
+  .vault-sub {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: #B8B8B8;
+    margin-top: 2px;
+  }
+  .vault-pip {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: #F59E0B;
+    flex-shrink: 0;
+  }
+
+
+  /* ═══════════════════════════════════════════
+     B — BROADSHEET   (Instrument Serif + Inter 300 · warm ivory)
+     Signature: large italic serif masthead + date chips with warm border
+     ══════════════════════════════════════════ */
+
+  .broad {
+    background: #FEFCF8;
+    padding: 36px 32px;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .broad-eyebrow {
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #C8BFB0;
+    margin-bottom: 8px;
+  }
+  .broad-masthead {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #1C1815;
+    margin-bottom: 0;
+  }
+  .broad-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 44px;
+    font-weight: 400;
+    color: #1C1815;
+    letter-spacing: -0.03em;
+    line-height: 0.9;
+  }
+  .broad-new {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 14px;
+    color: #C0B8A8;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding-bottom: 4px;
+    white-space: nowrap;
+  }
+
+  .broad-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+    padding: 14px 0;
+    border-bottom: 1px solid #EEE7DA;
+    cursor: pointer;
+  }
+  .broad-sq {
+    width: 15px; height: 15px;
+    border: 1px solid #C8BFB0;
+    flex-shrink: 0;
+    margin-top: 3px;
+    position: relative;
+  }
+  .broad-sq.done {
+    background: #1C1815;
+    border-color: #1C1815;
+  }
+  .broad-sq.done::after {
+    content: '';
+    position: absolute;
+    left: 2px; top: 6px;
+    width: 8px; height: 4px;
+    border-left: 1.5px solid #FEFCF8;
+    border-bottom: 1.5px solid #FEFCF8;
+    transform: rotate(-45deg) translateY(-2px);
+  }
+  .broad-body { flex: 1; }
+  .broad-name {
+    font-size: 14px;
+    font-weight: 300;
+    color: #1C1815;
+    line-height: 1.55;
+    letter-spacing: 0.005em;
+  }
+  .broad-name.done { color: #C8BFB0; }
+  .broad-person {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 12px;
+    color: #A89E8A;
+    margin-top: 2px;
+  }
+  .broad-chip {
+    font-size: 10.5px;
+    font-weight: 400;
+    color: #A89E8A;
+    border: 1px solid #DDD4C5;
+    padding: 3px 9px;
+    white-space: nowrap;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+  .broad-chip.today {
+    color: #92400E;
+    border-color: #D4A870;
+    background: #FFFBF0;
+  }
+  .broad-chip.blank { border-color: transparent; color: transparent; }
+
+
+  /* ═══════════════════════════════════════════
+     C — STUDIO   (Space Grotesk · warm greige)
+     Signature: bold 2-pt masthead rule + single filled-square dot for "today"
+     ══════════════════════════════════════════ */
+
+  .studio {
+    background: #EDEAD3; /* warm parchment */
+    padding: 30px 26px;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+  .studio-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 16px;
+    border-bottom: 2.5px solid #1D1A14;
+  }
+  .studio-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #1D1A14;
+    letter-spacing: -0.03em;
+  }
+  .studio-tally {
+    font-size: 11px;
+    color: #ADA89C;
+    margin-bottom: 2px;
+  }
+  .studio-group { margin-top: 18px; }
+  .studio-glabel {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #ADA89C;
+    margin-bottom: 7px;
+  }
+  .studio-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 0;
+    border-top: 1px solid #DDDAC8;
+    cursor: pointer;
+  }
+  .studio-sq {
+    width: 12px; height: 12px;
+    border: 1.5px solid #ADA89C;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .studio-sq.done {
+    background: #1D1A14;
+    border-color: #1D1A14;
+  }
+  .studio-sq.done::after {
+    content: '';
+    position: absolute;
+    left: 1px; top: 5px;
+    width: 7px; height: 3px;
+    border-left: 1.5px solid #EDEAD3;
+    border-bottom: 1.5px solid #EDEAD3;
+    transform: rotate(-45deg) translateY(-2px);
+  }
+  .studio-name {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 500;
+    color: #1D1A14;
+  }
+  .studio-name.done { color: #BFBAA F; color: #C0BAA8; font-weight: 400; }
+  .studio-aside {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-shrink: 0;
+  }
+  .studio-fil {  /* filled square for today */
+    width: 5px; height: 5px;
+    background: #B45309;
+    flex-shrink: 0;
+  }
+  .studio-date {
+    font-size: 11px;
+    color: #ADA89C;
+    font-feature-settings: "tnum";
+  }
+  .studio-init {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: #ADA89C;
+    text-transform: uppercase;
+  }
+
+
+  /* ═══════════════════════════════════════════
+     D — NOCTURNE   (DM Sans · charcoal zinc)
+     Signature: ghost cards + 2-pt left accent on hover · amber "heute" badge
+     ══════════════════════════════════════════ */
+
+  .nocturne {
+    background: #18181B;
+    padding: 26px 22px;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .nocturne-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+  }
+  .nocturne-title {
+    font-size: 17px;
+    font-weight: 500;
+    color: #F1F1F3;
+    letter-spacing: -0.02em;
+  }
+  .nocturne-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: #71717A;
+    border: 1px solid #2D2D33;
+    background: transparent;
+    padding: 5px 13px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 150ms;
+  }
+  .nocturne-btn:hover { color: #A1A1AA; border-color: #52525B; }
+
+  .nocturne-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 15px;
+    background: #1F1F24;
+    border: 1px solid #26262C;
+    border-radius: 9px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 120ms;
+  }
+  .nocturne-card:hover { border-color: #38383F; }
+  .nocturne-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 10px; bottom: 10px;
+    width: 2px;
+    background: rgba(255,255,255,0);
+    transition: background 150ms;
+    border-radius: 0 1px 1px 0;
+  }
+  .nocturne-card:hover::before { background: rgba(255,255,255,0.1); }
+  .nocturne-card.is-done { opacity: 0.36; }
+
+  .nocturne-box {
+    width: 16px; height: 16px;
+    border: 1.5px solid #38383F;
+    border-radius: 4px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .nocturne-box.done {
+    background: #2C2C34;
+    border-color: #3F3F48;
+  }
+  .nocturne-box.done::after {
+    content: '';
+    display: block;
+    width: 7px; height: 4px;
+    border-left: 1.5px solid #71717A;
+    border-bottom: 1.5px solid #71717A;
+    transform: rotate(-45deg) translateY(-1px);
+  }
+
+  .nocturne-info { flex: 1; min-width: 0; }
+  .nocturne-name {
+    font-size: 13.5px;
+    font-weight: 400;
+    color: #E4E4E7;
+    line-height: 1.3;
+  }
+  .nocturne-sub {
+    font-size: 11px;
+    color: #404048;
+    margin-top: 3px;
+  }
+  .nocturne-badge {
+    font-size: 10px;
+    font-weight: 500;
+    color: #FCD34D;
+    background: #1A1300;
+    border: 1px solid #2A2000;
+    padding: 2px 9px;
+    border-radius: 4px;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+
+
+  /* ═══════════════════════════════════════════
+     E — LEDGER   (Outfit · warm off-white)
+     Signature: huge muted progress fraction behind the title · avatar initials · pill status
+     ══════════════════════════════════════════ */
+
+  .ledger {
+    background: #FAFAF7;
+    font-family: 'Outfit', sans-serif;
+    overflow: hidden;
+  }
+  .ledger-head {
+    padding: 28px 28px 0;
+  }
+  .ledger-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .ledger-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: #111;
+    letter-spacing: -0.02em;
+  }
+  .ledger-frac {
+    font-size: 36px;
+    font-weight: 300;
+    color: #DEDEDA;
+    letter-spacing: -0.05em;
+    line-height: 1;
+    font-feature-settings: "tnum";
+  }
+
+  .ledger-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .ledger-thead th {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #C4C4BE;
+    text-align: left;
+    padding: 9px 0;
+    border-top: 1px solid #E8E8E4;
+    border-bottom: 1px solid #E8E8E4;
+  }
+  .ledger-thead th:first-child { padding-left: 28px; }
+  .ledger-thead th:last-child { text-align: right; padding-right: 28px; }
+  .ledger-thead th:nth-child(2) { text-align: center; }
+  .ledger-thead th:nth-child(3) { text-align: center; }
+
+  .ledger-tbody tr { cursor: pointer; transition: background 100ms; }
+  .ledger-tbody tr:nth-child(even) { background: #F5F5F2; }
+  .ledger-tbody tr:hover { background: #F0F0EC; }
+  .ledger-tbody td {
+    padding: 10px 0;
+    border-bottom: 1px solid #EDEDEA;
+    vertical-align: middle;
+  }
+  .ledger-tbody td:first-child { padding-left: 28px; }
+  .ledger-tbody td:last-child { padding-right: 28px; }
+  .ledger-tbody tr:last-child td { border-bottom: none; }
+
+  .ledger-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ledger-sq {
+    width: 14px; height: 14px;
+    border: 1.5px solid #D0D0CC;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .ledger-sq.done {
+    background: #111;
+    border-color: #111;
+  }
+  .ledger-sq.done::after {
+    content: '';
+    position: absolute;
+    left: 2px; top: 5px;
+    width: 7px; height: 4px;
+    border-left: 1.5px solid white;
+    border-bottom: 1.5px solid white;
+    transform: rotate(-45deg) translateY(-2px);
+  }
+  .ledger-task {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: #111;
+  }
+  .ledger-task.done { color: #C8C8C2; font-weight: 400; }
+
+  .ledger-av {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: #E8E8E4;
+    font-size: 10px;
+    font-weight: 600;
+    color: #9A9A94;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    letter-spacing: 0;
+  }
+
+  .ledger-pill {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 9px;
+    border-radius: 20px;
+    white-space: nowrap;
+    display: block;
+    text-align: center;
+  }
+  .ledger-pill.open { background: #EDEDEA; color: #9A9A94; }
+  .ledger-pill.prog { background: #FEF3C7; color: #92400E; }
+  .ledger-pill.done-p { background: #F0FAF2; color: #16803D; }
+
+  .ledger-date {
+    font-size: 11.5px;
+    color: #A8A8A2;
+    text-align: right;
+    font-feature-settings: "tnum";
+    white-space: nowrap;
+  }
+  .ledger-date.today { color: #D97706; font-weight: 600; }
+
+  .ledger-add {
+    padding: 13px 28px;
+    border-top: 1px solid #E8E8E4;
+    font-size: 12px;
+    font-weight: 400;
+    color: #C4C4BE;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>FamilyAdmin · Task UI · Preview 2</h1>
+</div>
+
+<div class="styles-grid">
+
+  <!-- ══════ A — VAULT ══════ -->
+  <div>
+    <div class="style-meta">
+      <span class="style-letter">A</span>
+      <span class="style-name">Vault — Premium Utility</span>
+    </div>
+    <div class="vault">
+      <div class="vault-top">
+        <span class="vault-title">Tasks</span>
+        <button class="vault-add">+ Neu</button>
+      </div>
+
+      <div class="vault-group">
+        <div class="vault-glabel">Offen</div>
+        <div class="vault-row urgent">
+          <div class="vault-circle"></div>
+          <div class="vault-body">
+            <div class="vault-name">Lebensmittel einkaufen</div>
+            <div class="vault-sub"><span class="vault-pip"></span>heute · Anna</div>
+          </div>
+        </div>
+        <div class="vault-row">
+          <div class="vault-circle"></div>
+          <div class="vault-body">
+            <div class="vault-name">Versicherung anrufen</div>
+            <div class="vault-sub">Fr · Frank</div>
+          </div>
+        </div>
+        <div class="vault-row">
+          <div class="vault-circle"></div>
+          <div class="vault-body">
+            <div class="vault-name">Wochenendausflug planen</div>
+            <div class="vault-sub">— · Anna</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="vault-group">
+        <div class="vault-glabel">In Bearbeitung</div>
+        <div class="vault-row">
+          <div class="vault-circle half"></div>
+          <div class="vault-body">
+            <div class="vault-name">Zahnarzttermin buchen</div>
+            <div class="vault-sub">Di · Frank</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="vault-group">
+        <div class="vault-glabel">Erledigt</div>
+        <div class="vault-row">
+          <div class="vault-circle full"></div>
+          <div class="vault-body">
+            <div class="vault-name done">KFZ-Versicherung verlängern</div>
+            <div class="vault-sub">Anna</div>
+          </div>
+        </div>
+        <div class="vault-row">
+          <div class="vault-circle full"></div>
+          <div class="vault-body">
+            <div class="vault-name done">Schulbedarf bestellen</div>
+            <div class="vault-sub">Frank</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ B — BROADSHEET ══════ -->
+  <div>
+    <div class="style-meta">
+      <span class="style-letter">B</span>
+      <span class="style-name">Broadsheet — Warm Serif</span>
+    </div>
+    <div class="broad">
+      <div class="broad-eyebrow">Familyadmin</div>
+      <div class="broad-masthead">
+        <div class="broad-title">Tasks</div>
+        <button class="broad-new">+ neue Aufgabe</button>
+      </div>
+
+      <div class="broad-row">
+        <div class="broad-sq"></div>
+        <div class="broad-body">
+          <div class="broad-name">Lebensmittel einkaufen</div>
+          <div class="broad-person">Anna</div>
+        </div>
+        <div class="broad-chip today">heute</div>
+      </div>
+      <div class="broad-row">
+        <div class="broad-sq"></div>
+        <div class="broad-body">
+          <div class="broad-name">Versicherung anrufen</div>
+          <div class="broad-person">Frank</div>
+        </div>
+        <div class="broad-chip">Fr</div>
+      </div>
+      <div class="broad-row">
+        <div class="broad-sq"></div>
+        <div class="broad-body">
+          <div class="broad-name">Wochenendausflug planen</div>
+          <div class="broad-person">Anna</div>
+        </div>
+        <div class="broad-chip blank">—</div>
+      </div>
+      <div class="broad-row">
+        <div class="broad-sq"></div>
+        <div class="broad-body">
+          <div class="broad-name">Zahnarzttermin buchen</div>
+          <div class="broad-person">Frank</div>
+        </div>
+        <div class="broad-chip">Di</div>
+      </div>
+      <div class="broad-row">
+        <div class="broad-sq done"></div>
+        <div class="broad-body">
+          <div class="broad-name done">KFZ-Versicherung verlängern</div>
+          <div class="broad-person">Anna</div>
+        </div>
+        <div class="broad-chip blank">—</div>
+      </div>
+      <div class="broad-row" style="border-bottom:none;">
+        <div class="broad-sq done"></div>
+        <div class="broad-body">
+          <div class="broad-name done">Schulbedarf bestellen</div>
+          <div class="broad-person">Frank</div>
+        </div>
+        <div class="broad-chip blank">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ C — STUDIO ══════ -->
+  <div>
+    <div class="style-meta">
+      <span class="style-letter">C</span>
+      <span class="style-name">Studio — Warm Brutalist</span>
+    </div>
+    <div class="studio">
+      <div class="studio-top">
+        <div class="studio-title">Tasks</div>
+        <div class="studio-tally">4 offen · 2 erledigt</div>
+      </div>
+
+      <div class="studio-group">
+        <div class="studio-glabel">Offen</div>
+        <div class="studio-row">
+          <div class="studio-sq"></div>
+          <div class="studio-name">Lebensmittel einkaufen</div>
+          <div class="studio-aside">
+            <div class="studio-fil"></div>
+            <span class="studio-date">heute</span>
+            <span class="studio-init">A</span>
+          </div>
+        </div>
+        <div class="studio-row">
+          <div class="studio-sq"></div>
+          <div class="studio-name">Versicherung anrufen</div>
+          <div class="studio-aside">
+            <span class="studio-date">Fr</span>
+            <span class="studio-init">F</span>
+          </div>
+        </div>
+        <div class="studio-row">
+          <div class="studio-sq"></div>
+          <div class="studio-name">Wochenendausflug planen</div>
+          <div class="studio-aside">
+            <span class="studio-date">—</span>
+            <span class="studio-init">A</span>
+          </div>
+        </div>
+        <div class="studio-row">
+          <div class="studio-sq"></div>
+          <div class="studio-name">Zahnarzttermin buchen</div>
+          <div class="studio-aside">
+            <span class="studio-date">Di</span>
+            <span class="studio-init">F</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="studio-group">
+        <div class="studio-glabel">Erledigt</div>
+        <div class="studio-row">
+          <div class="studio-sq done"></div>
+          <div class="studio-name done">KFZ-Versicherung verlängern</div>
+          <div class="studio-aside">
+            <span class="studio-init" style="color:#C0BAA8;">A</span>
+          </div>
+        </div>
+        <div class="studio-row">
+          <div class="studio-sq done"></div>
+          <div class="studio-name done">Schulbedarf bestellen</div>
+          <div class="studio-aside">
+            <span class="studio-init" style="color:#C0BAA8;">F</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ D — NOCTURNE ══════ -->
+  <div>
+    <div class="style-meta">
+      <span class="style-letter">D</span>
+      <span class="style-name">Nocturne — Refined Dark</span>
+    </div>
+    <div class="nocturne">
+      <div class="nocturne-top">
+        <span class="nocturne-title">Tasks</span>
+        <button class="nocturne-btn">+ Neu</button>
+      </div>
+
+      <div class="nocturne-card">
+        <div class="nocturne-box"></div>
+        <div class="nocturne-info">
+          <div class="nocturne-name">Lebensmittel einkaufen</div>
+          <div class="nocturne-sub">Anna</div>
+        </div>
+        <div class="nocturne-badge">heute</div>
+      </div>
+      <div class="nocturne-card">
+        <div class="nocturne-box"></div>
+        <div class="nocturne-info">
+          <div class="nocturne-name">Versicherung anrufen</div>
+          <div class="nocturne-sub">Frank · Freitag</div>
+        </div>
+      </div>
+      <div class="nocturne-card">
+        <div class="nocturne-box"></div>
+        <div class="nocturne-info">
+          <div class="nocturne-name">Wochenendausflug planen</div>
+          <div class="nocturne-sub">Anna</div>
+        </div>
+      </div>
+      <div class="nocturne-card">
+        <div class="nocturne-box"></div>
+        <div class="nocturne-info">
+          <div class="nocturne-name">Zahnarzttermin buchen</div>
+          <div class="nocturne-sub">Frank · Dienstag</div>
+        </div>
+      </div>
+      <div class="nocturne-card is-done">
+        <div class="nocturne-box done"></div>
+        <div class="nocturne-info">
+          <div class="nocturne-name">KFZ-Versicherung verlängern</div>
+          <div class="nocturne-sub">Anna</div>
+        </div>
+      </div>
+      <div class="nocturne-card is-done">
+        <div class="nocturne-box done"></div>
+        <div class="nocturne-info">
+          <div class="nocturne-name">Schulbedarf bestellen</div>
+          <div class="nocturne-sub">Frank</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ E — LEDGER ══════ -->
+  <div>
+    <div class="style-meta">
+      <span class="style-letter">E</span>
+      <span class="style-name">Ledger — Grid Table</span>
+    </div>
+    <div class="ledger">
+      <div class="ledger-head">
+        <div class="ledger-top">
+          <div class="ledger-title">Tasks</div>
+          <div class="ledger-frac">2/6</div>
+        </div>
+      </div>
+      <table class="ledger-table">
+        <thead class="ledger-thead">
+          <tr>
+            <th style="width:48%">Aufgabe</th>
+            <th style="width:12%; text-align:center;">Wer</th>
+            <th style="width:18%; text-align:center;">Status</th>
+            <th style="width:22%; text-align:right;">Datum</th>
+          </tr>
+        </thead>
+        <tbody class="ledger-tbody">
+          <tr>
+            <td><div class="ledger-cell"><div class="ledger-sq"></div><div class="ledger-task">Lebensmittel einkaufen</div></div></td>
+            <td><div class="ledger-av">A</div></td>
+            <td><span class="ledger-pill open">offen</span></td>
+            <td><div class="ledger-date today">heute</div></td>
+          </tr>
+          <tr>
+            <td><div class="ledger-cell"><div class="ledger-sq"></div><div class="ledger-task">Versicherung anrufen</div></div></td>
+            <td><div class="ledger-av">F</div></td>
+            <td><span class="ledger-pill open">offen</span></td>
+            <td><div class="ledger-date">Fr</div></td>
+          </tr>
+          <tr>
+            <td><div class="ledger-cell"><div class="ledger-sq"></div><div class="ledger-task">Wochenendausflug planen</div></div></td>
+            <td><div class="ledger-av">A</div></td>
+            <td><span class="ledger-pill open">offen</span></td>
+            <td><div class="ledger-date">—</div></td>
+          </tr>
+          <tr>
+            <td><div class="ledger-cell"><div class="ledger-sq"></div><div class="ledger-task">Zahnarzttermin buchen</div></div></td>
+            <td><div class="ledger-av">F</div></td>
+            <td><span class="ledger-pill prog">aktiv</span></td>
+            <td><div class="ledger-date">Di</div></td>
+          </tr>
+          <tr>
+            <td><div class="ledger-cell"><div class="ledger-sq done"></div><div class="ledger-task done">KFZ-Versicherung verlängern</div></div></td>
+            <td><div class="ledger-av">A</div></td>
+            <td><span class="ledger-pill done-p">✓</span></td>
+            <td><div class="ledger-date">—</div></td>
+          </tr>
+          <tr>
+            <td><div class="ledger-cell"><div class="ledger-sq done"></div><div class="ledger-task done">Schulbedarf bestellen</div></div></td>
+            <td><div class="ledger-av">F</div></td>
+            <td><span class="ledger-pill done-p">✓</span></td>
+            <td><div class="ledger-date">—</div></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="ledger-add">+ Aufgabe hinzufügen</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

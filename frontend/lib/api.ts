@@ -69,6 +69,9 @@ export async function apiFetch<T = unknown>(
     if (refreshed) {
       // Retry original request with new token
       response = await doFetch(path, options);
+    } else {
+      redirectToLogin();
+      throw new ApiError(401, 'Session expired — please log in again');
     }
   }
 
@@ -122,6 +125,9 @@ export async function apiFetchMultipart<T = unknown>(
     const refreshed = await tryRefresh();
     if (refreshed) {
       response = await makeRequest();
+    } else {
+      redirectToLogin();
+      throw new ApiError(401, 'Session expired — please log in again');
     }
   }
 
@@ -151,7 +157,12 @@ export async function apiFetchBlob(path: string): Promise<{ blob: Blob; filename
 
   if (response.status === 401) {
     const refreshed = await tryRefresh();
-    if (refreshed) response = await makeRequest();
+    if (refreshed) {
+      response = await makeRequest();
+    } else {
+      redirectToLogin();
+      throw new ApiError(401, 'Session expired — please log in again');
+    }
   }
 
   if (!response.ok) {
@@ -162,6 +173,13 @@ export async function apiFetchBlob(path: string): Promise<{ blob: Blob; filename
   const match = disposition.match(/filename="([^"]+)"/);
   const filename = match ? match[1] : path.split('/').pop() ?? 'download';
   return { blob: await response.blob(), filename };
+}
+
+function redirectToLogin(): void {
+  clearAccessToken();
+  if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+    window.location.href = '/login';
+  }
 }
 
 /**

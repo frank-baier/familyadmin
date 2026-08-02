@@ -42,14 +42,6 @@ public class UserService implements UserDetailsService {
         return userRepository.save(user);
     }
 
-    @Transactional
-    public void updateRefreshJti(UUID userId, String jti) {
-        userRepository.findById(userId).ifPresent(user -> {
-            user.setRefreshJti(jti);
-            userRepository.save(user);
-        });
-    }
-
     public List<User> findAll() {
         return userRepository.findAll();
     }
@@ -92,7 +84,6 @@ public class UserService implements UserDetailsService {
     public void resetPassword(UUID id, String newPassword) {
         User user = findById(id);
         user.setPassword(passwordEncoder.encode(newPassword));
-        user.setRefreshJti(null); // invalidate any existing sessions
         userRepository.save(user);
     }
 }

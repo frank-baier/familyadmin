@@ -3,7 +3,9 @@ package de.baier.familyadmin.controller;
 import de.baier.familyadmin.dto.LoginRequest;
 import de.baier.familyadmin.dto.LoginResponse;
 import de.baier.familyadmin.dto.UserResponse;
+import de.baier.familyadmin.model.RefreshToken;
 import de.baier.familyadmin.model.User;
+import de.baier.familyadmin.repository.RefreshTokenRepository;
 import de.baier.familyadmin.service.JwtService;
 import de.baier.familyadmin.service.UserService;
 import jakarta.servlet.http.Cookie;
@@ -15,8 +17,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.Arrays;
 
 @RestController
@@ -24,11 +28,15 @@ import java.util.Arrays;
 @RequiredArgsConstructor
 public class AuthController {
 
+    private static final int REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60;
+
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final UserService userService;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     @PostMapping("/login")
+    @Transactional
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request,
                                                HttpServletResponse response) {
         authenticationManager.authenticate(
@@ -36,49 +44,55 @@ public class AuthController {
 
         User user = (User) userService.loadUserByUsername(request.email());
         String accessToken = jwtService.generateAccessToken(user);
-        String refreshToken = jwtService.generateRefreshToken();
+        String jti = jwtService.generateRefreshToken();
 
-        userService.updateRefreshJti(user.getId(), refreshToken);
-        setRefreshCookie(response, refreshToken);
+        refreshTokenRepository.save(RefreshToken.builder()
+                .user(user)
+                .jti(jti)
+                .expiresAt(Instant.now().plusSeconds(REFRESH_TTL_SECONDS))
+                .build());
 
+        setRefreshCookie(response, jti);
         return ResponseEntity.ok(new LoginResponse(accessToken, UserResponse.from(user)));
     }
 
     @PostMapping("/refresh")
+    @Transactional
     public ResponseEntity<LoginResponse> refresh(HttpServletRequest request,
                                                  HttpServletResponse response) {
-        String refreshJti = getRefreshCookie(request);
-        if (refreshJti == null) {
+        String jti = getRefreshCookie(request);
+        if (jti == null) return ResponseEntity.status(401).build();
+
+        RefreshToken token = refreshTokenRepository.findByJti(jti).orElse(null);
+        if (token == null || token.getExpiresAt().isBefore(Instant.now())) {
+            if (token != null) refreshTokenRepository.deleteByJti(jti);
+            clearRefreshCookie(response);
             return ResponseEntity.status(401).build();
         }
 
-        // Find user by refresh JTI
-        User user = userService.findAll().stream()
-                .filter(u -> refreshJti.equals(u.getRefreshJti()))
-                .findFirst()
-                .orElse(null);
-
-        if (user == null) {
-            return ResponseEntity.status(401).build();
-        }
-
+        User user = token.getUser();
         String newAccessToken = jwtService.generateAccessToken(user);
-        String newRefreshToken = jwtService.generateRefreshToken();
-        userService.updateRefreshJti(user.getId(), newRefreshToken);
-        setRefreshCookie(response, newRefreshToken);
+        String newJti = jwtService.generateRefreshToken();
 
+        // Rotate: replace old token with new one
+        refreshTokenRepository.deleteByJti(jti);
+        refreshTokenRepository.save(RefreshToken.builder()
+                .user(user)
+                .jti(newJti)
+                .expiresAt(Instant.now().plusSeconds(REFRESH_TTL_SECONDS))
+                .build());
+
+        setRefreshCookie(response, newJti);
         return ResponseEntity.ok(new LoginResponse(newAccessToken, UserResponse.from(user)));
     }
 
     @PostMapping("/logout")
+    @Transactional
     public ResponseEntity<Void> logout(HttpServletRequest request,
                                        HttpServletResponse response) {
-        String refreshJti = getRefreshCookie(request);
-        if (refreshJti != null) {
-            userService.findAll().stream()
-                    .filter(u -> refreshJti.equals(u.getRefreshJti()))
-                    .findFirst()
-                    .ifPresent(u -> userService.updateRefreshJti(u.getId(), null));
+        String jti = getRefreshCookie(request);
+        if (jti != null) {
+            refreshTokenRepository.deleteByJti(jti);
         }
         clearRefreshCookie(response);
         return ResponseEntity.noContent().build();
@@ -86,18 +100,16 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> me(@AuthenticationPrincipal User user) {
-        if (user == null) {
-            return ResponseEntity.status(401).build();
-        }
+        if (user == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(UserResponse.from(user));
     }
 
     private void setRefreshCookie(HttpServletResponse response, String jti) {
         Cookie cookie = new Cookie("refresh_token", jti);
         cookie.setHttpOnly(true);
-        cookie.setSecure(false); // allow over HTTP in local dev
+        cookie.setSecure(false);
         cookie.setPath("/");
-        cookie.setMaxAge(7 * 24 * 60 * 60);
+        cookie.setMaxAge(REFRESH_TTL_SECONDS);
         cookie.setAttribute("SameSite", "Lax");
         response.addCookie(cookie);
     }
