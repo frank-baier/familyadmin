@@ -42,6 +42,7 @@ export function getDocuments(params?: {
   category?: string;
   year?: number;
   subcategory?: string;
+  subcategoryPrefix?: string;
   page?: number;
   size?: number;
 }): Promise<PagedDocuments> {
@@ -49,6 +50,7 @@ export function getDocuments(params?: {
   if (params?.category) q.set('category', params.category);
   if (params?.year != null) q.set('year', String(params.year));
   if (params?.subcategory) q.set('subcategory', params.subcategory);
+  if (params?.subcategoryPrefix) q.set('subcategoryPrefix', params.subcategoryPrefix);
   q.set('page', String(params?.page ?? 0));
   q.set('size', String(params?.size ?? 50));
   return apiFetch<PagedDocuments>(`/api/documents?${q}`);

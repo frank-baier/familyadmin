@@ -41,6 +41,9 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
             WHERE (:category IS NULL OR d.category = :category)
               AND (:year IS NULL OR d.year = :year)
               AND (:subcategory IS NULL OR d.subcategory = :subcategory)
+              AND (:subcategoryPrefix IS NULL
+                   OR d.subcategory = :subcategoryPrefix
+                   OR d.subcategory LIKE CONCAT(:subcategoryPrefix, '/%'))
               AND (d.uploadedBy.id = :userId
                OR d.uploadedBy IN (SELECT s.owner FROM UserDocumentShare s WHERE s.sharedWith.id = :userId))
             ORDER BY d.createdAt DESC
@@ -49,6 +52,7 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
             @Param("category") String category,
             @Param("year") Integer year,
             @Param("subcategory") String subcategory,
+            @Param("subcategoryPrefix") String subcategoryPrefix,
             @Param("userId") UUID userId,
             Pageable pageable);
 

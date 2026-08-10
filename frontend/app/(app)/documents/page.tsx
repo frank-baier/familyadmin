@@ -188,45 +188,122 @@ function DocRow({
 
 // ─── Tree types ───────────────────────────────────────────────────────────────
 
-interface TreeCategory {
-  name: string | null;
+interface DocFilter {
+  category: string | null;
+  year?: number;
+  subcategory?: string;
+  subcategoryPrefix?: string;
+}
+
+interface TreeNode {
+  key: string;
+  name: string;
   totalCount: number;
-  years: TreeYear[];
+  children: TreeNode[];
+  isCategory: boolean;
+  color?: string;
+  filter: DocFilter;
 }
 
-interface TreeYear {
-  year: number | null;
-  totalCount: number;
-  subcategories: TreeSubcategory[];
-}
-
-interface TreeSubcategory {
-  name: string | null;
-  count: number;
-}
-
-function buildTree(nodes: DocumentTreeNode[]): TreeCategory[] {
-  const catMap = new Map<string, TreeCategory>();
+function buildNestedNodes(
+  nodes: DocumentTreeNode[],
+  category: string | null,
+  absoluteBase: string,
+): TreeNode[] {
+  const folderMap = new Map<string, DocumentTreeNode[]>();
+  const directNodes: DocumentTreeNode[] = [];
 
   for (const node of nodes) {
-    const catKey = node.category ?? '__none__';
-    if (!catMap.has(catKey)) {
-      catMap.set(catKey, { name: node.category, totalCount: 0, years: [] });
+    const sub = node.subcategory ?? null;
+    if (!sub) {
+      directNodes.push(node);
+    } else {
+      const segs = sub.split('/');
+      const first = segs[0];
+      const rest = segs.slice(1).join('/') || null;
+      if (!folderMap.has(first)) folderMap.set(first, []);
+      folderMap.get(first)!.push({ ...node, subcategory: rest });
     }
-    const cat = catMap.get(catKey)!;
-    cat.totalCount += node.count;
-
-    const yearKey = node.year != null ? String(node.year) : '__none__';
-    let yr = cat.years.find((y) => String(y.year ?? '__none__') === yearKey);
-    if (!yr) {
-      yr = { year: node.year, totalCount: 0, subcategories: [] };
-      cat.years.push(yr);
-    }
-    yr.totalCount += node.count;
-    yr.subcategories.push({ name: node.subcategory, count: node.count });
   }
 
-  return Array.from(catMap.values());
+  const result: TreeNode[] = [];
+
+  for (const node of directNodes) {
+    if (node.year !== null) {
+      result.push({
+        key: `year:${category}:${absoluteBase}:${node.year}`,
+        name: String(node.year),
+        totalCount: node.count,
+        children: [],
+        isCategory: false,
+        filter: { category, subcategory: absoluteBase || undefined, year: node.year ?? undefined },
+      });
+    }
+  }
+
+  const directNullCount = directNodes
+    .filter((n) => n.year === null)
+    .reduce((s, n) => s + n.count, 0);
+  if (directNullCount > 0 && folderMap.size > 0) {
+    result.push({
+      key: `allgemein:${category}:${absoluteBase}`,
+      name: 'Allgemein',
+      totalCount: directNullCount,
+      children: [],
+      isCategory: false,
+      filter: { category, subcategory: absoluteBase || undefined },
+    });
+  }
+
+  for (const [folderName, children] of folderMap) {
+    const abs = absoluteBase ? `${absoluteBase}/${folderName}` : folderName;
+    const total = children.reduce((s, n) => s + n.count, 0);
+    result.push({
+      key: `folder:${category}:${abs}`,
+      name: folderName,
+      totalCount: total,
+      children: buildNestedNodes(children, category, abs),
+      isCategory: false,
+      filter: { category, subcategoryPrefix: abs },
+    });
+  }
+
+  result.sort((a, b) => {
+    if (a.name === 'Allgemein') return 1;
+    if (b.name === 'Allgemein') return -1;
+    const aIsYear = /^\d{4}$/.test(a.name);
+    const bIsYear = /^\d{4}$/.test(b.name);
+    if (!aIsYear && bIsYear) return -1;
+    if (aIsYear && !bIsYear) return 1;
+    if (aIsYear && bIsYear) return parseInt(b.name) - parseInt(a.name);
+    return a.name.localeCompare(b.name, 'de');
+  });
+
+  return result;
+}
+
+function buildTree(nodes: DocumentTreeNode[]): TreeNode[] {
+  const catMap = new Map<string, DocumentTreeNode[]>();
+  for (const node of nodes) {
+    const key = node.category ?? '__none__';
+    if (!catMap.has(key)) catMap.set(key, []);
+    catMap.get(key)!.push(node);
+  }
+  return Array.from(catMap.entries())
+    .map(([, catNodes]) => {
+      const catName = catNodes[0].category ?? null;
+      const total = catNodes.reduce((s, n) => s + n.count, 0);
+      return {
+        key: `cat:${catName ?? '__none__'}`,
+        name: catName ?? 'Nicht kategorisiert',
+        totalCount: total,
+        children: buildNestedNodes(catNodes, catName, ''),
+        isCategory: true,
+        color: categoryColor(catName),
+        filter: { category: catName },
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, 'de'));
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -362,10 +439,124 @@ function UnindexedPanel({
   );
 }
 
+// ─── Recursive tree node ──────────────────────────────────────────────────────
+
+function TreeNodeRow({
+  node, depth, expanded, toggle, openLeaf, docsMap, loadingLeaf, loadMore, onDownload, onDelete, deleteId,
+}: {
+  node: TreeNode; depth: number; expanded: Set<string>;
+  toggle: (key: string) => void;
+  openLeaf: (key: string, filter: DocFilter) => void;
+  docsMap: Map<string, { docs: Document[]; total: number; nextPage: number }>;
+  loadingLeaf: Set<string>;
+  loadMore: (key: string, filter: DocFilter, page: number) => void;
+  onDownload: (doc: Document) => void;
+  onDelete: (id: string) => void;
+  deleteId: string | null;
+}) {
+  const isOpen = expanded.has(node.key);
+  const hasChildren = node.children.length > 0;
+  const isLeaf = !hasChildren;
+  const leafData = isLeaf ? docsMap.get(node.key) : undefined;
+  const isLoadingLeaf = loadingLeaf.has(node.key);
+  const hasMore = leafData != null && leafData.docs.length < leafData.total;
+  const isYear = /^\d{4}$/.test(node.name);
+  const pl = 16 + depth * 20;
+
+  function handleClick() {
+    if (hasChildren) {
+      toggle(node.key);
+    } else {
+      openLeaf(node.key, node.filter);
+    }
+  }
+
+  return (
+    <div>
+      <button
+        onClick={handleClick}
+        className="w-full flex items-center gap-3 hover:bg-slate-50/70 transition-colors text-left"
+        style={{ paddingLeft: `${pl}px`, paddingRight: '16px', paddingTop: node.isCategory ? '14px' : '10px', paddingBottom: node.isCategory ? '14px' : '10px' }}
+      >
+        <ChevronIcon open={isOpen} />
+        {node.isCategory ? (
+          <FolderIcon color={node.color ?? 'amber'} />
+        ) : isYear ? (
+          <svg className="w-4 h-4 text-slate-300 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path fillRule="evenodd" d="M5.25 2.25a3 3 0 00-3 3v4.318a3 3 0 00.879 2.121l9.58 9.581c.92.92 2.39 1.186 3.548.428a18.849 18.849 0 005.441-5.44c.758-1.16.492-2.629-.428-3.548l-9.58-9.581a3 3 0 00-2.122-.879H5.25zM6.375 7.5a1.125 1.125 0 100-2.25 1.125 1.125 0 000 2.25z" clipRule="evenodd" />
+          </svg>
+        ) : (
+          <FolderIcon color="slate" />
+        )}
+        <span className={`flex-1 text-sm ${node.isCategory ? 'font-semibold text-slate-800' : 'text-slate-700'} truncate`}>
+          {node.name}
+        </span>
+        <span className="text-xs text-slate-400 bg-slate-100 rounded-full px-2 py-0.5 shrink-0">
+          {node.totalCount}
+        </span>
+      </button>
+
+      {isOpen && hasChildren && (
+        <div className="divide-y divide-slate-50">
+          {node.children.map((child) => (
+            <TreeNodeRow
+              key={child.key}
+              node={child}
+              depth={depth + 1}
+              expanded={expanded}
+              toggle={toggle}
+              openLeaf={openLeaf}
+              docsMap={docsMap}
+              loadingLeaf={loadingLeaf}
+              loadMore={loadMore}
+              onDownload={onDownload}
+              onDelete={onDelete}
+              deleteId={deleteId}
+            />
+          ))}
+        </div>
+      )}
+
+      {isOpen && isLeaf && (
+        <div className="bg-slate-50/40">
+          {leafData?.docs.map((doc) => (
+            <DocRow
+              key={doc.id}
+              doc={doc}
+              indent={depth + 2}
+              onDownload={onDownload}
+              onDelete={onDelete}
+              deleting={deleteId === doc.id}
+            />
+          ))}
+          {isLoadingLeaf && (
+            <div className="flex items-center gap-2 py-3" style={{ paddingLeft: `${pl + 40}px` }}>
+              <svg className="w-4 h-4 text-amber-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+              </svg>
+              <span className="text-xs text-slate-400">Laden…</span>
+            </div>
+          )}
+          {!isLoadingLeaf && hasMore && leafData && (
+            <button
+              onClick={() => loadMore(node.key, node.filter, leafData.nextPage)}
+              className="w-full text-xs text-slate-400 hover:text-amber-600 py-2.5 transition-colors text-left"
+              style={{ paddingLeft: `${pl + 40}px` }}
+            >
+              + {leafData.total - leafData.docs.length} weitere laden…
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function DocumentsPage() {
-  const [tree, setTree] = useState<TreeCategory[]>([]);
+  const [tree, setTree] = useState<TreeNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -453,24 +644,21 @@ export default function DocumentsPage() {
     });
   }
 
-  async function loadDocs(leafKey: string, category: string | null, year: number | null, subcategory: string | null, page = 0) {
+  async function loadDocs(leafKey: string, filter: DocFilter, page = 0) {
     if (page === 0 && docsMap.has(leafKey)) return;
     setLoadingLeaf((prev) => new Set(prev).add(leafKey));
     try {
       const result = await getDocuments({
-        category: category ?? undefined,
-        year: year ?? undefined,
-        subcategory: subcategory ?? undefined,
+        category: filter.category ?? undefined,
+        year: filter.year,
+        subcategory: filter.subcategory,
+        subcategoryPrefix: filter.subcategoryPrefix,
         page,
       });
       setDocsMap((prev) => {
         const existing = prev.get(leafKey);
         const merged = page === 0 ? result.content : [...(existing?.docs ?? []), ...result.content];
-        return new Map(prev).set(leafKey, {
-          docs: merged,
-          total: result.totalElements,
-          nextPage: page + 1,
-        });
+        return new Map(prev).set(leafKey, { docs: merged, total: result.totalElements, nextPage: page + 1 });
       });
     } catch {
       setError('Dokumente konnten nicht geladen werden.');
@@ -479,10 +667,10 @@ export default function DocumentsPage() {
     }
   }
 
-  function openLeaf(leafKey: string, category: string | null, year: number | null, subcategory: string | null) {
+  function openLeaf(leafKey: string, filter: DocFilter) {
     toggle(leafKey);
     if (!expanded.has(leafKey)) {
-      loadDocs(leafKey, category, year, subcategory, 0);
+      loadDocs(leafKey, filter, 0);
     }
   }
 
@@ -630,130 +818,22 @@ export default function DocumentsPage() {
         </div>
       ) : (
         <div className="glass rounded-2xl overflow-hidden divide-y divide-slate-100">
-          {tree.map((cat) => {
-            const catKey = `cat:${cat.name ?? '__none__'}`;
-            const catOpen = expanded.has(catKey);
-            const color = categoryColor(cat.name);
-
-            return (
-              <div key={catKey}>
-                {/* Category row */}
-                <button
-                  onClick={() => toggle(catKey)}
-                  className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-slate-50/70 transition-colors text-left"
-                >
-                  <ChevronIcon open={catOpen} />
-                  <FolderIcon color={color} />
-                  <span className="flex-1 text-sm font-semibold text-slate-800">
-                    {cat.name ?? 'Nicht kategorisiert'}
-                  </span>
-                  <span className="text-xs text-slate-400 bg-slate-100 rounded-full px-2 py-0.5">
-                    {cat.totalCount}
-                  </span>
-                </button>
-
-                {/* Year level */}
-                {catOpen && cat.years.map((yr) => {
-                  const yearKey = `year:${cat.name ?? '__none__'}:${yr.year ?? '__none__'}`;
-                  const yearOpen = expanded.has(yearKey);
-
-                  return (
-                    <div key={yearKey}>
-                      <button
-                        onClick={() => toggle(yearKey)}
-                        className="w-full flex items-center gap-3 py-3 hover:bg-slate-50/70 transition-colors text-left"
-                        style={{ paddingLeft: '40px', paddingRight: '16px' }}
-                      >
-                        <ChevronIcon open={yearOpen} />
-                        <svg className="w-4 h-4 text-slate-300 shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                          <path fillRule="evenodd" d="M5.25 2.25a3 3 0 00-3 3v4.318a3 3 0 00.879 2.121l9.58 9.581c.92.92 2.39 1.186 3.548.428a18.849 18.849 0 005.441-5.44c.758-1.16.492-2.629-.428-3.548l-9.58-9.581a3 3 0 00-2.122-.879H5.25zM6.375 7.5a1.125 1.125 0 100-2.25 1.125 1.125 0 000 2.25z" clipRule="evenodd" />
-                        </svg>
-                        <span className="flex-1 text-sm font-medium text-slate-700">
-                          {yr.year ?? 'Kein Jahr'}
-                        </span>
-                        <span className="text-xs text-slate-400 bg-slate-100 rounded-full px-2 py-0.5">
-                          {yr.totalCount}
-                        </span>
-                      </button>
-
-                      {/* Subcategory / leaf level */}
-                      {yearOpen && yr.subcategories.map((sub) => {
-                        const leafKey = `sub:${cat.name ?? '__none__'}:${yr.year ?? '__none__'}:${sub.name ?? '__none__'}`;
-                        const leafOpen = expanded.has(leafKey);
-                        const isLoading = loadingLeaf.has(leafKey);
-                        const leafData = docsMap.get(leafKey);
-                        const docs = leafData?.docs;
-                        const hasMore = leafData != null && leafData.docs.length < leafData.total;
-
-                        // If only one subcategory == null, skip subcategory level and show docs directly
-                        const skipSubLevel = sub.name === null;
-
-                        return (
-                          <div key={leafKey}>
-                            <button
-                              onClick={() => openLeaf(leafKey, cat.name, yr.year, sub.name)}
-                              className="w-full flex items-center gap-3 py-2.5 hover:bg-slate-50/70 transition-colors text-left"
-                              style={{ paddingLeft: skipSubLevel ? '60px' : '60px', paddingRight: '16px' }}
-                            >
-                              <ChevronIcon open={leafOpen} />
-                              {!skipSubLevel ? (
-                                <FolderIcon color="slate" />
-                              ) : (
-                                <svg className="w-4 h-4 text-slate-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                                    d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                                </svg>
-                              )}
-                              <span className="flex-1 text-sm text-slate-700">
-                                {sub.name ?? 'Allgemein'}
-                              </span>
-                              <span className="text-xs text-slate-400 bg-slate-100 rounded-full px-2 py-0.5">
-                                {sub.count}
-                              </span>
-                            </button>
-
-                            {/* Documents */}
-                            {leafOpen && (
-                              <div className="bg-slate-50/40">
-                                {docs?.map((doc) => (
-                                  <DocRow
-                                    key={doc.id}
-                                    doc={doc}
-                                    indent={4}
-                                    onDownload={handleDownload}
-                                    onDelete={handleDelete}
-                                    deleting={deleteId === doc.id}
-                                  />
-                                ))}
-                                {isLoading && (
-                                  <div className="flex items-center gap-2 py-3" style={{ paddingLeft: '80px' }}>
-                                    <svg className="w-4 h-4 text-amber-400 animate-spin" fill="none" viewBox="0 0 24 24">
-                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                                    </svg>
-                                    <span className="text-xs text-slate-400">Laden…</span>
-                                  </div>
-                                )}
-                                {!isLoading && hasMore && leafData && (
-                                  <button
-                                    onClick={() => loadDocs(leafKey, cat.name, yr.year, sub.name, leafData.nextPage)}
-                                    className="w-full text-xs text-slate-400 hover:text-amber-600 py-2.5 transition-colors"
-                                    style={{ paddingLeft: '80px', textAlign: 'left' }}
-                                  >
-                                    + {leafData.total - leafData.docs.length} weitere laden…
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
+          {tree.map((node) => (
+            <TreeNodeRow
+              key={node.key}
+              node={node}
+              depth={0}
+              expanded={expanded}
+              toggle={toggle}
+              openLeaf={openLeaf}
+              docsMap={docsMap}
+              loadingLeaf={loadingLeaf}
+              loadMore={(key, filter, page) => loadDocs(key, filter, page)}
+              onDownload={handleDownload}
+              onDelete={handleDelete}
+              deleteId={deleteId}
+            />
+          ))}
         </div>
       )}
     </div>

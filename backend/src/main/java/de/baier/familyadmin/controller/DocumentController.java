@@ -37,15 +37,16 @@ public class DocumentController {
             @RequestParam(required = false) String category,
             @RequestParam(required = false) Integer year,
             @RequestParam(required = false) String subcategory,
+            @RequestParam(required = false) String subcategoryPrefix,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
             @AuthenticationPrincipal User currentUser) {
         var pageable = PageRequest.of(page, Math.min(size, 200));
         UUID userId = currentUser.getId();
-        if (category == null && year == null && subcategory == null) {
+        if (category == null && year == null && subcategory == null && subcategoryPrefix == null) {
             return PagedDocumentsResponse.from(documentRepository.findVisibleByUser(userId, pageable));
         }
-        return PagedDocumentsResponse.from(documentRepository.findFiltered(category, year, subcategory, userId, pageable));
+        return PagedDocumentsResponse.from(documentRepository.findFiltered(category, year, subcategory, subcategoryPrefix, userId, pageable));
     }
 
     @GetMapping("/tree")
