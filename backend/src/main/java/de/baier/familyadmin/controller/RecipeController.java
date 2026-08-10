@@ -7,6 +7,8 @@ import de.baier.familyadmin.service.PaprikaImportService;
 import de.baier.familyadmin.service.RecipeService;
 import de.baier.familyadmin.service.RecipeUrlImportService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,6 +33,7 @@ public class RecipeController {
 
     record RecipePage(List<RecipeResponse> content, int page, int totalPages, boolean hasNext) {}
     record UrlImportRequest(@NotBlank String url) {}
+    record RatingRequest(@Min(0) @Max(5) Integer rating) {}
 
     @GetMapping
     public ResponseEntity<RecipePage> getAll(
@@ -69,6 +72,13 @@ public class RecipeController {
                                                   @Valid @RequestBody RecipeRequest request,
                                                   @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(RecipeResponse.from(recipeService.updateRecipe(id, request, currentUser)));
+    }
+
+    @PatchMapping("/{id}/rating")
+    public ResponseEntity<RecipeResponse> updateRating(@PathVariable UUID id,
+                                                         @Valid @RequestBody RatingRequest request,
+                                                         @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(RecipeResponse.from(recipeService.updateRating(id, request.rating(), currentUser)));
     }
 
     @DeleteMapping("/{id}")

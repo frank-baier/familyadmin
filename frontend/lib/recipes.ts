@@ -114,6 +114,14 @@ export async function deleteRecipe(id: string): Promise<void> {
   });
 }
 
+/** Update a recipe's star rating (0–5, or null to clear) */
+export async function updateRecipeRating(id: string, rating: number | null): Promise<Recipe> {
+  return apiFetch<Recipe>(`/api/recipes/${id}/rating`, {
+    method: 'PATCH',
+    body: JSON.stringify({ rating }),
+  });
+}
+
 /** Upload a photo for a recipe. Returns the updated photoUrl. */
 export async function uploadPhoto(id: string, file: File): Promise<{ photoUrl: string }> {
   const formData = new FormData();

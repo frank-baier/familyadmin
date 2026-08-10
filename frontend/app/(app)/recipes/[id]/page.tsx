@@ -10,8 +10,9 @@ import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getRecipe, deleteRecipe } from '@/lib/recipes';
+import { getRecipe, deleteRecipe, updateRecipeRating } from '@/lib/recipes';
 import type { Recipe } from '@/lib/recipes';
+import { EditableStarRating } from '@/components/recipes/EditableStarRating';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -76,6 +77,18 @@ export default function RecipeDetailPage({ params }: PageProps) {
       .catch(() => setError('Rezept nicht gefunden oder kein Zugriff.'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  async function handleRatingChange(newRating: number | null) {
+    if (!recipe) return;
+    const previous = recipe.rating;
+    setRecipe({ ...recipe, rating: newRating });
+    try {
+      const updated = await updateRecipeRating(recipe.id, newRating);
+      setRecipe(updated);
+    } catch {
+      setRecipe({ ...recipe, rating: previous });
+    }
+  }
 
   async function handleDelete() {
     if (!recipe || deleting) return;
@@ -216,16 +229,7 @@ export default function RecipeDetailPage({ params }: PageProps) {
             )}
 
             {/* Rating */}
-            {recipe.rating != null && recipe.rating > 0 && (
-              <div className="inline-flex items-center gap-0.5" aria-label={`Bewertung: ${recipe.rating} von 5`}>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <svg key={i} className={`w-4 h-4 ${i < recipe.rating! ? 'text-amber-400' : 'text-slate-200'}`}
-                    fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                ))}
-              </div>
-            )}
+            <EditableStarRating rating={recipe.rating} onChange={handleRatingChange} size="md" />
 
             {/* Creator */}
             <div className="inline-flex items-center gap-1.5 ml-auto">

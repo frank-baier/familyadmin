@@ -26,7 +26,14 @@ function PhotoPlaceholder() {
   );
 }
 
-export function RecipeCard({ recipe }: { recipe: Recipe }) {
+interface RecipeCardProps {
+  recipe: Recipe;
+  selectMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
+}
+
+export function RecipeCard({ recipe, selectMode = false, selected = false, onToggleSelect }: RecipeCardProps) {
   const totalMinutes = (recipe.prepMinutes ?? 0) + (recipe.cookMinutes ?? 0);
   const prepLabel = formatTime(recipe.prepMinutes);
   const cookLabel = formatTime(recipe.cookMinutes);
@@ -35,10 +42,34 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
   return (
     <Link
       href={`/recipes/${recipe.id}`}
-      className="glass-interactive rounded-3xl overflow-hidden flex flex-col group
-                 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+      onClick={(e) => {
+        if (selectMode) {
+          e.preventDefault();
+          onToggleSelect?.();
+        }
+      }}
+      className={`glass-interactive rounded-3xl overflow-hidden flex flex-col group relative
+                 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2
+                 ${selected ? 'ring-2 ring-indigo-500' : ''}`}
       aria-label={`Rezept: ${recipe.title}`}
     >
+      {/* Selection checkbox */}
+      {selectMode && (
+        <div className="absolute top-2 left-2 z-10">
+          <span
+            className={`flex items-center justify-center w-6 h-6 rounded-full border-2 transition-colors
+                       ${selected ? 'bg-indigo-600 border-indigo-600' : 'bg-white/90 border-slate-300'}`}
+            aria-hidden="true"
+          >
+            {selected && (
+              <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            )}
+          </span>
+        </div>
+      )}
+
       {/* Photo */}
       <div className="relative w-full aspect-[4/3] overflow-hidden shrink-0">
         {recipe.photoUrl ? (

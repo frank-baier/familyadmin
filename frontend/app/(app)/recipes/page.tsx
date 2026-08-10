@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { RecipeCard } from '@/components/recipes/RecipeCard';
-import { getRecipes, searchRecipes, importPaprikaFile, importFromUrl } from '@/lib/recipes';
+import { EditableStarRating } from '@/components/recipes/EditableStarRating';
+import { getRecipes, searchRecipes, importPaprikaFile, importFromUrl, updateRecipeRating, deleteRecipe } from '@/lib/recipes';
 import type { Recipe, PaprikaImportResult, UrlImportResult } from '@/lib/recipes';
 import { useUser } from '@/lib/user-context';
 import { useViewMode } from '@/lib/use-view-mode';
@@ -27,35 +28,23 @@ function RecipeCardSkeleton() {
   );
 }
 
-// ─── Star rating display ──────────────────────────────────────────────────────
-
-function StarRating({ rating }: { rating: number | null }) {
-  if (!rating || rating <= 0) return <span className="text-slate-300 text-xs">—</span>;
-  return (
-    <span className="inline-flex items-center gap-0.5" aria-label={`${rating} out of 5`}>
-      {Array.from({ length: 5 }).map((_, i) => (
-        <svg
-          key={i}
-          className={`w-3.5 h-3.5 ${i < rating ? 'text-amber-400' : 'text-slate-200'}`}
-          fill="currentColor"
-          viewBox="0 0 20 20"
-          aria-hidden="true"
-        >
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-      ))}
-    </span>
-  );
-}
-
 // ─── Table view ───────────────────────────────────────────────────────────────
 
-function RecipeTableView({ recipes }: { recipes: Recipe[] }) {
+interface RecipeTableViewProps {
+  recipes: Recipe[];
+  selectMode: boolean;
+  selectedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onRatingChange: (id: string, rating: number | null) => void | Promise<void>;
+}
+
+function RecipeTableView({ recipes, selectMode, selectedIds, onToggleSelect, onRatingChange }: RecipeTableViewProps) {
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200">
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-slate-50 border-b border-slate-200">
+            {selectMode && <th className="px-4 py-3 w-10" aria-label="Auswahl" />}
             <th className="text-left px-4 py-3 font-semibold text-slate-600">Name</th>
             <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Bewertung</th>
             <th className="text-left px-4 py-3 font-semibold text-slate-600">Kategorien</th>
@@ -65,18 +54,44 @@ function RecipeTableView({ recipes }: { recipes: Recipe[] }) {
           {recipes.map((recipe, idx) => (
             <tr
               key={recipe.id}
-              className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}
+              onClick={() => selectMode && onToggleSelect(recipe.id)}
+              className={`border-b border-slate-100 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}
+                         ${selectMode ? 'cursor-pointer' : 'hover:bg-slate-50'}
+                         ${selectedIds.has(recipe.id) ? 'bg-indigo-50/70' : ''}`}
             >
+              {selectMode && (
+                <td className="px-4 py-3">
+                  <span
+                    className={`flex items-center justify-center w-5 h-5 rounded border-2 transition-colors
+                               ${selectedIds.has(recipe.id) ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-slate-300'}`}
+                    aria-hidden="true"
+                  >
+                    {selectedIds.has(recipe.id) && (
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                    )}
+                  </span>
+                </td>
+              )}
               <td className="px-4 py-3">
-                <Link
-                  href={`/recipes/${recipe.id}`}
-                  className="font-medium text-slate-900 hover:text-indigo-600 transition-colors"
-                >
-                  {recipe.title}
-                </Link>
+                {selectMode ? (
+                  <span className="font-medium text-slate-900">{recipe.title}</span>
+                ) : (
+                  <Link
+                    href={`/recipes/${recipe.id}`}
+                    className="font-medium text-slate-900 hover:text-indigo-600 transition-colors"
+                  >
+                    {recipe.title}
+                  </Link>
+                )}
               </td>
               <td className="px-4 py-3">
-                <StarRating rating={recipe.rating} />
+                <EditableStarRating
+                  rating={recipe.rating}
+                  onChange={(rating) => onRatingChange(recipe.id, rating)}
+                  disabled={selectMode}
+                />
               </td>
               <td className="px-4 py-3 text-slate-500">
                 {recipe.categories
@@ -120,6 +135,13 @@ export default function RecipesPage() {
   const [viewMode, setViewMode] = useViewMode('recipes');
   const [minRating, setMinRating] = useState<number>(0);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+
+  // Multiselect state
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkDeleteError, setBulkDeleteError] = useState<string | null>(null);
 
   // Load a page of recipes and optionally replace the current list
   const loadPage = useCallback(async (pageNum: number, replace: boolean) => {
@@ -231,6 +253,50 @@ export default function RecipesPage() {
     }
   }
 
+  async function handleRatingChange(id: string, rating: number | null) {
+    const previous = recipes;
+    setRecipes(prev => prev.map(r => r.id === id ? { ...r, rating } : r));
+    try {
+      await updateRecipeRating(id, rating);
+    } catch (err) {
+      setRecipes(previous);
+      console.error(err);
+    }
+  }
+
+  function toggleSelectMode() {
+    setSelectMode(v => !v);
+    setSelectedIds(new Set());
+  }
+
+  function toggleSelectRecipe(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleBulkDelete() {
+    if (selectedIds.size === 0 || bulkDeleting) return;
+    setBulkDeleting(true);
+    setBulkDeleteError(null);
+    const ids = Array.from(selectedIds);
+    const results = await Promise.allSettled(ids.map(id => deleteRecipe(id)));
+    const failedIds = ids.filter((_, i) => results[i].status === 'rejected');
+    setRecipes(prev => prev.filter(r => !ids.includes(r.id) || failedIds.includes(r.id)));
+    setBulkDeleting(false);
+    setShowBulkDeleteConfirm(false);
+    if (failedIds.length > 0) {
+      setBulkDeleteError(`${failedIds.length} von ${ids.length} Rezept(en) konnten nicht gelöscht werden.`);
+      setSelectedIds(new Set(failedIds));
+    } else {
+      setSelectMode(false);
+      setSelectedIds(new Set());
+    }
+  }
+
   // Derive unique categories from loaded recipes
   const allCategories = useMemo(() => {
     const cats = new Set<string>();
@@ -270,6 +336,16 @@ export default function RecipesPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={toggleSelectMode}
+            className={selectMode ? 'btn-primary shrink-0' : 'btn-secondary shrink-0'}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {selectMode ? 'Auswahl beenden' : 'Auswählen'}
+          </button>
+
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
@@ -591,14 +667,26 @@ export default function RecipesPage() {
       {!loading && !isEmpty && viewMode === 'grid' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredRecipes.map((recipe) => (
-            <RecipeCard key={recipe.id} recipe={recipe} />
+            <RecipeCard
+              key={recipe.id}
+              recipe={recipe}
+              selectMode={selectMode}
+              selected={selectedIds.has(recipe.id)}
+              onToggleSelect={() => toggleSelectRecipe(recipe.id)}
+            />
           ))}
         </div>
       )}
 
       {/* Recipe table */}
       {!loading && !isEmpty && viewMode === 'table' && (
-        <RecipeTableView recipes={filteredRecipes} />
+        <RecipeTableView
+          recipes={filteredRecipes}
+          selectMode={selectMode}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelectRecipe}
+          onRatingChange={handleRatingChange}
+        />
       )}
 
       {/* Infinite scroll sentinel */}
@@ -623,6 +711,63 @@ export default function RecipesPage() {
         onChange={handlePaprikaImport}
         aria-hidden="true"
       />
+
+      {/* Bulk selection action bar */}
+      {selectMode && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-20 w-[calc(100%-2rem)] max-w-md">
+          <div className="glass rounded-2xl px-4 py-3 shadow-lg flex items-center justify-between gap-3">
+            <span className="text-sm font-medium text-slate-700">
+              {selectedIds.size} {selectedIds.size === 1 ? 'Rezept' : 'Rezepte'} ausgewählt
+            </span>
+            {showBulkDeleteConfirm ? (
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => setShowBulkDeleteConfirm(false)}
+                  disabled={bulkDeleting}
+                  className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800
+                             border border-slate-200 rounded-lg
+                             focus:outline-none focus:ring-2 focus:ring-slate-400
+                             transition-all duration-150"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={bulkDeleting}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold
+                             text-white bg-red-600 hover:bg-red-700 rounded-lg
+                             disabled:opacity-60 disabled:cursor-not-allowed
+                             focus:outline-none focus:ring-2 focus:ring-red-500
+                             transition-all duration-150"
+                >
+                  {bulkDeleting ? 'Wird gelöscht…' : 'Ja, löschen'}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowBulkDeleteConfirm(true)}
+                disabled={selectedIds.size === 0}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
+                           text-white bg-red-600 hover:bg-red-700 shrink-0
+                           disabled:opacity-40 disabled:cursor-not-allowed
+                           focus:outline-none focus:ring-2 focus:ring-red-500
+                           transition-all duration-150"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                </svg>
+                Löschen
+              </button>
+            )}
+          </div>
+          {bulkDeleteError && (
+            <div className="mt-2 rounded-xl bg-red-50 border border-red-200 px-4 py-2 text-xs text-red-700">
+              {bulkDeleteError}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

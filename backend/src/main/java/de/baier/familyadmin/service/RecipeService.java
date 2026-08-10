@@ -126,6 +126,13 @@ public class RecipeService {
         return recipeRepository.save(recipe);
     }
 
+    public Recipe updateRating(UUID id, Integer rating, User currentUser) {
+        var recipe = getById(id);
+        requireOwnerOrAdmin(recipe, currentUser);
+        recipe.setRating(rating);
+        return recipeRepository.save(recipe);
+    }
+
     public void deleteRecipe(UUID id, User currentUser) {
         var recipe = getById(id);
         requireOwnerOrAdmin(recipe, currentUser);
