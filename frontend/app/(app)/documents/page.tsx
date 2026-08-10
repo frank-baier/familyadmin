@@ -326,6 +326,7 @@ function UnindexedPanel({
   loading,
   onDownload,
   onDelete,
+  onDeleteMultiple,
   deletingId,
   onAcceptAll,
 }: {
@@ -333,11 +334,14 @@ function UnindexedPanel({
   loading: boolean;
   onDownload: (d: Document) => void;
   onDelete: (id: string) => void;
+  onDeleteMultiple: (ids: string[]) => Promise<void>;
   deletingId: string | null;
   onAcceptAll: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [accepting, setAccepting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   if (loading) return null;
   if (docs.length === 0) return null;
@@ -346,6 +350,35 @@ function UnindexedPanel({
     return new Date(iso).toLocaleDateString('de-CH', {
       day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Zurich',
     });
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  const allSelected = docs.length > 0 && selectedIds.size === docs.length;
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(docs.map((d) => d.id)));
+    }
+  }
+
+  async function handleBulkDelete() {
+    if (selectedIds.size === 0) return;
+    setBulkDeleting(true);
+    try {
+      await onDeleteMultiple(Array.from(selectedIds));
+      setSelectedIds(new Set());
+    } finally {
+      setBulkDeleting(false);
+    }
   }
 
   return (
@@ -379,60 +412,120 @@ function UnindexedPanel({
       </button>
 
       {open && (
-        <div className="border-t border-amber-200 divide-y divide-amber-100">
-          <p className="px-4 py-2.5 text-xs text-amber-700 bg-amber-50/40">
-            Diese Dateien sind Bilder oder gescannte PDFs ohne extrahierbaren Text. Sie können nicht per KI durchsucht werden. Prüfe und lösche nicht benötigte Dateien.
-          </p>
-          {docs.map((doc) => (
-            <div
-              key={doc.id}
-              className="flex items-center gap-2.5 py-2.5 px-4 hover:bg-amber-50/60 transition-colors group"
-            >
-              <FileIcon contentType={doc.contentType} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-800 truncate">{doc.filename}</p>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  {doc.category ?? '–'}
-                  {doc.subcategory ? ` · ${doc.subcategory}` : ''}
-                  {doc.year ? ` · ${doc.year}` : ''}
-                  {' · '}
-                  {formatFileSize(doc.fileSize)}
-                  {' · '}
-                  {formatDate(doc.createdAt)}
-                </p>
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={() => onDownload(doc)}
-                  className="w-7 h-7 rounded-lg bg-amber-100 hover:bg-amber-200 flex items-center justify-center text-amber-600 transition-colors"
-                  title="Herunterladen"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => onDelete(doc.id)}
-                  disabled={deletingId === doc.id}
-                  className="w-7 h-7 rounded-lg bg-amber-100 hover:bg-red-50 flex items-center justify-center text-amber-500 hover:text-red-500 transition-colors disabled:opacity-40"
-                  title="Löschen"
-                >
-                  {deletingId === doc.id ? (
+        <div className="border-t border-amber-200">
+          {/* Toolbar */}
+          <div className="flex items-center gap-3 px-4 py-2.5 bg-amber-50/40 border-b border-amber-100">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={toggleSelectAll}
+                className="w-4 h-4 rounded border-amber-300 text-amber-500 accent-amber-500 cursor-pointer"
+              />
+              <span className="text-xs text-amber-700">
+                {allSelected ? 'Alle abwählen' : 'Alle auswählen'}
+              </span>
+            </label>
+            <span className="flex-1" />
+            {selectedIds.size > 0 && (
+              <button
+                onClick={handleBulkDelete}
+                disabled={bulkDeleting}
+                className="flex items-center gap-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-full px-3 py-1 transition-colors disabled:opacity-50"
+              >
+                {bulkDeleting ? (
+                  <>
                     <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                     </svg>
-                  ) : (
+                    Wird gelöscht…
+                  </>
+                ) : (
+                  <>
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                         d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                     </svg>
-                  )}
-                </button>
-              </div>
-            </div>
-          ))}
+                    {selectedIds.size} löschen
+                  </>
+                )}
+              </button>
+            )}
+            <span className="text-xs text-amber-600 ml-1">
+              {selectedIds.size > 0 ? `${selectedIds.size} ausgewählt` : 'Diese Dateien können nicht per KI durchsucht werden.'}
+            </span>
+          </div>
+
+          <div className="divide-y divide-amber-100">
+            {docs.map((doc) => {
+              const isSelected = selectedIds.has(doc.id);
+              return (
+                <div
+                  key={doc.id}
+                  onClick={() => toggleSelect(doc.id)}
+                  className={[
+                    'flex items-center gap-2.5 py-2.5 px-4 transition-colors cursor-pointer group',
+                    isSelected ? 'bg-amber-100/60' : 'hover:bg-amber-50/60',
+                  ].join(' ')}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => toggleSelect(doc.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-4 h-4 rounded border-amber-300 accent-amber-500 cursor-pointer shrink-0"
+                  />
+                  <FileIcon contentType={doc.contentType} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-800 truncate">{doc.filename}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {doc.category ?? '–'}
+                      {doc.subcategory ? ` · ${doc.subcategory}` : ''}
+                      {doc.year ? ` · ${doc.year}` : ''}
+                      {' · '}
+                      {formatFileSize(doc.fileSize)}
+                      {' · '}
+                      {formatDate(doc.createdAt)}
+                    </p>
+                  </div>
+                  <div
+                    className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={() => onDownload(doc)}
+                      className="w-7 h-7 rounded-lg bg-amber-100 hover:bg-amber-200 flex items-center justify-center text-amber-600 transition-colors"
+                      title="Herunterladen"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => onDelete(doc.id)}
+                      disabled={deletingId === doc.id || bulkDeleting}
+                      className="w-7 h-7 rounded-lg bg-amber-100 hover:bg-red-50 flex items-center justify-center text-amber-500 hover:text-red-500 transition-colors disabled:opacity-40"
+                      title="Löschen"
+                    >
+                      {deletingId === doc.id ? (
+                        <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -718,6 +811,25 @@ export default function DocumentsPage() {
     finally { setDeleteId(null); }
   }
 
+  async function handleDeleteMultiple(ids: string[]) {
+    const results = await Promise.allSettled(ids.map((id) => deleteDocument(id)));
+    const deleted = ids.filter((_, i) => results[i].status === 'fulfilled');
+    const failedCount = ids.length - deleted.length;
+    if (deleted.length > 0) {
+      setDocsMap((prev) => {
+        const next = new Map(prev);
+        next.forEach((entry, key) => {
+          const remaining = entry.docs.filter((d) => !deleted.includes(d.id));
+          next.set(key, { ...entry, docs: remaining, total: entry.total - (entry.docs.length - remaining.length) });
+        });
+        return next;
+      });
+      setUnindexed((prev) => prev.filter((d) => !deleted.includes(d.id)));
+      await loadTree();
+    }
+    if (failedCount > 0) setError(`${failedCount} Datei(en) konnten nicht gelöscht werden.`);
+  }
+
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
@@ -755,6 +867,7 @@ export default function DocumentsPage() {
         loading={unindexedLoading}
         onDownload={handleDownload}
         onDelete={handleDelete}
+        onDeleteMultiple={handleDeleteMultiple}
         deletingId={deleteId}
         onAcceptAll={handleAcceptAll}
       />
