@@ -21,6 +21,7 @@ import { getLegs } from '@/lib/travel-transport';
 import { PackingList } from '@/components/travel/PackingList';
 import { DocumentsList } from '@/components/travel/DocumentsList';
 import { TransportList } from '@/components/travel/TransportList';
+import { HighlightsList } from '@/components/travel/HighlightsList';
 import type { Trip, TripKeyInfo } from '@/lib/travel';
 import type { User } from '@/lib/auth';
 import type { TransportLeg } from '@/lib/travel-transport';
@@ -393,7 +394,7 @@ function SubTabButton({
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-type MainTab = 'packing' | 'itinerary' | 'documents' | 'transport' | 'map';
+type MainTab = 'packing' | 'itinerary' | 'documents' | 'transport' | 'map' | 'highlights';
 type PackingSubTab = 'shared' | 'personal';
 
 interface PageProps {
@@ -654,6 +655,9 @@ export default function TripDetailPage({ params }: PageProps) {
           <TabButton active={activeTab === 'map'} onClick={() => setActiveTab('map')}>
             Karte
           </TabButton>
+          <TabButton active={activeTab === 'highlights'} onClick={() => setActiveTab('highlights')}>
+            Highlights
+          </TabButton>
           <TabButton active={activeTab === 'documents'} onClick={() => setActiveTab('documents')}>
             Dokumente
           </TabButton>
@@ -707,6 +711,18 @@ export default function TripDetailPage({ params }: PageProps) {
         <div className="glass rounded-3xl overflow-hidden">
           <div className="px-6 py-5">
             <TransportList tripId={id} />
+          </div>
+        </div>
+      )}
+
+      {/* Highlights tab */}
+      {activeTab === 'highlights' && (
+        <div className="glass rounded-3xl overflow-hidden">
+          <div className="px-6 py-5">
+            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">
+              Must-See Highlights
+            </h2>
+            <HighlightsList tripId={id} />
           </div>
         </div>
       )}
