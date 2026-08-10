@@ -11,6 +11,8 @@ import java.util.UUID;
 public record TripHighlightResponse(
         UUID id,
         String location,
+        String checkIn,
+        String checkOut,
         List<HighlightItem> highlights,
         Instant generatedAt
 ) {
@@ -22,9 +24,15 @@ public record TripHighlightResponse(
         try {
             List<HighlightItem> items = MAPPER.readValue(h.getHighlights(),
                     new TypeReference<>() {});
-            return new TripHighlightResponse(h.getId(), h.getLocation(), items, h.getGeneratedAt());
+            return new TripHighlightResponse(
+                    h.getId(), h.getLocation(),
+                    h.getCheckIn(), h.getCheckOut(),
+                    items, h.getGeneratedAt());
         } catch (Exception e) {
-            return new TripHighlightResponse(h.getId(), h.getLocation(), List.of(), h.getGeneratedAt());
+            return new TripHighlightResponse(
+                    h.getId(), h.getLocation(),
+                    h.getCheckIn(), h.getCheckOut(),
+                    List.of(), h.getGeneratedAt());
         }
     }
 }

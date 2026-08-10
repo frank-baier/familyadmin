@@ -9,6 +9,8 @@ export interface HighlightItem {
 export interface LocationHighlights {
   id: string;
   location: string;
+  checkIn: string | null;
+  checkOut: string | null;
   highlights: HighlightItem[];
   generatedAt: string;
 }

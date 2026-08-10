@@ -39,6 +39,18 @@ function HighlightCard({ item }: { item: HighlightItem }) {
   );
 }
 
+function formatDateRange(checkIn: string | null, checkOut: string | null): string | null {
+  if (!checkIn && !checkOut) return null;
+  if (checkIn && checkOut) {
+    // Both DD.MM.YYYY — show "DD.MM. – DD.MM.YY"
+    const inParts  = checkIn.split('.');
+    const outParts = checkOut.split('.');
+    const sameYear = inParts[2] === outParts[2];
+    return `${inParts[0]}.${inParts[1]}.${sameYear ? '' : inParts[2] + ' '}– ${outParts[0]}.${outParts[1]}.${outParts[2].slice(2)}`;
+  }
+  return checkIn ?? checkOut ?? null;
+}
+
 function LocationSection({
   loc,
   onRefresh,
@@ -47,7 +59,7 @@ function LocationSection({
   onRefresh: (id: string) => void;
 }) {
   const [open, setOpen] = useState(true);
-  const ts = new Date(loc.generatedAt).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const dateRange = formatDateRange(loc.checkIn, loc.checkOut);
 
   return (
     <div className="rounded-2xl border border-slate-100 bg-white/60 overflow-hidden">
@@ -62,8 +74,10 @@ function LocationSection({
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
-        <span className="flex-1 text-sm font-semibold text-slate-700">{loc.location}</span>
-        <span className="text-[10px] text-slate-300 shrink-0 hidden sm:block">generiert {ts}</span>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-slate-700 truncate">{loc.location}</div>
+          {dateRange && <div className="text-[11px] text-slate-400 font-mono">{dateRange}</div>}
+        </div>
         <button
           type="button"
           onClick={e => { e.stopPropagation(); onRefresh(loc.id); }}

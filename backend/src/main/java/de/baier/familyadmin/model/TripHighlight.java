@@ -29,6 +29,12 @@ public class TripHighlight {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String highlights;
 
+    @Column(name = "check_in", length = 20)
+    private String checkIn;
+
+    @Column(name = "check_out", length = 20)
+    private String checkOut;
+
     @Column(name = "generated_at", nullable = false)
     @Builder.Default
     private Instant generatedAt = Instant.now();
