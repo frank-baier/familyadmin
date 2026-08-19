@@ -14,9 +14,11 @@ import { useRouter } from 'next/navigation';
 import { getPortfolio, deletePortfolio, refreshPrices, runAnalysis } from '@/lib/portfolio';
 import { getCurrentUser } from '@/lib/auth';
 import { ImportPanel } from '@/components/finance/ImportPanel';
+import { AddPositionForm } from '@/components/finance/AddPositionForm';
 import { PositionsTable } from '@/components/finance/PositionsTable';
 import { AnalysisList } from '@/components/finance/AnalysisList';
 import { SharePanel } from '@/components/finance/SharePanel';
+import { PerformancePanel } from '@/components/finance/PerformancePanel';
 import type { Portfolio } from '@/lib/portfolio';
 import type { User } from '@/lib/auth';
 
@@ -174,11 +176,17 @@ export default function PortfolioDetailPage({ params }: PageProps) {
         )}
       </div>
 
+      {/* Performance over time */}
+      <PerformancePanel portfolioId={portfolio.id} currentTotalValue={portfolio.totalCurrentValue} />
+
       {/* Sharing */}
       {canEdit && <SharePanel portfolio={portfolio} onChanged={setPortfolio} />}
 
       {/* Import */}
       {canEdit && <ImportPanel portfolioId={portfolio.id} onImported={setPortfolio} />}
+
+      {/* Manual add */}
+      {canEdit && <AddPositionForm portfolioId={portfolio.id} onAdded={setPortfolio} />}
 
       {/* Positions */}
       <div>

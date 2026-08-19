@@ -35,6 +35,13 @@ public class PortfolioController {
         return ResponseEntity.ok(PortfolioResponse.from(portfolioService.getViewableById(id, currentUser)));
     }
 
+    @GetMapping("/{id}/snapshots")
+    public ResponseEntity<List<PortfolioSnapshotResponse>> getSnapshots(@PathVariable UUID id,
+                                                                        @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(portfolioService.getSnapshots(id, currentUser).stream()
+                .map(PortfolioSnapshotResponse::from).toList());
+    }
+
     @PostMapping
     public ResponseEntity<PortfolioResponse> create(@Valid @RequestBody PortfolioRequest request,
                                                      @AuthenticationPrincipal User currentUser) {
@@ -55,6 +62,14 @@ public class PortfolioController {
                                                           @Valid @RequestBody PortfolioPositionRequest request,
                                                           @AuthenticationPrincipal User currentUser) {
         var portfolio = portfolioService.addPosition(id, request, currentUser);
+        return ResponseEntity.ok(PortfolioResponse.from(portfolio));
+    }
+
+    @PutMapping("/{id}/positions/{positionId}")
+    public ResponseEntity<PortfolioResponse> updatePosition(@PathVariable UUID id, @PathVariable UUID positionId,
+                                                             @Valid @RequestBody PortfolioPositionRequest request,
+                                                             @AuthenticationPrincipal User currentUser) {
+        var portfolio = portfolioService.updatePosition(id, positionId, request, currentUser);
         return ResponseEntity.ok(PortfolioResponse.from(portfolio));
     }
 

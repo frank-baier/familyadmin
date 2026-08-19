@@ -8,6 +8,7 @@ import de.baier.familyadmin.exception.ResourceNotFoundException;
 import de.baier.familyadmin.model.*;
 import de.baier.familyadmin.repository.PortfolioRepository;
 import de.baier.familyadmin.repository.PortfolioShareRepository;
+import de.baier.familyadmin.repository.PortfolioValueSnapshotRepository;
 import de.baier.familyadmin.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,6 +33,7 @@ public class PortfolioService {
 
     private final PortfolioRepository portfolioRepository;
     private final PortfolioShareRepository portfolioShareRepository;
+    private final PortfolioValueSnapshotRepository portfolioValueSnapshotRepository;
     private final UserRepository userRepository;
     private final PortfolioImportService portfolioImportService;
     private final StockPriceService stockPriceService;
@@ -85,6 +89,21 @@ public class PortfolioService {
                 .purchaseDate(req.purchaseDate())
                 .build();
         portfolio.getPositions().add(position);
+        return portfolioRepository.save(portfolio);
+    }
+
+    public Portfolio updatePosition(UUID portfolioId, UUID positionId, PortfolioPositionRequest req, User currentUser) {
+        var portfolio = getById(portfolioId);
+        requireOwnerOrAdmin(portfolio, currentUser);
+        var position = portfolio.getPositions().stream()
+                .filter(p -> p.getId().equals(positionId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Position not found: " + positionId));
+        position.setTicker(req.ticker().toUpperCase());
+        position.setName(req.name());
+        position.setShares(req.shares());
+        position.setPurchasePrice(req.purchasePrice());
+        position.setPurchaseDate(req.purchaseDate());
         return portfolioRepository.save(portfolio);
     }
 
@@ -148,7 +167,35 @@ public class PortfolioService {
                 position.setPriceUpdatedAt(Instant.now());
             });
         }
-        return portfolioRepository.save(portfolio);
+        var saved = portfolioRepository.save(portfolio);
+        recordSnapshot(saved);
+        return saved;
+    }
+
+    /** One value point per portfolio per day — repeated refreshes on the same day update, not duplicate. */
+    private void recordSnapshot(Portfolio portfolio) {
+        BigDecimal totalValue = portfolio.getPositions().stream()
+                .map(p -> p.getCurrentValue() != null ? p.getCurrentValue() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        LocalDate today = LocalDate.now();
+
+        var snapshot = portfolioValueSnapshotRepository
+                .findByPortfolioIdAndSnapshotDate(portfolio.getId(), today)
+                .orElseGet(() -> PortfolioValueSnapshot.builder()
+                        .portfolio(portfolio)
+                        .snapshotDate(today)
+                        .totalValue(BigDecimal.ZERO)
+                        .build());
+        snapshot.setTotalValue(totalValue);
+        portfolioValueSnapshotRepository.save(snapshot);
+    }
+
+    /** Full value history for charting/period comparisons — same view access as the portfolio itself. */
+    @Transactional(readOnly = true)
+    public List<PortfolioValueSnapshot> getSnapshots(UUID portfolioId, User currentUser) {
+        var portfolio = getById(portfolioId);
+        requireViewAccess(portfolio, currentUser);
+        return portfolioValueSnapshotRepository.findByPortfolioIdOrderBySnapshotDateAsc(portfolioId);
     }
 
     public PortfolioAnalysis runAnalysis(UUID portfolioId, AnalysisType type, User currentUser) {

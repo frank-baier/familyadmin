@@ -65,6 +65,11 @@ export interface PortfolioImportResult {
   portfolio: Portfolio;
 }
 
+export interface PortfolioSnapshot {
+  date: string; // "YYYY-MM-DD"
+  totalValue: number;
+}
+
 // ─── API Functions ──────────────────────────────────────────────────────────
 
 export async function getPortfolios(): Promise<Portfolio[]> {
@@ -92,6 +97,17 @@ export async function addPosition(
 ): Promise<Portfolio> {
   return apiFetch<Portfolio>(`/api/portfolios/${portfolioId}/positions`, {
     method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updatePosition(
+  portfolioId: string,
+  positionId: string,
+  data: PortfolioPositionRequest,
+): Promise<Portfolio> {
+  return apiFetch<Portfolio>(`/api/portfolios/${portfolioId}/positions/${positionId}`, {
+    method: 'PUT',
     body: JSON.stringify(data),
   });
 }
@@ -131,4 +147,8 @@ export async function sharePortfolio(portfolioId: string, userId: string): Promi
 
 export async function revokePortfolioShare(portfolioId: string, userId: string): Promise<Portfolio> {
   return apiFetch<Portfolio>(`/api/portfolios/${portfolioId}/shares/${userId}`, { method: 'DELETE' });
+}
+
+export async function getPortfolioSnapshots(portfolioId: string): Promise<PortfolioSnapshot[]> {
+  return apiFetch<PortfolioSnapshot[]>(`/api/portfolios/${portfolioId}/snapshots`);
 }
