@@ -10,6 +10,8 @@ import de.baier.familyadmin.repository.PortfolioRepository;
 import de.baier.familyadmin.repository.PortfolioShareRepository;
 import de.baier.familyadmin.repository.PortfolioValueSnapshotRepository;
 import de.baier.familyadmin.repository.UserRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -41,6 +43,9 @@ public class PortfolioService {
     private final PortfolioNotificationService portfolioNotificationService;
     private final DocumentService documentService;
     private final JdbcTemplate jdbcTemplate;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     /** Portfolios owned by, or shared with, the given user — every user only ever sees their own. */
     @Transactional(readOnly = true)
@@ -137,6 +142,7 @@ public class PortfolioService {
 
         var document = documentService.store(file, currentUser, DocumentSource.UPLOAD,
                 null, "finance", "portfolio-import", null);
+        entityManager.flush();
         jdbcTemplate.update(
                 "INSERT INTO portfolio_documents (portfolio_id, document_id) VALUES (?, ?)",
                 portfolio.getId(), document.getId());
