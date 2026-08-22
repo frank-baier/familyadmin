@@ -56,16 +56,29 @@ public class ClaudeAnalysisService {
                 .retrieve()
                 .body(Map.class);
 
-        return extractText(response);
+        String text = extractText(response);
+        if (!StringUtils.hasText(text)) {
+            throw new IllegalStateException(
+                    "Claude-Antwort enthielt keinen Analysetext (unerwartetes Antwortformat).");
+        }
+        return text;
     }
 
+    /**
+     * The content array can contain non-text blocks (e.g. a thinking block) before the actual
+     * text block, so index 0 isn't reliable — scan for the first block with type "text" instead.
+     */
     @SuppressWarnings("unchecked")
     private String extractText(Map<?, ?> response) {
         if (response == null) return "";
         List<Map<String, Object>> content = (List<Map<String, Object>>) response.get("content");
-        if (content == null || content.isEmpty()) return "";
-        Object text = content.get(0).get("text");
-        return text != null ? text.toString() : "";
+        if (content == null) return "";
+        for (Map<String, Object> block : content) {
+            if ("text".equals(block.get("type")) && block.get("text") != null) {
+                return block.get("text").toString();
+            }
+        }
+        return "";
     }
 
     private String buildPrompt(Portfolio portfolio, AnalysisType type) {
