@@ -188,7 +188,7 @@ export default function PortfolioDetailPage({ params }: PageProps) {
       </div>
 
       {/* Performance over time */}
-      <PerformancePanel portfolioId={portfolio.id} currentTotalValue={portfolio.totalCurrentValue} />
+      <PerformancePanel portfolioId={portfolio.id} />
 
       {/* Analyses */}
       <div>

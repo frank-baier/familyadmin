@@ -6,10 +6,13 @@ import de.baier.familyadmin.dto.PortfolioRequest;
 import de.baier.familyadmin.dto.PortfolioResponse;
 import de.baier.familyadmin.exception.ResourceNotFoundException;
 import de.baier.familyadmin.model.*;
+import de.baier.familyadmin.dto.PortfolioPerformanceResponse;
+import de.baier.familyadmin.repository.PortfolioPositionPriceHistoryRepository;
 import de.baier.familyadmin.repository.PortfolioRepository;
 import de.baier.familyadmin.repository.PortfolioShareRepository;
 import de.baier.familyadmin.repository.PortfolioValueSnapshotRepository;
 import de.baier.familyadmin.repository.UserRepository;
+import org.springframework.data.domain.PageRequest;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
@@ -23,8 +26,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,6 +42,7 @@ public class PortfolioService {
     private final PortfolioRepository portfolioRepository;
     private final PortfolioShareRepository portfolioShareRepository;
     private final PortfolioValueSnapshotRepository portfolioValueSnapshotRepository;
+    private final PortfolioPositionPriceHistoryRepository portfolioPositionPriceHistoryRepository;
     private final UserRepository userRepository;
     private final PortfolioImportService portfolioImportService;
     private final StockPriceService stockPriceService;
@@ -207,11 +213,32 @@ public class PortfolioService {
                 position.setCurrentPrice(priceInEur);
                 position.setCurrentValue(priceInEur.multiply(position.getShares()));
                 position.setPriceUpdatedAt(Instant.now());
+                recordPositionHistory(position);
             });
         }
         var saved = portfolioRepository.save(portfolio);
         recordSnapshot(saved);
         return saved;
+    }
+
+    /**
+     * One price/value point per position per day — the foundation for period-based performance
+     * that correctly excludes positions not yet held on the comparison date, instead of blending
+     * their full value into a single portfolio-wide total (see getPerformance below).
+     */
+    private void recordPositionHistory(PortfolioPosition position) {
+        LocalDate today = LocalDate.now();
+        var history = portfolioPositionPriceHistoryRepository
+                .findByPositionIdAndSnapshotDate(position.getId(), today)
+                .orElseGet(() -> PortfolioPositionPriceHistory.builder()
+                        .position(position)
+                        .snapshotDate(today)
+                        .price(BigDecimal.ZERO)
+                        .value(BigDecimal.ZERO)
+                        .build());
+        history.setPrice(position.getCurrentPrice());
+        history.setValue(position.getCurrentValue());
+        portfolioPositionPriceHistoryRepository.save(history);
     }
 
     /** One value point per portfolio per day — repeated refreshes on the same day update, not duplicate. */
@@ -238,6 +265,48 @@ public class PortfolioService {
         var portfolio = getById(portfolioId);
         requireViewAccess(portfolio, currentUser);
         return portfolioValueSnapshotRepository.findByPortfolioIdOrderBySnapshotDateAsc(portfolioId);
+    }
+
+    /**
+     * Price-only performance since a given date. A position is included only if it was already
+     * held on that date (purchaseDate <= since) AND has a recorded price point on or before it;
+     * otherwise it's excluded from both the baseline and the current total, never blended in half-way.
+     * This is what keeps "gain since X" from jumping just because a position was added afterwards.
+     */
+    @Transactional(readOnly = true)
+    public PortfolioPerformanceResponse getPerformance(UUID portfolioId, LocalDate since, User currentUser) {
+        var portfolio = getViewableById(portfolioId, currentUser);
+
+        BigDecimal baselineTotal = BigDecimal.ZERO;
+        BigDecimal currentTotal = BigDecimal.ZERO;
+        int includedCount = 0;
+        List<String> excludedTickers = new ArrayList<>();
+
+        for (PortfolioPosition position : portfolio.getPositions()) {
+            if (position.getPurchaseDate().isAfter(since) || position.getCurrentValue() == null) {
+                excludedTickers.add(position.getTicker());
+                continue;
+            }
+            var history = portfolioPositionPriceHistoryRepository
+                    .findByPositionIdAndSnapshotDateLessThanEqualOrderBySnapshotDateDesc(
+                            position.getId(), since, PageRequest.of(0, 1));
+            if (history.isEmpty()) {
+                excludedTickers.add(position.getTicker());
+                continue;
+            }
+            baselineTotal = baselineTotal.add(history.get(0).getValue());
+            currentTotal = currentTotal.add(position.getCurrentValue());
+            includedCount++;
+        }
+
+        BigDecimal delta = currentTotal.subtract(baselineTotal);
+        BigDecimal deltaPercent = baselineTotal.signum() != 0
+                ? delta.divide(baselineTotal, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100))
+                : BigDecimal.ZERO;
+
+        return new PortfolioPerformanceResponse(
+                since, baselineTotal, currentTotal, delta, deltaPercent,
+                includedCount, excludedTickers.size(), excludedTickers);
     }
 
     public PortfolioAnalysis runAnalysis(UUID portfolioId, AnalysisType type, User currentUser) {

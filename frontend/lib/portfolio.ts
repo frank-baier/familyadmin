@@ -73,6 +73,17 @@ export interface PortfolioSnapshot {
   totalValue: number;
 }
 
+export interface PortfolioPerformance {
+  since: string; // "YYYY-MM-DD"
+  baselineValue: number;
+  currentValue: number;
+  delta: number;
+  deltaPercent: number;
+  includedPositionCount: number;
+  excludedPositionCount: number;
+  excludedTickers: string[];
+}
+
 // ─── API Functions ──────────────────────────────────────────────────────────
 
 export async function getPortfolios(): Promise<Portfolio[]> {
@@ -154,4 +165,8 @@ export async function revokePortfolioShare(portfolioId: string, userId: string):
 
 export async function getPortfolioSnapshots(portfolioId: string): Promise<PortfolioSnapshot[]> {
   return apiFetch<PortfolioSnapshot[]>(`/api/portfolios/${portfolioId}/snapshots`);
+}
+
+export async function getPortfolioPerformance(portfolioId: string, since: string): Promise<PortfolioPerformance> {
+  return apiFetch<PortfolioPerformance>(`/api/portfolios/${portfolioId}/performance?since=${since}`);
 }

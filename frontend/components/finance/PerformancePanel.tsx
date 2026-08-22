@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getPortfolioSnapshots } from '@/lib/portfolio';
-import type { PortfolioSnapshot } from '@/lib/portfolio';
+import { getPortfolioPerformance } from '@/lib/portfolio';
+import type { PortfolioPerformance } from '@/lib/portfolio';
 
 type Preset = '1W' | '1M' | '3M' | '1Y' | 'YTD' | 'ALL' | 'CUSTOM';
 
@@ -15,11 +15,15 @@ const PRESETS: { key: Preset; label: string }[] = [
   { key: 'ALL', label: 'Gesamt' },
 ];
 
+// Far enough back that it never becomes the limiting factor — the backend excludes any
+// position without price history reaching this far anyway, so "ALL" just means "as far as we have".
+const EPOCH = '2000-01-01';
+
 function toISODate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-function presetToDate(preset: Preset, earliestDate: string): string {
+function presetToDate(preset: Preset): string {
   const now = new Date();
   switch (preset) {
     case '1W': { const d = new Date(now); d.setDate(d.getDate() - 7); return toISODate(d); }
@@ -27,8 +31,8 @@ function presetToDate(preset: Preset, earliestDate: string): string {
     case '3M': { const d = new Date(now); d.setMonth(d.getMonth() - 3); return toISODate(d); }
     case '1Y': { const d = new Date(now); d.setFullYear(d.getFullYear() - 1); return toISODate(d); }
     case 'YTD': return `${now.getFullYear()}-01-01`;
-    case 'ALL': return earliestDate;
-    default: return earliestDate;
+    case 'ALL': return EPOCH;
+    default: return EPOCH;
   }
 }
 
@@ -41,49 +45,25 @@ function formatDate(dateStr: string): string {
     .format(new Date(`${dateStr}T00:00:00`));
 }
 
-export function PerformancePanel({
-  portfolioId,
-  currentTotalValue,
-}: {
-  portfolioId: string;
-  currentTotalValue: number;
-}) {
-  const [snapshots, setSnapshots] = useState<PortfolioSnapshot[]>([]);
-  const [loading, setLoading] = useState(true);
+export function PerformancePanel({ portfolioId }: { portfolioId: string }) {
   const [preset, setPreset] = useState<Preset>('1M');
   const [customDate, setCustomDate] = useState('');
+  const [performance, setPerformance] = useState<PortfolioPerformance | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const sinceDate = preset === 'CUSTOM' ? (customDate || EPOCH) : presetToDate(preset);
 
   useEffect(() => {
-    getPortfolioSnapshots(portfolioId)
-      .then(setSnapshots)
-      .catch(() => setSnapshots([]))
+    setLoading(true);
+    setError(null);
+    getPortfolioPerformance(portfolioId, sinceDate)
+      .then(setPerformance)
+      .catch((err) => setError(err instanceof Error ? err.message : 'Wertentwicklung konnte nicht geladen werden.'))
       .finally(() => setLoading(false));
-  }, [portfolioId]);
+  }, [portfolioId, sinceDate]);
 
-  if (loading) {
-    return <div className="glass rounded-3xl p-5 h-24 animate-pulse" />;
-  }
-
-  if (snapshots.length === 0) {
-    return (
-      <div className="glass rounded-3xl p-5">
-        <p className="font-semibold text-slate-900">Wertentwicklung</p>
-        <p className="text-sm text-slate-400 mt-1">
-          Noch keine Kurshistorie. Ab dem nächsten Kurs-Refresh wird täglich ein Wert gespeichert,
-          damit du die Entwicklung über Zeiträume vergleichen kannst.
-        </p>
-      </div>
-    );
-  }
-
-  const earliestDate = snapshots[0].date;
-  const targetDate = preset === 'CUSTOM' ? (customDate || earliestDate) : presetToDate(preset, earliestDate);
-
-  const baseline = [...snapshots].reverse().find((s) => s.date <= targetDate) ?? snapshots[0];
-  const delta = currentTotalValue - baseline.totalValue;
-  const deltaPercent = baseline.totalValue !== 0 ? (delta / baseline.totalValue) * 100 : 0;
-  const isPositive = delta >= 0;
-  const exactMatch = baseline.date === targetDate;
+  const isPositive = (performance?.delta ?? 0) >= 0;
 
   return (
     <div className="glass rounded-3xl p-5">
@@ -106,7 +86,6 @@ export function PerformancePanel({
         <input
           type="date"
           value={customDate}
-          min={earliestDate}
           max={toISODate(new Date())}
           onChange={(e) => { setCustomDate(e.target.value); setPreset('CUSTOM'); }}
           className={`px-3 py-1.5 rounded-full text-xs font-medium border ${
@@ -115,18 +94,39 @@ export function PerformancePanel({
         />
       </div>
 
-      <div className="flex items-baseline gap-3 flex-wrap">
-        <span className={`text-xl font-bold tabular-nums ${isPositive ? 'text-emerald-600' : 'text-red-600'}`}>
-          {isPositive ? '+' : ''}{formatCurrency(delta)}
-        </span>
-        <span className={`text-sm font-medium tabular-nums ${isPositive ? 'text-emerald-600' : 'text-red-600'}`}>
-          ({isPositive ? '+' : ''}{deltaPercent.toFixed(2)}%)
-        </span>
-      </div>
-      <p className="text-xs text-slate-400 mt-1">
-        seit {formatDate(baseline.date)}
-        {!exactMatch && ' (ältester verfügbarer Wert für diesen Zeitraum)'}
-      </p>
+      {loading && <div className="h-12 animate-pulse bg-slate-100 rounded-xl" />}
+
+      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+
+      {!loading && !error && performance && (
+        performance.includedPositionCount === 0 ? (
+          <p className="text-sm text-slate-400">
+            Noch keine Kurshistorie für diesen Zeitraum — Preis wird täglich erfasst, ab morgen lassen sich
+            erste Zeiträume vergleichen.
+          </p>
+        ) : (
+          <>
+            <div className="flex items-baseline gap-3 flex-wrap">
+              <span className={`text-xl font-bold tabular-nums ${isPositive ? 'text-emerald-600' : 'text-red-600'}`}>
+                {isPositive ? '+' : ''}{formatCurrency(performance.delta)}
+              </span>
+              <span className={`text-sm font-medium tabular-nums ${isPositive ? 'text-emerald-600' : 'text-red-600'}`}>
+                ({isPositive ? '+' : ''}{performance.deltaPercent.toFixed(2)}%)
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              seit {formatDate(performance.since)} · {performance.includedPositionCount} Position{performance.includedPositionCount !== 1 ? 'en' : ''} berücksichtigt
+            </p>
+            {performance.excludedPositionCount > 0 && (
+              <p className="text-xs text-amber-600 mt-1">
+                {performance.excludedPositionCount} Position{performance.excludedPositionCount !== 1 ? 'en' : ''}
+                {' '}({performance.excludedTickers.join(', ')}) für diesen Zeitraum ausgeschlossen — neu hinzugekommen
+                oder noch keine Kurshistorie so weit zurück. Deren Wert fließt nicht in den Vergleich ein.
+              </p>
+            )}
+          </>
+        )
+      )}
     </div>
   );
 }
