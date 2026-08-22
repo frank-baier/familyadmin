@@ -3,6 +3,7 @@ package de.baier.familyadmin.service;
 import de.baier.familyadmin.model.AnalysisType;
 import de.baier.familyadmin.model.Portfolio;
 import de.baier.familyadmin.model.PortfolioPosition;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -10,19 +11,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Generates natural-language portfolio analyses via the Anthropic Messages API.
- * Requires ANTHROPIC_API_KEY — if unset, callers get a clear error rather than a silent no-op,
- * since a "weekly analysis" that never runs would fail invisibly otherwise.
+ * Generates per-stock news summaries via the Anthropic Messages API — not a portfolio-wide
+ * asset-allocation or rebalancing commentary, which was explicitly not wanted. News per ticker
+ * comes from YahooNewsService; Claude's job here is purely to summarize/filter it in German.
+ * Requires ANTHROPIC_API_KEY — if unset, callers get a clear error rather than a silent no-op.
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class ClaudeAnalysisService {
+
+    private final YahooNewsService yahooNewsService;
 
     @Value("${anthropic.api-key:}")
     private String apiKey;
@@ -39,11 +42,11 @@ public class ClaudeAnalysisService {
             throw new IllegalStateException("ANTHROPIC_API_KEY ist nicht konfiguriert");
         }
 
-        String prompt = buildPrompt(portfolio, type);
+        String prompt = buildPrompt(portfolio);
 
         Map<String, Object> body = Map.of(
                 "model", model,
-                "max_tokens", 1500,
+                "max_tokens", 2000,
                 "messages", List.of(Map.of("role", "user", "content", prompt))
         );
 
@@ -81,39 +84,36 @@ public class ClaudeAnalysisService {
         return "";
     }
 
-    private String buildPrompt(Portfolio portfolio, AnalysisType type) {
-        StringBuilder positions = new StringBuilder();
+    private String buildPrompt(Portfolio portfolio) {
+        StringBuilder newsSection = new StringBuilder();
         for (PortfolioPosition p : portfolio.getPositions()) {
-            BigDecimal costBasis = p.getPurchasePrice().multiply(p.getShares());
-            BigDecimal currentValue = p.getCurrentValue() != null ? p.getCurrentValue() : BigDecimal.ZERO;
-            BigDecimal gainLossPercent = costBasis.signum() != 0
-                    ? currentValue.subtract(costBasis).divide(costBasis, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100))
-                    : BigDecimal.ZERO;
-            positions.append("- %s (%s): %s Stück, Einstandswert %s, aktueller Wert %s, Performance %s%%%n".formatted(
-                    p.getTicker(),
-                    StringUtils.hasText(p.getName()) ? p.getName() : "unbekannt",
-                    p.getShares(), costBasis, currentValue, gainLossPercent));
+            var news = yahooNewsService.fetchNews(p.getTicker(), 3);
+            if (news.isEmpty()) continue;
+
+            newsSection.append("### %s (%s)%n".formatted(
+                    p.getTicker(), StringUtils.hasText(p.getName()) ? p.getName() : "unbekannt"));
+            for (var item : news) {
+                newsSection.append("- %s: %s%n".formatted(item.title(), item.description()));
+            }
+            newsSection.append("\n");
         }
 
-        String instruction = switch (type) {
-            case WEEKLY -> "Gib eine kurze wöchentliche Zusammenfassung der Portfolio-Performance: "
-                    + "größte Gewinner/Verlierer, auffällige Bewegungen, Gesamttrend.";
-            case REBALANCING -> "Analysiere die Portfolio-Gewichtung und gib konkrete Rebalancing-Empfehlungen: "
-                    + "welche Positionen sind über-/untergewichtet, was könnte reduziert/aufgestockt werden.";
-            case ON_DEMAND -> "Gib eine allgemeine Einschätzung der Portfolio-Performance und Zusammensetzung.";
-        };
+        if (newsSection.isEmpty()) {
+            newsSection.append("Keine aktuellen News zu den gehaltenen Positionen gefunden.");
+        }
 
         return """
-                Du bist ein Finanzanalyst und analysierst das folgende Aktienportfolio einer Familie.
-                Antworte auf Deutsch, prägnant (max. 300 Wörter), strukturiert mit kurzen Absätzen.
-                Gib keine individuelle Anlageberatung, sondern eine sachliche Analyse der vorliegenden Daten.
+                Du bist ein Finanzanalyst. Fasse für eine Familie die wichtigsten aktuellen Nachrichten
+                zu jeder ihrer gehaltenen Aktien-/ETF-Positionen zusammen — pro Position ein kurzer Absatz.
+                Antworte auf Deutsch, prägnant, strukturiert nach Ticker.
+                Gib KEINE Gesamtportfolio-Analyse, keine Asset-Allocation- oder Rebalancing-Kommentare —
+                nur was für die einzelnen Positionen an Nachrichten relevant ist. Wenn zu einer Position
+                keine relevanten/wichtigen News vorliegen, lass sie einfach weg statt Füllsätze zu schreiben.
 
-                Portfolio: %s
+                Depot: %s
 
-                Positionen:
+                Aktuelle Nachrichten pro Position:
                 %s
-
-                Aufgabe: %s
-                """.formatted(portfolio.getName(), positions, instruction);
+                """.formatted(portfolio.getName(), newsSection);
     }
 }
