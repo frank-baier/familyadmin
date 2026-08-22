@@ -23,6 +23,7 @@ export interface PortfolioPosition {
   gainLoss: number | null;
   gainLossPercent: number | null;
   priceUpdatedAt: string | null;
+  currency: string;
 }
 
 export interface PortfolioAnalysis {

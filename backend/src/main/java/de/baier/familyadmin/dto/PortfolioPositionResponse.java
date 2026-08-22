@@ -19,7 +19,8 @@ public record PortfolioPositionResponse(
         BigDecimal costBasis,
         BigDecimal gainLoss,
         BigDecimal gainLossPercent,
-        Instant priceUpdatedAt
+        Instant priceUpdatedAt,
+        String currency
 ) {
     public static PortfolioPositionResponse from(PortfolioPosition p) {
         BigDecimal costBasis = p.getPurchasePrice().multiply(p.getShares());
@@ -39,7 +40,8 @@ public record PortfolioPositionResponse(
                 costBasis,
                 gainLoss,
                 gainLossPercent,
-                p.getPriceUpdatedAt()
+                p.getPriceUpdatedAt(),
+                p.getCurrency()
         );
     }
 }

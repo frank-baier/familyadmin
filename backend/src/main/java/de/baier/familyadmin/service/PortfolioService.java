@@ -39,6 +39,7 @@ public class PortfolioService {
     private final UserRepository userRepository;
     private final PortfolioImportService portfolioImportService;
     private final StockPriceService stockPriceService;
+    private final CurrencyConversionService currencyConversionService;
     private final ClaudeAnalysisService claudeAnalysisService;
     private final PortfolioNotificationService portfolioNotificationService;
     private final DocumentService documentService;
@@ -167,9 +168,20 @@ public class PortfolioService {
 
     private Portfolio doRefreshPrices(Portfolio portfolio) {
         for (PortfolioPosition position : portfolio.getPositions()) {
-            stockPriceService.fetchPrice(position.getTicker()).ifPresent(price -> {
-                position.setCurrentPrice(price);
-                position.setCurrentValue(price.multiply(position.getShares()));
+            stockPriceService.fetchPrice(position.getTicker()).ifPresent(quote -> {
+                BigDecimal priceInEur = quote.price();
+                if (!"EUR".equalsIgnoreCase(quote.currency())) {
+                    var rate = currencyConversionService.getRate(quote.currency(), "EUR");
+                    if (rate.isEmpty()) {
+                        log.warn("Skipping price update for {}: no FX rate {}->EUR available",
+                                position.getTicker(), quote.currency());
+                        return;
+                    }
+                    priceInEur = quote.price().multiply(rate.get());
+                }
+                position.setCurrency(quote.currency());
+                position.setCurrentPrice(priceInEur);
+                position.setCurrentValue(priceInEur.multiply(position.getShares()));
                 position.setPriceUpdatedAt(Instant.now());
             });
         }

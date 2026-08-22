@@ -1,0 +1,1 @@
+ALTER TABLE portfolio_positions ADD COLUMN currency VARCHAR(3) NOT NULL DEFAULT 'EUR';

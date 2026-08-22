@@ -49,6 +49,11 @@ public class PortfolioPosition {
     @Column(name = "current_value", precision = 14, scale = 2)
     private BigDecimal currentValue;
 
+    /** Native trading currency of the last price quote (informational — currentPrice/currentValue are always EUR). */
+    @Column(nullable = false, length = 3)
+    @Builder.Default
+    private String currency = "EUR";
+
     @Column(name = "price_updated_at")
     private Instant priceUpdatedAt;
 

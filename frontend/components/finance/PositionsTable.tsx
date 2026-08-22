@@ -277,7 +277,17 @@ export function PositionsTable({
               return (
                 <tr key={p.id} className="border-b border-slate-50 last:border-0 hover:bg-white/40">
                   <td className="px-4 py-3 font-semibold text-slate-900">
-                    {p.ticker}
+                    <span className="inline-flex items-center gap-1.5">
+                      {p.ticker}
+                      {p.currency !== 'EUR' && (
+                        <span
+                          title={`Kurs in ${p.currency}, für Wert/Vergleich in EUR umgerechnet`}
+                          className="text-[0.625rem] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700"
+                        >
+                          {p.currency}→EUR
+                        </span>
+                      )}
+                    </span>
                     {p.name && <span className="block text-xs text-slate-400 font-normal">{p.name}</span>}
                   </td>
                   <td className="px-4 py-3 tabular-nums text-slate-600">{p.shares}</td>

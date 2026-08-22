@@ -28,7 +28,7 @@ public class YahooFinanceStockPriceService implements StockPriceService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    public Optional<BigDecimal> fetchPrice(String ticker) {
+    public Optional<PriceQuote> fetchPrice(String ticker) {
         try {
             String body = restClient.get()
                     .uri(baseUrl + "/{symbol}?interval=1d&range=1d", ticker.trim())
@@ -40,7 +40,9 @@ public class YahooFinanceStockPriceService implements StockPriceService {
             JsonNode meta = objectMapper.readTree(body).path("chart").path("result").path(0).path("meta");
             if (!meta.has("regularMarketPrice")) return Optional.empty();
 
-            return Optional.of(BigDecimal.valueOf(meta.get("regularMarketPrice").asDouble()));
+            BigDecimal price = BigDecimal.valueOf(meta.get("regularMarketPrice").asDouble());
+            String currency = meta.has("currency") ? meta.get("currency").asText() : "EUR";
+            return Optional.of(new PriceQuote(price, currency));
         } catch (Exception e) {
             log.warn("Price lookup failed for '{}': {}", ticker, e.getMessage());
             return Optional.empty();
