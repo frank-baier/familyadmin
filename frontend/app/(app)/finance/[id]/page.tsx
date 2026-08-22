@@ -176,19 +176,7 @@ export default function PortfolioDetailPage({ params }: PageProps) {
         )}
       </div>
 
-      {/* Performance over time */}
-      <PerformancePanel portfolioId={portfolio.id} currentTotalValue={portfolio.totalCurrentValue} />
-
-      {/* Sharing */}
-      {canEdit && <SharePanel portfolio={portfolio} onChanged={setPortfolio} />}
-
-      {/* Import */}
-      {canEdit && <ImportPanel portfolioId={portfolio.id} onImported={setPortfolio} />}
-
-      {/* Manual add */}
-      {canEdit && <AddPositionForm portfolioId={portfolio.id} onAdded={setPortfolio} />}
-
-      {/* Positions */}
+      {/* Positions — the portfolio itself, front and center */}
       <div>
         <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Positionen</h2>
         <PositionsTable
@@ -199,11 +187,23 @@ export default function PortfolioDetailPage({ params }: PageProps) {
         />
       </div>
 
+      {/* Performance over time */}
+      <PerformancePanel portfolioId={portfolio.id} currentTotalValue={portfolio.totalCurrentValue} />
+
       {/* Analyses */}
       <div>
         <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Analysen</h2>
         <AnalysisList analyses={portfolio.analyses} />
       </div>
+
+      {/* Manual add */}
+      {canEdit && <AddPositionForm portfolioId={portfolio.id} onAdded={setPortfolio} />}
+
+      {/* Import */}
+      {canEdit && <ImportPanel portfolioId={portfolio.id} onImported={setPortfolio} />}
+
+      {/* Sharing — management actions live below the portfolio itself */}
+      {canEdit && <SharePanel portfolio={portfolio} onChanged={setPortfolio} />}
 
       {/* Delete */}
       {canEdit && (

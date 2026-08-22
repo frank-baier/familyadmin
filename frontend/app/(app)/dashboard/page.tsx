@@ -57,6 +57,20 @@ const modules: Module[] = [
     ),
   },
   {
+    title: 'Finanzen',
+    description: 'Aktiendepots verwalten, Kurse verfolgen und automatische Analysen erhalten.',
+    href: '/finance',
+    gradient: 'from-amber-400 via-amber-500 to-yellow-600',
+    shadow: '0 12px 32px rgb(245 158 11 / 0.3)',
+    accentText: 'text-amber-600',
+    icon: (
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+          d="M2.25 18L9 11.25l4.306 4.306a11.95 11.95 0 015.814-5.518l2.74-1.22m0 0l-5.94-2.281m5.94 2.28l-2.28 5.941" />
+      </svg>
+    ),
+  },
+  {
     title: 'Dokumente',
     description: 'Wichtige Familiendokumente sicher speichern und teilen.',
     href: '/documents',

@@ -22,6 +22,78 @@ interface EditState {
   purchaseDate: string;
 }
 
+type SortColumn = 'ticker' | 'shares' | 'purchasePrice' | 'purchaseDate' | 'currentPrice' | 'currentValue' | 'gainLoss';
+type SortDirection = 'asc' | 'desc';
+
+const SORT_ACCESSORS: Record<SortColumn, (p: PortfolioPosition) => string | number | null> = {
+  ticker: (p) => p.ticker,
+  shares: (p) => p.shares,
+  purchasePrice: (p) => p.purchasePrice,
+  purchaseDate: (p) => p.purchaseDate,
+  currentPrice: (p) => p.currentPrice,
+  currentValue: (p) => p.currentValue,
+  gainLoss: (p) => p.gainLoss,
+};
+
+function sortPositions(positions: PortfolioPosition[], column: SortColumn, direction: SortDirection): PortfolioPosition[] {
+  const accessor = SORT_ACCESSORS[column];
+  const factor = direction === 'asc' ? 1 : -1;
+  return [...positions].sort((a, b) => {
+    const va = accessor(a);
+    const vb = accessor(b);
+    if (va === null && vb === null) return 0;
+    if (va === null) return 1; // nulls always last, regardless of direction
+    if (vb === null) return -1;
+    if (typeof va === 'string' && typeof vb === 'string') return va.localeCompare(vb) * factor;
+    return ((va as number) - (vb as number)) * factor;
+  });
+}
+
+function SortableHeader({
+  column,
+  activeColumn,
+  direction,
+  onSort,
+  children,
+}: {
+  column: SortColumn;
+  activeColumn: SortColumn | null;
+  direction: SortDirection;
+  onSort: (column: SortColumn) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <th className="px-4 py-3">
+      <button
+        onClick={() => onSort(column)}
+        className="flex items-center gap-1 hover:text-slate-700 transition-colors"
+      >
+        {children}
+        <SortIcon direction={activeColumn === column ? direction : null} />
+      </button>
+    </th>
+  );
+}
+
+function SortIcon({ direction }: { direction: SortDirection | null }) {
+  if (!direction) {
+    return (
+      <svg className="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+      </svg>
+    );
+  }
+  return direction === 'asc' ? (
+    <svg className="w-3 h-3 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+    </svg>
+  ) : (
+    <svg className="w-3 h-3 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+    </svg>
+  );
+}
+
 export function PositionsTable({
   portfolioId,
   positions,
@@ -38,6 +110,19 @@ export function PositionsTable({
   const [editState, setEditState] = useState<EditState | null>(null);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+  function handleSort(column: SortColumn) {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  }
+
+  const sortedPositions = sortColumn ? sortPositions(positions, sortColumn, sortDirection) : positions;
 
   async function handleDelete(positionId: string) {
     setDeletingId(positionId);
@@ -108,18 +193,18 @@ export function PositionsTable({
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide border-b border-slate-100/80">
-              <th className="px-4 py-3">Ticker</th>
-              <th className="px-4 py-3">Stück</th>
-              <th className="px-4 py-3">Kaufpreis</th>
-              <th className="px-4 py-3">Kaufdatum</th>
-              <th className="px-4 py-3">Kurs</th>
-              <th className="px-4 py-3">Wert</th>
-              <th className="px-4 py-3">Gewinn/Verlust</th>
+              <SortableHeader column="ticker" activeColumn={sortColumn} direction={sortDirection} onSort={handleSort}>Ticker</SortableHeader>
+              <SortableHeader column="shares" activeColumn={sortColumn} direction={sortDirection} onSort={handleSort}>Stück</SortableHeader>
+              <SortableHeader column="purchasePrice" activeColumn={sortColumn} direction={sortDirection} onSort={handleSort}>Kaufpreis</SortableHeader>
+              <SortableHeader column="purchaseDate" activeColumn={sortColumn} direction={sortDirection} onSort={handleSort}>Kaufdatum</SortableHeader>
+              <SortableHeader column="currentPrice" activeColumn={sortColumn} direction={sortDirection} onSort={handleSort}>Kurs</SortableHeader>
+              <SortableHeader column="currentValue" activeColumn={sortColumn} direction={sortDirection} onSort={handleSort}>Wert</SortableHeader>
+              <SortableHeader column="gainLoss" activeColumn={sortColumn} direction={sortDirection} onSort={handleSort}>Gewinn/Verlust</SortableHeader>
               {canEdit && <th className="px-4 py-3" />}
             </tr>
           </thead>
           <tbody>
-            {positions.map((p) => {
+            {sortedPositions.map((p) => {
               const isPositive = (p.gainLoss ?? 0) >= 0;
               const isEditing = editingId === p.id;
 
