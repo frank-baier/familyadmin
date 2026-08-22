@@ -12,5 +12,7 @@ public record PortfolioPositionRequest(
         String name,
         @NotNull @Positive BigDecimal shares,
         @NotNull @Positive BigDecimal purchasePrice,
-        @NotNull LocalDate purchaseDate
+        @NotNull LocalDate purchaseDate,
+        /** Currency purchasePrice is denominated in, e.g. "CHF". Null/omitted means it's already EUR. */
+        String purchaseCurrency
 ) {}

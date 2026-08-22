@@ -58,6 +58,8 @@ export interface PortfolioPositionRequest {
   shares: number;
   purchasePrice: number;
   purchaseDate: string; // "YYYY-MM-DD"
+  /** Currency purchasePrice is denominated in, e.g. "CHF". Omit if it's already EUR. */
+  purchaseCurrency?: string;
 }
 
 export interface PortfolioImportResult {

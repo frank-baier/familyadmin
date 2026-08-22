@@ -18,6 +18,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -91,9 +92,12 @@ public class PortfolioService {
                 .ticker(req.ticker().toUpperCase())
                 .name(req.name())
                 .shares(req.shares())
-                .purchasePrice(req.purchasePrice())
+                .purchasePrice(resolvePurchasePriceInEur(req.purchasePrice(), req.purchaseCurrency()))
                 .purchaseDate(req.purchaseDate())
                 .build();
+        if (StringUtils.hasText(req.purchaseCurrency())) {
+            position.setCurrency(req.purchaseCurrency().toUpperCase());
+        }
         portfolio.getPositions().add(position);
         return portfolioRepository.save(portfolio);
     }
@@ -108,9 +112,29 @@ public class PortfolioService {
         position.setTicker(req.ticker().toUpperCase());
         position.setName(req.name());
         position.setShares(req.shares());
-        position.setPurchasePrice(req.purchasePrice());
+        position.setPurchasePrice(resolvePurchasePriceInEur(req.purchasePrice(), req.purchaseCurrency()));
         position.setPurchaseDate(req.purchaseDate());
+        if (StringUtils.hasText(req.purchaseCurrency())) {
+            position.setCurrency(req.purchaseCurrency().toUpperCase());
+        }
         return portfolioRepository.save(portfolio);
+    }
+
+    /**
+     * Purchase prices are always stored in EUR (same convention as currentPrice) so cost basis and
+     * gain/loss never mix currencies. If no purchaseCurrency is given, the price is assumed to
+     * already be EUR — matching the original CSV import format.
+     */
+    private BigDecimal resolvePurchasePriceInEur(BigDecimal price, String purchaseCurrency) {
+        if (!StringUtils.hasText(purchaseCurrency) || "EUR".equalsIgnoreCase(purchaseCurrency)) {
+            return price;
+        }
+        var rate = currencyConversionService.getRate(purchaseCurrency, "EUR");
+        if (rate.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Wechselkurs " + purchaseCurrency.toUpperCase() + "->EUR aktuell nicht verfügbar. Bitte später erneut versuchen.");
+        }
+        return price.multiply(rate.get());
     }
 
     public void deletePosition(UUID portfolioId, UUID positionId, User currentUser) {

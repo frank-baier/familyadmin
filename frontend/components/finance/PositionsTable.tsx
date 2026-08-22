@@ -19,8 +19,11 @@ interface EditState {
   name: string;
   shares: string;
   purchasePrice: string;
+  purchaseCurrency: string;
   purchaseDate: string;
 }
+
+const CURRENCIES = ['EUR', 'USD', 'CHF', 'GBP', 'JPY', 'CAD', 'AUD'];
 
 type SortColumn = 'ticker' | 'shares' | 'purchasePrice' | 'purchaseDate' | 'currentPrice' | 'currentValue' | 'gainLoss';
 type SortDirection = 'asc' | 'desc';
@@ -144,6 +147,7 @@ export function PositionsTable({
       name: p.name ?? '',
       shares: String(p.shares),
       purchasePrice: String(p.purchasePrice),
+      purchaseCurrency: 'EUR', // stored purchasePrice is already EUR; only change this if entering a new raw foreign-currency number
       purchaseDate: p.purchaseDate,
     });
   }
@@ -169,6 +173,7 @@ export function PositionsTable({
         shares: Number(editState.shares),
         purchasePrice: Number(editState.purchasePrice),
         purchaseDate: editState.purchaseDate,
+        purchaseCurrency: editState.purchaseCurrency,
       });
       cancelEdit();
       onChanged();
@@ -233,12 +238,21 @@ export function PositionsTable({
                       />
                     </td>
                     <td className="px-4 py-2">
-                      <input
-                        type="number" step="any" min="0"
-                        value={editState.purchasePrice}
-                        onChange={(e) => setEditState({ ...editState, purchasePrice: e.target.value })}
-                        className="input-field py-1.5 text-sm w-24"
-                      />
+                      <div className="flex gap-1">
+                        <input
+                          type="number" step="any" min="0"
+                          value={editState.purchasePrice}
+                          onChange={(e) => setEditState({ ...editState, purchasePrice: e.target.value })}
+                          className="input-field py-1.5 text-sm w-16"
+                        />
+                        <select
+                          value={editState.purchaseCurrency}
+                          onChange={(e) => setEditState({ ...editState, purchaseCurrency: e.target.value })}
+                          className="input-field py-1.5 text-sm w-20"
+                        >
+                          {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
                     </td>
                     <td className="px-4 py-2">
                       <input
