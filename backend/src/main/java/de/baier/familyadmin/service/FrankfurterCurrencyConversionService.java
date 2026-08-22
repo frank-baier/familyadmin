@@ -28,7 +28,7 @@ public class FrankfurterCurrencyConversionService implements CurrencyConversionS
 
     private record CachedRate(BigDecimal rate, Instant fetchedAt) {}
 
-    @Value("${frankfurter.base-url:https://api.frankfurter.app}")
+    @Value("${frankfurter.base-url:https://api.frankfurter.dev/v1}")
     private String baseUrl;
 
     private final RestClient restClient = RestClient.builder().build();
