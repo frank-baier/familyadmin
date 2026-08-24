@@ -27,13 +27,13 @@ public class PortfolioController {
     @GetMapping
     public ResponseEntity<List<PortfolioResponse>> getAll(@AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(portfolioService.getAllVisibleTo(currentUser).stream()
-                .map(PortfolioResponse::from).toList());
+                .map(portfolioService::toResponse).toList());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<PortfolioResponse> getById(@PathVariable UUID id,
                                                       @AuthenticationPrincipal User currentUser) {
-        return ResponseEntity.ok(PortfolioResponse.from(portfolioService.getViewableById(id, currentUser)));
+        return ResponseEntity.ok(portfolioService.toResponse(portfolioService.getViewableById(id, currentUser)));
     }
 
     @GetMapping("/{id}/snapshots")
@@ -56,7 +56,7 @@ public class PortfolioController {
         var portfolio = portfolioService.createPortfolio(request, currentUser);
         return ResponseEntity
                 .created(URI.create("/api/portfolios/" + portfolio.getId()))
-                .body(PortfolioResponse.from(portfolio));
+                .body(portfolioService.toResponse(portfolio));
     }
 
     @DeleteMapping("/{id}")
@@ -70,7 +70,7 @@ public class PortfolioController {
                                                           @Valid @RequestBody PortfolioPositionRequest request,
                                                           @AuthenticationPrincipal User currentUser) {
         var portfolio = portfolioService.addPosition(id, request, currentUser);
-        return ResponseEntity.ok(PortfolioResponse.from(portfolio));
+        return ResponseEntity.ok(portfolioService.toResponse(portfolio));
     }
 
     @PutMapping("/{id}/positions/{positionId}")
@@ -78,7 +78,7 @@ public class PortfolioController {
                                                              @Valid @RequestBody PortfolioPositionRequest request,
                                                              @AuthenticationPrincipal User currentUser) {
         var portfolio = portfolioService.updatePosition(id, positionId, request, currentUser);
-        return ResponseEntity.ok(PortfolioResponse.from(portfolio));
+        return ResponseEntity.ok(portfolioService.toResponse(portfolio));
     }
 
     @DeleteMapping("/{id}/positions/{positionId}")
@@ -98,7 +98,7 @@ public class PortfolioController {
     @PostMapping("/{id}/refresh-prices")
     public ResponseEntity<PortfolioResponse> refreshPrices(@PathVariable UUID id,
                                                             @AuthenticationPrincipal User currentUser) {
-        return ResponseEntity.ok(PortfolioResponse.from(portfolioService.refreshPrices(id, currentUser)));
+        return ResponseEntity.ok(portfolioService.toResponse(portfolioService.refreshPrices(id, currentUser)));
     }
 
     @PostMapping("/{id}/analyze")
@@ -111,12 +111,12 @@ public class PortfolioController {
     @PutMapping("/{id}/shares/{userId}")
     public ResponseEntity<PortfolioResponse> shareWith(@PathVariable UUID id, @PathVariable UUID userId,
                                                         @AuthenticationPrincipal User currentUser) {
-        return ResponseEntity.ok(PortfolioResponse.from(portfolioService.shareWith(id, userId, currentUser)));
+        return ResponseEntity.ok(portfolioService.toResponse(portfolioService.shareWith(id, userId, currentUser)));
     }
 
     @DeleteMapping("/{id}/shares/{userId}")
     public ResponseEntity<PortfolioResponse> revokeShare(@PathVariable UUID id, @PathVariable UUID userId,
                                                           @AuthenticationPrincipal User currentUser) {
-        return ResponseEntity.ok(PortfolioResponse.from(portfolioService.revokeShare(id, userId, currentUser)));
+        return ResponseEntity.ok(portfolioService.toResponse(portfolioService.revokeShare(id, userId, currentUser)));
     }
 }

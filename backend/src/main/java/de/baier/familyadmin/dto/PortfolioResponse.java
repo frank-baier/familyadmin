@@ -5,6 +5,7 @@ import de.baier.familyadmin.model.Portfolio;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public record PortfolioResponse(
@@ -21,9 +22,11 @@ public record PortfolioResponse(
         Instant createdAt,
         Instant updatedAt
 ) {
-    public static PortfolioResponse from(Portfolio portfolio) {
+    /** yesterdayValues: position id -> value at the most recent price point on/before yesterday. */
+    public static PortfolioResponse from(Portfolio portfolio, Map<UUID, BigDecimal> yesterdayValues) {
         List<PortfolioPositionResponse> positions = portfolio.getPositions().stream()
-                .map(PortfolioPositionResponse::from).toList();
+                .map(p -> PortfolioPositionResponse.from(p, yesterdayValues.get(p.getId())))
+                .toList();
 
         BigDecimal totalCostBasis = positions.stream()
                 .map(PortfolioPositionResponse::costBasis)

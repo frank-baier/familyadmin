@@ -25,7 +25,7 @@ interface EditState {
 
 const CURRENCIES = ['EUR', 'USD', 'CHF', 'GBP', 'JPY', 'CAD', 'AUD'];
 
-type SortColumn = 'ticker' | 'shares' | 'purchasePrice' | 'purchaseDate' | 'currentPrice' | 'currentValue' | 'gainLoss';
+type SortColumn = 'ticker' | 'shares' | 'purchasePrice' | 'purchaseDate' | 'currentPrice' | 'currentValue' | 'gainLossSinceYesterday' | 'gainLoss';
 type SortDirection = 'asc' | 'desc';
 
 const SORT_ACCESSORS: Record<SortColumn, (p: PortfolioPosition) => string | number | null> = {
@@ -35,6 +35,7 @@ const SORT_ACCESSORS: Record<SortColumn, (p: PortfolioPosition) => string | numb
   purchaseDate: (p) => p.purchaseDate,
   currentPrice: (p) => p.currentPrice,
   currentValue: (p) => p.currentValue,
+  gainLossSinceYesterday: (p) => p.gainLossSinceYesterday,
   gainLoss: (p) => p.gainLoss,
 };
 
@@ -204,6 +205,7 @@ export function PositionsTable({
               <SortableHeader column="purchaseDate" activeColumn={sortColumn} direction={sortDirection} onSort={handleSort}>Kaufdatum</SortableHeader>
               <SortableHeader column="currentPrice" activeColumn={sortColumn} direction={sortDirection} onSort={handleSort}>Kurs</SortableHeader>
               <SortableHeader column="currentValue" activeColumn={sortColumn} direction={sortDirection} onSort={handleSort}>Wert</SortableHeader>
+              <SortableHeader column="gainLossSinceYesterday" activeColumn={sortColumn} direction={sortDirection} onSort={handleSort}>Seit gestern</SortableHeader>
               <SortableHeader column="gainLoss" activeColumn={sortColumn} direction={sortDirection} onSort={handleSort}>Gewinn/Verlust</SortableHeader>
               {canEdit && <th className="px-4 py-3" />}
             </tr>
@@ -262,7 +264,7 @@ export function PositionsTable({
                         className="input-field py-1.5 text-sm"
                       />
                     </td>
-                    <td className="px-4 py-3 tabular-nums text-slate-400" colSpan={2}>
+                    <td className="px-4 py-3 tabular-nums text-slate-400" colSpan={4}>
                       Kurs/Wert werden beim nächsten Refresh aktualisiert
                     </td>
                     <td className="px-4 py-2">
@@ -309,6 +311,16 @@ export function PositionsTable({
                   <td className="px-4 py-3 text-slate-500">{formatDate(p.purchaseDate)}</td>
                   <td className="px-4 py-3 tabular-nums text-slate-600">{formatCurrency(p.currentPrice)}</td>
                   <td className="px-4 py-3 tabular-nums text-slate-900 font-medium">{formatCurrency(p.currentValue)}</td>
+                  <td className={`px-4 py-3 tabular-nums font-medium ${(p.gainLossSinceYesterday ?? 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {p.gainLossSinceYesterday !== null ? (
+                      <>
+                        {p.gainLossSinceYesterday >= 0 ? '+' : ''}{formatCurrency(p.gainLossSinceYesterday)}
+                        <span className="block text-xs">
+                          {p.gainLossSinceYesterday >= 0 ? '+' : ''}{p.gainLossSinceYesterdayPercent?.toFixed(2)}%
+                        </span>
+                      </>
+                    ) : '—'}
+                  </td>
                   <td className={`px-4 py-3 tabular-nums font-medium ${isPositive ? 'text-emerald-600' : 'text-red-600'}`}>
                     {p.gainLoss !== null ? (
                       <>

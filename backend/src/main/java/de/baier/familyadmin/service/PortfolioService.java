@@ -30,7 +30,9 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -182,7 +184,22 @@ public class PortfolioService {
         portfolio = getById(portfolio.getId());
 
         return new PortfolioImportResult(parseResult.rows().size(), parseResult.warnings(),
-                PortfolioResponse.from(portfolio));
+                toResponse(portfolio));
+    }
+
+    /** Builds the API response including each position's value as of yesterday, for the "since yesterday" column. */
+    public PortfolioResponse toResponse(Portfolio portfolio) {
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+        Map<UUID, BigDecimal> yesterdayValues = new HashMap<>();
+        for (PortfolioPosition position : portfolio.getPositions()) {
+            var history = portfolioPositionPriceHistoryRepository
+                    .findByPositionIdAndSnapshotDateLessThanEqualOrderBySnapshotDateDesc(
+                            position.getId(), yesterday, PageRequest.of(0, 1));
+            if (!history.isEmpty()) {
+                yesterdayValues.put(position.getId(), history.get(0).getValue());
+            }
+        }
+        return PortfolioResponse.from(portfolio, yesterdayValues);
     }
 
     public Portfolio refreshPrices(UUID portfolioId, User currentUser) {

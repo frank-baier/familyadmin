@@ -24,6 +24,8 @@ export interface PortfolioPosition {
   gainLossPercent: number | null;
   priceUpdatedAt: string | null;
   currency: string;
+  gainLossSinceYesterday: number | null;
+  gainLossSinceYesterdayPercent: number | null;
 }
 
 export interface PortfolioAnalysis {

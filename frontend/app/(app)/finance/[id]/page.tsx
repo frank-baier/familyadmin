@@ -65,9 +65,16 @@ export default function PortfolioDetailPage({ params }: PageProps) {
       const [portfolioData, userData] = await Promise.all([getPortfolio(id), getCurrentUser()]);
       setPortfolio(portfolioData);
       setCurrentUser(userData);
+      setLoading(false);
+
+      // Auto-refresh prices on every visit so the page never shows stale data —
+      // only possible for the owner/admin (view-only shared users just see the last refresh).
+      const canEditNow = userData?.role === 'ADMIN' || portfolioData.createdBy.id === userData?.id;
+      if (canEditNow) {
+        refreshPrices(id).then(setPortfolio).catch(() => {});
+      }
     } catch {
       setError('Depot nicht gefunden oder kein Zugriff.');
-    } finally {
       setLoading(false);
     }
   }
