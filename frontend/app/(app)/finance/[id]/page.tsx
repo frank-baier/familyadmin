@@ -143,6 +143,14 @@ export default function PortfolioDetailPage({ params }: PageProps) {
   const isPositive = portfolio.totalGainLoss >= 0;
   const canEdit = !currentUser || currentUser.role === 'ADMIN' || portfolio.createdBy.id === currentUser.id;
 
+  const gainSinceYesterday = portfolio.positions.reduce(
+    (sum, p) => sum + (p.gainLossSinceYesterday ?? 0),
+    0,
+  );
+  const valueYesterday = portfolio.totalCurrentValue - gainSinceYesterday;
+  const gainSinceYesterdayPercent = valueYesterday !== 0 ? (gainSinceYesterday / valueYesterday) * 100 : 0;
+  const isPositiveSinceYesterday = gainSinceYesterday >= 0;
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <Link href="/finance" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900 transition-colors">
@@ -163,6 +171,9 @@ export default function PortfolioDetailPage({ params }: PageProps) {
             <p className="text-2xl font-bold text-slate-900 tabular-nums">{formatCurrency(portfolio.totalCurrentValue)}</p>
             <p className={`text-sm font-medium tabular-nums ${isPositive ? 'text-emerald-600' : 'text-red-600'}`}>
               {isPositive ? '+' : ''}{formatCurrency(portfolio.totalGainLoss)} ({isPositive ? '+' : ''}{portfolio.totalGainLossPercent.toFixed(2)}%)
+            </p>
+            <p className={`text-xs font-medium tabular-nums mt-0.5 ${isPositiveSinceYesterday ? 'text-emerald-600/80' : 'text-red-600/80'}`}>
+              {isPositiveSinceYesterday ? '+' : ''}{formatCurrency(gainSinceYesterday)} ({isPositiveSinceYesterday ? '+' : ''}{gainSinceYesterdayPercent.toFixed(2)}%) seit gestern
             </p>
           </div>
         </div>
