@@ -9,3 +9,10 @@
         reverse_proxy frontend:3000
     }
 }
+
+# namataba-admin runs as a separate compose project on this host; its Caddy is
+# reachable as "namataba-caddy" on the shared "edge" network.
+admin.namataba.org {
+    header Strict-Transport-Security "max-age=31536000"
+    reverse_proxy namataba-caddy:80
+}
