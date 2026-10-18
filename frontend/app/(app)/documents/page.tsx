@@ -22,7 +22,7 @@ import {
   revokeShare,
   type ShareableUser,
 } from '@/lib/document-shares';
-import { ApiError, apiFetchBlob } from '@/lib/api';
+import { ApiError, apiFetchBlob, openBlobInNewTab } from '@/lib/api';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -134,9 +134,9 @@ function UploadZone({ onUpload, uploading }: { onUpload: (f: File) => Promise<vo
 // ─── Document row ─────────────────────────────────────────────────────────────
 
 function DocRow({
-  doc, indent, onDownload, onDelete, deleting,
+  doc, indent, onOpen, onDownload, onDelete, deleting,
 }: {
-  doc: Document; indent: number; onDownload: (d: Document) => void;
+  doc: Document; indent: number; onOpen: (d: Document) => void; onDownload: (d: Document) => void;
   onDelete: (id: string) => void; deleting: boolean;
 }) {
   function formatDate(iso: string) {
@@ -148,12 +148,19 @@ function DocRow({
   return (
     <div className="flex items-center gap-2.5 py-2.5 px-3 hover:bg-slate-50/60 rounded-xl transition-colors group"
       style={{ paddingLeft: `${12 + indent * 20}px` }}>
-      <FileIcon contentType={doc.contentType} />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-slate-800 truncate">{doc.filename}</p>
-        <p className="text-xs text-slate-400 mt-0.5">{formatFileSize(doc.fileSize)} · {formatDate(doc.createdAt)}</p>
-      </div>
-      <div className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+      <button
+        type="button"
+        onClick={() => onOpen(doc)}
+        className="flex items-center gap-2.5 flex-1 min-w-0 text-left cursor-pointer"
+        title="Öffnen"
+      >
+        <FileIcon contentType={doc.contentType} />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-slate-800 truncate">{doc.filename}</p>
+          <p className="text-xs text-slate-400 mt-0.5">{formatFileSize(doc.fileSize)} · {formatDate(doc.createdAt)}</p>
+        </div>
+      </button>
+      <div className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100 transition-opacity">
         <button
           onClick={() => onDownload(doc)}
           className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors"
@@ -325,6 +332,7 @@ function categoryColor(name: string | null): string {
 function UnindexedPanel({
   docs,
   loading,
+  onOpen,
   onDownload,
   onDelete,
   onDeleteMultiple,
@@ -333,6 +341,7 @@ function UnindexedPanel({
 }: {
   docs: Document[];
   loading: boolean;
+  onOpen: (d: Document) => void;
   onDownload: (d: Document) => void;
   onDelete: (id: string) => void;
   onDeleteMultiple: (ids: string[]) => Promise<void>;
@@ -501,7 +510,14 @@ function UnindexedPanel({
                     onClick={(e) => e.stopPropagation()}
                     className="w-4 h-4 rounded border-amber-300 accent-amber-500 cursor-pointer shrink-0"
                   />
-                  <FileIcon contentType={doc.contentType} />
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onOpen(doc); }}
+                    className="shrink-0 cursor-pointer"
+                    title="Öffnen"
+                  >
+                    <FileIcon contentType={doc.contentType} />
+                  </button>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-800 truncate">{doc.filename}</p>
                     <p className="text-xs text-slate-400 mt-0.5">
@@ -515,7 +531,7 @@ function UnindexedPanel({
                     </p>
                   </div>
                   <div
-                    className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100 transition-opacity"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <button
@@ -560,7 +576,7 @@ function UnindexedPanel({
 // ─── Recursive tree node ──────────────────────────────────────────────────────
 
 function TreeNodeRow({
-  node, depth, expanded, toggle, openLeaf, docsMap, loadingLeaf, loadMore, onDownload, onDelete, deleteId,
+  node, depth, expanded, toggle, openLeaf, docsMap, loadingLeaf, loadMore, onOpen, onDownload, onDelete, deleteId,
 }: {
   node: TreeNode; depth: number; expanded: Set<string>;
   toggle: (key: string) => void;
@@ -568,6 +584,7 @@ function TreeNodeRow({
   docsMap: Map<string, { docs: Document[]; total: number; nextPage: number }>;
   loadingLeaf: Set<string>;
   loadMore: (key: string, filter: DocFilter, page: number) => void;
+  onOpen: (doc: Document) => void;
   onDownload: (doc: Document) => void;
   onDelete: (id: string) => void;
   deleteId: string | null;
@@ -627,6 +644,7 @@ function TreeNodeRow({
               docsMap={docsMap}
               loadingLeaf={loadingLeaf}
               loadMore={loadMore}
+              onOpen={onOpen}
               onDownload={onDownload}
               onDelete={onDelete}
               deleteId={deleteId}
@@ -642,6 +660,7 @@ function TreeNodeRow({
               key={doc.id}
               doc={doc}
               indent={depth + 2}
+              onOpen={onOpen}
               onDownload={onDownload}
               onDelete={onDelete}
               deleting={deleteId === doc.id}
@@ -807,6 +826,12 @@ export default function DocumentsPage() {
     }
   }
 
+  async function handleOpen(doc: Document) {
+    try {
+      await openBlobInNewTab(doc.downloadUrl);
+    } catch { setError('Öffnen fehlgeschlagen.'); }
+  }
+
   async function handleDownload(doc: Document) {
     try {
       const { blob, filename } = await apiFetchBlob(doc.downloadUrl);
@@ -890,6 +915,7 @@ export default function DocumentsPage() {
       <UnindexedPanel
         docs={unindexed}
         loading={unindexedLoading}
+        onOpen={handleOpen}
         onDownload={handleDownload}
         onDelete={handleDelete}
         onDeleteMultiple={handleDeleteMultiple}
@@ -967,6 +993,7 @@ export default function DocumentsPage() {
               docsMap={docsMap}
               loadingLeaf={loadingLeaf}
               loadMore={(key, filter, page) => loadDocs(key, filter, page)}
+              onOpen={handleOpen}
               onDownload={handleDownload}
               onDelete={handleDelete}
               deleteId={deleteId}

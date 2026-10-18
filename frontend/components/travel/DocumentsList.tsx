@@ -8,7 +8,7 @@ import {
   formatFileSize,
   type TripDocument,
 } from '@/lib/travel-documents';
-import { apiFetchBlob } from '@/lib/api';
+import { apiFetchBlob, openBlobInNewTab } from '@/lib/api';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -85,6 +85,14 @@ export function DocumentsList({ tripId, emailToken }: DocumentsListProps) {
       setError('Upload fehlgeschlagen.');
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function handleOpen(doc: TripDocument) {
+    try {
+      await openBlobInNewTab(doc.downloadUrl);
+    } catch {
+      setError('Öffnen fehlgeschlagen.');
     }
   }
 
@@ -235,11 +243,16 @@ export function DocumentsList({ tripId, emailToken }: DocumentsListProps) {
               key={doc.id}
               className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-4 py-3"
             >
-              <div className="shrink-0">
+              <button
+                type="button"
+                onClick={() => handleOpen(doc)}
+                className="shrink-0 cursor-pointer"
+                title="Öffnen"
+              >
                 <FileIcon contentType={doc.contentType} />
-              </div>
+              </button>
 
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handleOpen(doc)}>
                 <p className="text-sm font-medium text-slate-800 truncate">{doc.filename}</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-xs text-slate-400">{formatFileSize(doc.fileSize)}</span>

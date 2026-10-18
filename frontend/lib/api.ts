@@ -215,3 +215,22 @@ function tryRefresh(): Promise<boolean> {
 
   return _refreshPromise;
 }
+
+/**
+ * Open a binary resource (PDF, image, …) in a new tab with auth.
+ * The tab is opened synchronously so mobile Safari doesn't block it as a popup;
+ * the blob is loaded into it once the fetch completes.
+ */
+export async function openBlobInNewTab(path: string): Promise<void> {
+  const win = window.open('', '_blank');
+  try {
+    const { blob } = await apiFetchBlob(path);
+    const url = URL.createObjectURL(blob);
+    if (win) win.location.href = url;
+    else window.location.href = url;
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } catch (err) {
+    win?.close();
+    throw err;
+  }
+}
