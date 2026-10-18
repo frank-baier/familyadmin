@@ -104,7 +104,6 @@ public class DocumentService {
     }
 
     @Async
-    @Transactional(readOnly = true)
     public void reindexAllUnindexedAsync() {
         List<UUID> ids = documentRepository.findUnindexedIds();
         log.info("OCR re-index: starting for {} documents", ids.size());
