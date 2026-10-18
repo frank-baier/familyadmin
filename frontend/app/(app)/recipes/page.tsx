@@ -132,9 +132,10 @@ export default function RecipesPage() {
   const [urlImportError, setUrlImportError] = useState<string | null>(null);
 
   // View & filter state
-  const [viewMode, setViewMode] = useViewMode('recipes');
+  const [viewMode, setViewMode] = useViewMode('recipes', 'table');
   const [minRating, setMinRating] = useState<number>(0);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [showAll, setShowAll] = useState(false);
 
   // Multiselect state
   const [selectMode, setSelectMode] = useState(false);
@@ -170,7 +171,7 @@ export default function RecipesPage() {
   // Infinite scroll: stable observer that reads latest state via ref
   const loadMoreRef = useRef<(() => void) | null>(null);
   loadMoreRef.current = () => {
-    if (hasMore && !loadingMore && !loading && !isSearchMode) {
+    if (hasMore && !loadingMore && !loading && !isSearchMode && !idle) {
       loadPage(nextPage, false);
     }
   };
@@ -325,6 +326,8 @@ export default function RecipesPage() {
 
   const isEmpty = !loading && filteredRecipes.length === 0;
   const hasFilters = minRating > 0 || selectedCategory !== '';
+  // Start screen: empty search, no list until the user searches, filters or asks for all
+  const idle = !query.trim() && !hasFilters && !showAll;
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -502,6 +505,7 @@ export default function RecipesPage() {
             onChange={handleSearchChange}
             placeholder="Rezepte suchen…"
             aria-label="Rezepte suchen"
+            autoFocus
             className="input-field pl-10"
           />
         </div>
@@ -578,7 +582,7 @@ export default function RecipesPage() {
       </div>
 
       {/* Active filters summary */}
-      {hasFilters && !loading && (
+      {hasFilters && !loading && !idle && (
         <p className="text-xs text-slate-500 mb-4">
           {filteredRecipes.length} von {recipes.length} geladenen Rezepten
           {minRating > 0 && ` · ${minRating}+ Sterne`}
@@ -607,12 +611,12 @@ export default function RecipesPage() {
       )}
 
       {/* Initial loading skeleton */}
-      {loading && viewMode === 'grid' && (
+      {!idle && loading && viewMode === 'grid' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => <RecipeCardSkeleton key={i} />)}
         </div>
       )}
-      {loading && viewMode === 'table' && (
+      {!idle && loading && viewMode === 'table' && (
         <div className="rounded-xl border border-slate-200 animate-pulse">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="flex gap-4 px-4 py-3 border-b border-slate-100">
@@ -624,8 +628,30 @@ export default function RecipesPage() {
         </div>
       )}
 
+      {/* Start screen: empty search */}
+      {idle && (
+        <div className="text-center py-20">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-slate-100" aria-hidden="true">
+            <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+            </svg>
+          </div>
+          <h3 className="text-base font-semibold text-slate-900 mb-1">Rezept suchen</h3>
+          <p className="text-sm text-slate-500 mb-6 max-w-xs mx-auto">
+            Suchbegriff eingeben oder nach Kategorie bzw. Bewertung filtern.
+          </p>
+          <button
+            onClick={() => setShowAll(true)}
+            className="text-sm font-medium text-indigo-600 hover:text-indigo-700 underline hover:no-underline"
+          >
+            Alle Rezepte anzeigen
+          </button>
+        </div>
+      )}
+
       {/* Empty state */}
-      {isEmpty && (
+      {!idle && isEmpty && (
         <div className="text-center py-20">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
             style={{ background: 'linear-gradient(135deg, #fde68a, #fb923c)' }} aria-hidden="true">
@@ -664,7 +690,7 @@ export default function RecipesPage() {
       )}
 
       {/* Recipe grid */}
-      {!loading && !isEmpty && viewMode === 'grid' && (
+      {!idle && !loading && !isEmpty && viewMode === 'grid' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredRecipes.map((recipe) => (
             <RecipeCard
@@ -679,7 +705,7 @@ export default function RecipesPage() {
       )}
 
       {/* Recipe table */}
-      {!loading && !isEmpty && viewMode === 'table' && (
+      {!idle && !loading && !isEmpty && viewMode === 'table' && (
         <RecipeTableView
           recipes={filteredRecipes}
           selectMode={selectMode}
