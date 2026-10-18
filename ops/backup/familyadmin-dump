@@ -1,0 +1,10 @@
+#!/bin/sh
+# Streams a compressed pg_dump (custom format) of the FamilyAdmin database to stdout.
+#
+# Installed on the Hetzner server as /usr/local/bin/familyadmin-dump (root:root, 0755).
+# The Synology connects as user `fabackup`, whose SSH key is pinned to this script via a
+# forced command, so the key can do nothing except produce a dump. See synology-pull-backup.sh.
+set -eu
+cd /root/familyadmin
+exec docker compose -f docker-compose.prod.yml exec -T postgres \
+    sh -c 'pg_dump --format=custom --compress=6 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
