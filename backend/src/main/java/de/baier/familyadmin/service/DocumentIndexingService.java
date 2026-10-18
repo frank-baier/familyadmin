@@ -16,9 +16,16 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -83,10 +90,26 @@ public class DocumentIndexingService {
     }
 
     private String extractText(byte[] data, String filename) {
+        String text = extractTextViaTika(data, filename);
+        if (!text.isBlank()) return text;
+
+        // PDFBox cannot render image-only PDFs on Alpine (no AWT graphics).
+        // Fall back to pdftoppm (Poppler) + Tesseract directly.
+        if (filename.toLowerCase().endsWith(".pdf")) {
+            try {
+                text = extractTextPdfOcr(data, filename);
+            } catch (Exception e) {
+                log.warn("pdftoppm OCR fallback failed for '{}': {}", filename, e.getMessage());
+            }
+        }
+        return text;
+    }
+
+    private String extractTextViaTika(byte[] data, String filename) {
         try {
             TesseractOCRConfig ocrConfig = new TesseractOCRConfig();
             ocrConfig.setLanguage("deu+eng");
-            ocrConfig.setTimeoutSeconds(120);
+            ocrConfig.setTimeoutSeconds(30);
 
             PDFParserConfig pdfConfig = new PDFParserConfig();
             pdfConfig.setExtractInlineImages(true);
@@ -104,6 +127,57 @@ public class DocumentIndexingService {
         } catch (Exception e) {
             log.warn("Text extraction failed for '{}': {}", filename, e.getMessage());
             return "";
+        }
+    }
+
+    private String extractTextPdfOcr(byte[] data, String filename) throws Exception {
+        Path tmpPdf = Files.createTempFile("ocr_", ".pdf");
+        Path tmpDir = Files.createTempDirectory("ocr_pages_");
+        try {
+            Files.write(tmpPdf, data);
+
+            // Render PDF pages to PNG images via pdftoppm
+            Process pdfProc = new ProcessBuilder(
+                    "pdftoppm", "-png", "-r", "150",
+                    tmpPdf.toString(), tmpDir.resolve("page").toString())
+                    .redirectErrorStream(true).start();
+            if (!pdfProc.waitFor(60, TimeUnit.SECONDS)) {
+                pdfProc.destroyForcibly();
+                return "";
+            }
+
+            // Run Tesseract on each page image
+            File[] pages = tmpDir.toFile().listFiles((d, n) -> n.endsWith(".png"));
+            if (pages == null || pages.length == 0) return "";
+            Arrays.sort(pages, Comparator.comparing(File::getName));
+
+            StringBuilder fullText = new StringBuilder();
+            for (File page : pages) {
+                Path outBase = tmpDir.resolve("out_" + page.getName());
+                Process ocrProc = new ProcessBuilder(
+                        "tesseract", page.getAbsolutePath(), outBase.toString(), "-l", "deu+eng")
+                        .redirectErrorStream(true).start();
+                if (!ocrProc.waitFor(120, TimeUnit.SECONDS)) {
+                    ocrProc.destroyForcibly();
+                    continue;
+                }
+                Path outTxt = Path.of(outBase + ".txt");
+                if (Files.exists(outTxt)) {
+                    fullText.append(Files.readString(outTxt)).append("\n");
+                }
+            }
+            String result = fullText.toString().strip();
+            if (!result.isBlank()) {
+                log.info("pdftoppm OCR extracted {} chars from '{}'", result.length(), filename);
+            }
+            return result;
+        } finally {
+            Files.deleteIfExists(tmpPdf);
+            try (Stream<Path> files = Files.walk(tmpDir)) {
+                files.sorted(Comparator.reverseOrder()).forEach(p -> {
+                    try { Files.deleteIfExists(p); } catch (Exception ignored) {}
+                });
+            }
         }
     }
 
