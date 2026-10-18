@@ -93,6 +93,10 @@ export function deleteChatHistoryEntry(id: string): Promise<void> {
   return apiFetch<void>(`/api/chat/history/${id}`, { method: 'DELETE' });
 }
 
+export function reindexUnindexed(): Promise<{ queued: number }> {
+  return apiFetch<{ queued: number }>('/api/admin/documents/reindex-unindexed', { method: 'POST' });
+}
+
 export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;

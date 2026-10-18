@@ -7,6 +7,7 @@ import de.baier.familyadmin.dto.UserResponse;
 import de.baier.familyadmin.model.Role;
 import de.baier.familyadmin.repository.RecipeRepository;
 import de.baier.familyadmin.scheduler.RecipePhotoScheduler;
+import de.baier.familyadmin.service.DocumentService;
 import de.baier.familyadmin.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ public class AdminController {
     private final UserService             userService;
     private final RecipePhotoScheduler    recipePhotoScheduler;
     private final RecipeRepository        recipeRepository;
+    private final DocumentService         documentService;
 
     @PostMapping("/users")
     @PreAuthorize("hasRole('ADMIN')")
@@ -85,6 +87,15 @@ public class AdminController {
         return ResponseEntity.ok(recipePhotoScheduler.runFetchJob());
     }
 
+    @PostMapping("/documents/reindex-unindexed")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ReindexResult> reindexUnindexed() {
+        int queued = documentService.countUnindexed();
+        documentService.reindexAllUnindexedAsync();
+        return ResponseEntity.accepted().body(new ReindexResult(queued));
+    }
+
     record RecipePhotoStats(long total, long withPhoto, long withoutPhoto, List<MissingRecipe> missingRecipes) {}
     record MissingRecipe(String id, String title) {}
+    record ReindexResult(int queued) {}
 }

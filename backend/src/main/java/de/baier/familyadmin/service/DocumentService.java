@@ -5,6 +5,8 @@ import de.baier.familyadmin.model.DocumentSource;
 import de.baier.familyadmin.model.User;
 import de.baier.familyadmin.repository.DocumentRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -13,11 +15,13 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class DocumentService {
 
     private final DocumentRepository documentRepository;
@@ -92,5 +96,25 @@ public class DocumentService {
 
     public void delete(Document doc) {
         documentRepository.delete(doc);
+    }
+
+    @Transactional(readOnly = true)
+    public int countUnindexed() {
+        return documentRepository.findUnindexedIds().size();
+    }
+
+    @Async
+    @Transactional(readOnly = true)
+    public void reindexAllUnindexedAsync() {
+        List<UUID> ids = documentRepository.findUnindexedIds();
+        log.info("OCR re-index: starting for {} documents", ids.size());
+        for (UUID id : ids) {
+            documentRepository.findById(id).ifPresent(doc -> {
+                UUID uploaderId = doc.getUploadedBy() != null ? doc.getUploadedBy().getId() : null;
+                documentIndexingService.doIndex(doc.getId(), doc.getData(), doc.getContentType(),
+                        doc.getFilename(), doc.getCategory(), doc.getSubcategory(), doc.getYear(), uploaderId);
+            });
+        }
+        log.info("OCR re-index: complete");
     }
 }

@@ -9,6 +9,7 @@ import {
   acceptUnindexedDocuments,
   uploadDocument,
   deleteDocument,
+  reindexUnindexed,
   formatFileSize,
   type Document,
   type DocumentTreeNode,
@@ -342,6 +343,8 @@ function UnindexedPanel({
   const [accepting, setAccepting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [reindexing, setReindexing] = useState(false);
+  const [reindexMsg, setReindexMsg] = useState<string | null>(null);
 
   if (loading) return null;
   if (docs.length === 0) return null;
@@ -400,6 +403,21 @@ function UnindexedPanel({
         <button
           onClick={(e) => {
             e.stopPropagation();
+            setReindexing(true);
+            setReindexMsg(null);
+            reindexUnindexed()
+              .then((r) => setReindexMsg(`OCR gestartet für ${r.queued} Dokumente — läuft im Hintergrund`))
+              .catch(() => setReindexMsg('Fehler beim Starten der OCR'))
+              .finally(() => setReindexing(false));
+          }}
+          disabled={reindexing}
+          className="ml-2 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-full px-3 py-0.5 transition-colors disabled:opacity-50 shrink-0"
+        >
+          {reindexing ? 'Startet…' : 'OCR nachholen'}
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
             setAccepting(true);
             onAcceptAll().finally(() => setAccepting(false));
           }}
@@ -410,6 +428,13 @@ function UnindexedPanel({
         </button>
         <ChevronIcon open={open} />
       </button>
+
+      {reindexMsg && (
+        <div className="px-4 py-2 text-xs text-indigo-700 bg-indigo-50 border-t border-indigo-100 flex items-center justify-between">
+          {reindexMsg}
+          <button onClick={() => setReindexMsg(null)} className="ml-3 underline">OK</button>
+        </div>
+      )}
 
       {open && (
         <div className="border-t border-amber-200">
