@@ -124,7 +124,7 @@ public class DocumentIndexingService {
             BodyContentHandler handler = new BodyContentHandler(2_000_000);
             parser.parse(new ByteArrayInputStream(data), handler, new Metadata(), context);
             return handler.toString();
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.warn("Text extraction failed for '{}': {}", filename, e.getMessage());
             return "";
         }
