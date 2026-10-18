@@ -81,6 +81,7 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
             SELECT id FROM documents
             WHERE NOT EXISTS (SELECT 1 FROM document_chunks dc WHERE dc.document_id = id)
               AND indexing_skipped = false
+              AND content_type NOT IN ('image/jpeg', 'image/jpg', 'image/heic')
             """, nativeQuery = true)
     List<UUID> findUnindexedIds();
 }
