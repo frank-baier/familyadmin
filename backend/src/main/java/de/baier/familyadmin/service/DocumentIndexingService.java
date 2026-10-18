@@ -9,6 +9,7 @@ import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.Parser;
 import org.apache.tika.parser.ocr.TesseractOCRConfig;
+import org.apache.tika.parser.pdf.PDFParserConfig;
 import org.apache.tika.sax.BodyContentHandler;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Async;
@@ -87,12 +88,17 @@ public class DocumentIndexingService {
             ocrConfig.setLanguage("deu+eng");
             ocrConfig.setTimeoutSeconds(120);
 
+            PDFParserConfig pdfConfig = new PDFParserConfig();
+            pdfConfig.setExtractInlineImages(true);
+            pdfConfig.setOcrStrategy(PDFParserConfig.OCR_STRATEGY.AUTO);
+
             AutoDetectParser parser = new AutoDetectParser();
             ParseContext context = new ParseContext();
             context.set(TesseractOCRConfig.class, ocrConfig);
+            context.set(PDFParserConfig.class, pdfConfig);
             context.set(Parser.class, parser);
 
-            BodyContentHandler handler = new BodyContentHandler(500_000);
+            BodyContentHandler handler = new BodyContentHandler(2_000_000);
             parser.parse(new ByteArrayInputStream(data), handler, new Metadata(), context);
             return handler.toString();
         } catch (Exception e) {
