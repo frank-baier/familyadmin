@@ -86,12 +86,6 @@ const modules: Module[] = [
   },
 ];
 
-const stats = [
-  { label: 'Familienmitglieder', value: '5' },
-  { label: 'Aktive Aufgaben', value: '—' },
-  { label: 'Gespeicherte Rezepte', value: '—' },
-  { label: 'Geplante Reisen', value: '—' },
-];
 
 export default function DashboardPage() {
   const greeting = getGreeting();
@@ -121,16 +115,6 @@ export default function DashboardPage() {
             Alles, was eure Familie braucht — an einem Ort.
           </p>
         </div>
-      </div>
-
-      {/* Stats strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {stats.map((s) => (
-          <div key={s.label} className="glass rounded-2xl px-4 py-4 text-center">
-            <p className="text-2xl font-bold text-slate-900">{s.value}</p>
-            <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
-          </div>
-        ))}
       </div>
 
       {/* Module grid */}
