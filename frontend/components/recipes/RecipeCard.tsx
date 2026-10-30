@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Recipe } from '@/lib/recipes';
+import { EditableStarRating } from './EditableStarRating';
 
 function getInitials(name: string) {
   return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
@@ -31,9 +32,10 @@ interface RecipeCardProps {
   selectMode?: boolean;
   selected?: boolean;
   onToggleSelect?: () => void;
+  onRatingChange?: (rating: number | null) => void | Promise<void>;
 }
 
-export function RecipeCard({ recipe, selectMode = false, selected = false, onToggleSelect }: RecipeCardProps) {
+export function RecipeCard({ recipe, selectMode = false, selected = false, onToggleSelect, onRatingChange }: RecipeCardProps) {
   const totalMinutes = (recipe.prepMinutes ?? 0) + (recipe.cookMinutes ?? 0);
   const prepLabel = formatTime(recipe.prepMinutes);
   const cookLabel = formatTime(recipe.cookMinutes);
@@ -48,9 +50,9 @@ export function RecipeCard({ recipe, selectMode = false, selected = false, onTog
           onToggleSelect?.();
         }
       }}
-      className={`glass-interactive rounded-3xl overflow-hidden flex flex-col group relative
-                 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2
-                 ${selected ? 'ring-2 ring-indigo-500' : ''}`}
+      className={`glass-interactive rounded-2xl overflow-hidden flex flex-col group relative
+                 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2
+                 ${selected ? 'ring-2 ring-amber-500' : ''}`}
       aria-label={`Rezept: ${recipe.title}`}
     >
       {/* Selection checkbox */}
@@ -58,7 +60,7 @@ export function RecipeCard({ recipe, selectMode = false, selected = false, onTog
         <div className="absolute top-2 left-2 z-10">
           <span
             className={`flex items-center justify-center w-6 h-6 rounded-full border-2 transition-colors
-                       ${selected ? 'bg-indigo-600 border-indigo-600' : 'bg-white/90 border-slate-300'}`}
+                       ${selected ? 'bg-stone-800 border-stone-800' : 'bg-white/90 border-stone-300'}`}
             aria-hidden="true"
           >
             {selected && (
@@ -75,57 +77,65 @@ export function RecipeCard({ recipe, selectMode = false, selected = false, onTog
         {recipe.photoUrl ? (
           <Image
             src={recipe.photoUrl} alt={recipe.title} fill unoptimized
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            className="object-cover group-hover:scale-103 transition-transform duration-300"
             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
         ) : (
           <PhotoPlaceholder />
         )}
-        {/* Star rating overlay */}
-        {recipe.rating != null && recipe.rating > 0 && (
-          <div className="absolute bottom-2 right-2">
-            <span className="glass rounded-full px-2 py-0.5 text-xs font-semibold text-amber-600 flex items-center gap-0.5">
-              <svg className="w-3 h-3 text-amber-400" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-              {recipe.rating}
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Content */}
       <div className="flex flex-col gap-2 p-4 flex-1">
-        <h3 className="text-sm font-bold text-slate-900 leading-snug group-hover:text-orange-600 transition-colors line-clamp-2">
+        <h3 className="text-sm font-semibold text-stone-900 leading-snug group-hover:text-amber-700 transition-colors line-clamp-2">
           {recipe.title}
         </h3>
         {recipe.description && (
-          <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">{recipe.description}</p>
+          <p className="text-xs text-stone-500 leading-relaxed line-clamp-2">{recipe.description}</p>
         )}
+
+        {/* Rating — interactive when onRatingChange is provided */}
+        {onRatingChange && !selectMode ? (
+          <div
+            onClick={(e) => e.preventDefault()}
+            className="mt-0.5"
+          >
+            <EditableStarRating rating={recipe.rating} onChange={onRatingChange} size="sm" />
+          </div>
+        ) : recipe.rating != null && recipe.rating > 0 ? (
+          <div className="flex items-center gap-0.5 mt-0.5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <svg
+                key={i}
+                className={`w-3.5 h-3.5 ${i < recipe.rating! ? 'text-amber-400' : 'text-stone-200'}`}
+                fill="currentColor"
+                viewBox="0 0 20 20"
+                aria-hidden="true"
+              >
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+            ))}
+          </div>
+        ) : null}
+
         <div className="flex items-center justify-between gap-2 mt-auto pt-1">
           <div className="flex items-center gap-2 flex-wrap">
             {prepLabel && (
-              <span className="text-xs text-slate-400">Vorber. {prepLabel}</span>
+              <span className="text-xs text-stone-400">Vorber. {prepLabel}</span>
             )}
             {cookLabel && (
-              <span className="text-xs text-slate-400">Kochen {cookLabel}</span>
+              <span className="text-xs text-stone-400">Kochen {cookLabel}</span>
             )}
             {!prepLabel && !cookLabel && totalLabel == null && (
-              <span className="text-xs text-slate-400 italic">Keine Zeitangabe</span>
+              <span className="text-xs text-stone-400 italic">Keine Zeitangabe</span>
             )}
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            {recipe.servings != null && (
-              <span className="text-xs text-slate-400">{recipe.servings} Port.</span>
-            )}
-            <div
-              className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
-              style={{ background: 'linear-gradient(135deg, #e0e7ff, #ede9fe)', color: '#4f46e5' }}
-              title={recipe.createdBy.name}
-              aria-label={`Erstellt von ${recipe.createdBy.name}`}
-            >
-              {getInitials(recipe.createdBy.name)}
-            </div>
+          <div
+            className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0 bg-stone-100 text-stone-500"
+            title={recipe.createdBy.name}
+            aria-label={`Erstellt von ${recipe.createdBy.name}`}
+          >
+            {getInitials(recipe.createdBy.name)}
           </div>
         </div>
       </div>

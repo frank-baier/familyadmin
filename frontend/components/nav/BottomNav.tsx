@@ -1,11 +1,5 @@
 'use client';
 
-/**
- * Mobile bottom tab bar.
- * Fixed to viewport, glass-styled, respects safe-area insets.
- * Shown only on small screens (md:hidden).
- */
-
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -89,8 +83,8 @@ export function BottomNav() {
       className="md:hidden fixed bottom-0 inset-x-0 z-40 pb-safe px-3 pt-2"
     >
       <div
-        className="glass-strong rounded-[1.75rem] px-1.5 py-1.5 flex items-center justify-between"
-        style={{ boxShadow: '0 8px 30px rgb(15 23 42 / 0.12), 0 2px 8px rgb(15 23 42 / 0.06)' }}
+        className="bg-white rounded-2xl px-1.5 py-1.5 flex items-center justify-between"
+        style={{ border: '1px solid #e0e0dc', boxShadow: '0 -2px 16px rgb(0 0 0 / 0.06), 0 1px 3px rgb(0 0 0 / 0.04)' }}
       >
         {tabs.map((tab) => {
           const active = isActive(pathname, tab);
@@ -101,24 +95,20 @@ export function BottomNav() {
               aria-current={active ? 'page' : undefined}
               className={[
                 'relative flex-1 flex flex-col items-center justify-center gap-1',
-                'py-2 rounded-2xl min-w-0',
-                'transition-all duration-200',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1',
+                'py-2 rounded-xl min-w-0',
+                'transition-all duration-150',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1',
                 active
                   ? 'text-white'
-                  : 'text-slate-500 hover:text-slate-900 active:scale-95',
+                  : 'text-stone-500 hover:text-stone-900 active:scale-95',
               ].join(' ')}
               style={
                 active
-                  ? {
-                      background:
-                        'linear-gradient(135deg, #6366f1 0%, #8b5cf6 60%, #a855f7 100%)',
-                      boxShadow: '0 6px 16px rgb(99 102 241 / 0.4)',
-                    }
+                  ? { background: '#111111', boxShadow: '0 2px 8px rgb(0 0 0 / 0.25)' }
                   : undefined
               }
             >
-              <span className="w-6 h-6 shrink-0" aria-hidden="true">
+              <span className="w-5 h-5 shrink-0" aria-hidden="true">
                 {tab.icon}
               </span>
               <span className="text-[0.625rem] font-semibold tracking-tight">

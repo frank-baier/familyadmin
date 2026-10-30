@@ -699,6 +699,7 @@ export default function RecipesPage() {
               selectMode={selectMode}
               selected={selectedIds.has(recipe.id)}
               onToggleSelect={() => toggleSelectRecipe(recipe.id)}
+              onRatingChange={(rating) => handleRatingChange(recipe.id, rating)}
             />
           ))}
         </div>

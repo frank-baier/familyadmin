@@ -52,7 +52,7 @@ const navItems: NavItem[] = [
     icon: (
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
-          d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+          d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253" />
       </svg>
     ),
   },
@@ -118,17 +118,14 @@ export function Sidebar() {
 
   return (
     <aside
-      className="glass-strong flex flex-col h-full rounded-3xl overflow-hidden"
+      className="bg-white flex flex-col h-full overflow-hidden"
+      style={{ borderRight: '1px solid #e8e8e4' }}
       aria-label="Hauptnavigation"
     >
       {/* Brand */}
       <div className="flex items-center gap-3 px-5 pt-6 pb-5">
         <span
-          className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
-          style={{
-            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 60%, #a855f7 100%)',
-            boxShadow: '0 6px 16px rgb(99 102 241 / 0.38)',
-          }}
+          className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-stone-900"
           aria-hidden="true"
         >
           <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -137,15 +134,15 @@ export function Sidebar() {
           </svg>
         </span>
         <div>
-          <p className="text-sm font-bold text-slate-900 leading-tight">FamilyAdmin</p>
-          <p className="text-xs text-slate-400 leading-tight">Familie Baier</p>
+          <p className="text-sm font-semibold text-stone-900 leading-tight tracking-tight">FamilyAdmin</p>
+          <p className="text-xs text-stone-400 leading-tight">Familie Baier</p>
         </div>
       </div>
 
-      <div className="hairline mx-4 mb-3" />
+      <div className="hairline mx-4 mb-2" />
 
       {/* Nav links */}
-      <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto py-2">
         <ul role="list">
           {visible.map((item) => {
             const active =
@@ -160,28 +157,22 @@ export function Sidebar() {
                   href={item.href}
                   aria-current={topActive ? 'page' : undefined}
                   className={[
-                    'flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-all duration-150',
-                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1',
+                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150',
+                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1',
                     topActive
-                      ? 'text-white'
-                      : 'text-slate-600 hover:bg-white/50 hover:text-slate-900',
+                      ? 'bg-amber-50 text-amber-800 font-semibold'
+                      : 'text-stone-600 hover:bg-stone-50 hover:text-stone-900 font-medium',
                   ].join(' ')}
-                  style={topActive ? {
-                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                    boxShadow: '0 4px 12px rgb(99 102 241 / 0.35)',
-                  } : undefined}
+                  style={topActive ? { borderLeft: '2px solid #D97706', paddingLeft: '10px' } : { borderLeft: '2px solid transparent', paddingLeft: '10px' }}
                 >
-                  <span className={['w-5 h-5 shrink-0', topActive ? 'text-white' : 'text-slate-400'].join(' ')}>
+                  <span className={['w-4 h-4 shrink-0', topActive ? 'text-amber-700' : 'text-stone-400'].join(' ')}>
                     {item.icon}
                   </span>
                   <span className="flex-1">{item.label}</span>
-                  {topActive && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-white/70" aria-hidden="true" />
-                  )}
                 </Link>
 
                 {item.children && sectionOpen && (
-                  <ul className="mt-0.5 ml-7 space-y-0.5" role="list">
+                  <ul className="mt-0.5 ml-6 space-y-0.5" role="list">
                     {item.children.filter((c) => !c.adminOnly || user?.role === 'ADMIN').map((child) => {
                       const childActive = pathname === child.href || pathname.startsWith(`${child.href}/`);
                       return (
@@ -190,11 +181,11 @@ export function Sidebar() {
                             href={child.href}
                             aria-current={childActive ? 'page' : undefined}
                             className={[
-                              'flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all duration-150',
-                              'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500',
+                              'flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-all duration-150',
+                              'focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500',
                               childActive
-                                ? 'text-indigo-700 font-semibold bg-indigo-50/80'
-                                : 'text-slate-500 hover:text-slate-800 hover:bg-white/40',
+                                ? 'text-amber-700 font-semibold bg-amber-50/70'
+                                : 'text-stone-500 hover:text-stone-800 hover:bg-stone-50',
                             ].join(' ')}
                           >
                             <span className="w-1 h-1 rounded-full bg-current opacity-50 shrink-0" aria-hidden="true" />
