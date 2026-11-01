@@ -11,6 +11,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,6 +20,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Transactional
 public class RecipeService {
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final RecipeRepository recipeRepository;
 
@@ -145,6 +149,34 @@ public class RecipeService {
         recipe.setPhotoData(photoData);
         recipe.setPhotoContentType(contentType);
         return recipeRepository.save(recipe);
+    }
+
+    /** Creates a share token (256 bit, base64url) if none exists yet; idempotent. */
+    public Recipe enableSharing(UUID id) {
+        var recipe = getById(id);
+        if (recipe.getShareToken() == null) {
+            byte[] bytes = new byte[32];
+            SECURE_RANDOM.nextBytes(bytes);
+            recipe.setShareToken(Base64.getUrlEncoder().withoutPadding().encodeToString(bytes));
+        }
+        return recipeRepository.save(recipe);
+    }
+
+    /** Revokes the share link — the old URL stops working immediately. */
+    public Recipe disableSharing(UUID id) {
+        var recipe = getById(id);
+        recipe.setShareToken(null);
+        return recipeRepository.save(recipe);
+    }
+
+    @Transactional(readOnly = true)
+    public Recipe getByShareToken(String token) {
+        // Reject malformed tokens without hitting the DB (43 chars base64url = 32 bytes)
+        if (token == null || !token.matches("[A-Za-z0-9_-]{43}")) {
+            throw new ResourceNotFoundException("Shared recipe not found");
+        }
+        return recipeRepository.findByShareToken(token)
+                .orElseThrow(() -> new ResourceNotFoundException("Shared recipe not found"));
     }
 
     private void requireOwnerOrAdmin(Recipe recipe, User user) {

@@ -12,7 +12,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
 // Paths where unauthenticated access is allowed
-const PUBLIC_PATHS = ['/login', '/tasks/preview'];
+const PUBLIC_PATHS = ['/login', '/tasks/preview', '/share'];
 // Paths where authenticated users should be bounced away (i.e. the login page)
 const AUTH_BOUNCE_PATHS = ['/login'];
 

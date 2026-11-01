@@ -68,6 +68,9 @@ public class Recipe {
 
     private String categories;
 
+    @Column(name = "share_token", length = 64, unique = true)
+    private String shareToken;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;

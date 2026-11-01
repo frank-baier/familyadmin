@@ -81,6 +81,16 @@ public class RecipeController {
         return ResponseEntity.ok(RecipeResponse.from(recipeService.updateRating(id, request.rating(), currentUser)));
     }
 
+    @PostMapping("/{id}/share")
+    public ResponseEntity<RecipeResponse> enableSharing(@PathVariable UUID id) {
+        return ResponseEntity.ok(RecipeResponse.from(recipeService.enableSharing(id)));
+    }
+
+    @DeleteMapping("/{id}/share")
+    public ResponseEntity<RecipeResponse> disableSharing(@PathVariable UUID id) {
+        return ResponseEntity.ok(RecipeResponse.from(recipeService.disableSharing(id)));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id,
                                        @AuthenticationPrincipal User currentUser) {

@@ -34,6 +34,7 @@ export interface Recipe {
   notes: string | null;
   categories: string | null;
   photoUrl: string | null;
+  shareToken: string | null;
   createdBy: User;
   ingredients: RecipeIngredient[];
   steps: RecipeStep[];
@@ -115,6 +116,16 @@ export async function deleteRecipe(id: string): Promise<void> {
 }
 
 /** Update a recipe's star rating (0–5, or null to clear) */
+/** Create (or return the existing) public share link token */
+export async function enableRecipeSharing(id: string): Promise<Recipe> {
+  return apiFetch<Recipe>(`/api/recipes/${id}/share`, { method: 'POST' });
+}
+
+/** Revoke the public share link — the old URL stops working */
+export async function disableRecipeSharing(id: string): Promise<Recipe> {
+  return apiFetch<Recipe>(`/api/recipes/${id}/share`, { method: 'DELETE' });
+}
+
 export async function updateRecipeRating(id: string, rating: number | null): Promise<Recipe> {
   return apiFetch<Recipe>(`/api/recipes/${id}/rating`, {
     method: 'PATCH',

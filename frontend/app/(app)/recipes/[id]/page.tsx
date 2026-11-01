@@ -10,7 +10,7 @@ import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getRecipe, deleteRecipe, updateRecipeRating } from '@/lib/recipes';
+import { getRecipe, deleteRecipe, updateRecipeRating, enableRecipeSharing, disableRecipeSharing } from '@/lib/recipes';
 import type { Recipe } from '@/lib/recipes';
 import { EditableStarRating } from '@/components/recipes/EditableStarRating';
 
@@ -70,6 +70,8 @@ export default function RecipeDetailPage({ params }: PageProps) {
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   useEffect(() => {
     getRecipe(id)
@@ -87,6 +89,44 @@ export default function RecipeDetailPage({ params }: PageProps) {
       setRecipe(updated);
     } catch {
       setRecipe({ ...recipe, rating: previous });
+    }
+  }
+
+  function shareUrl(token: string): string {
+    return `${window.location.origin}/share/recipes/${token}`;
+  }
+
+  async function handleShare() {
+    if (!recipe || shareBusy) return;
+    setShareBusy(true);
+    try {
+      const shared = recipe.shareToken ? recipe : await enableRecipeSharing(recipe.id);
+      setRecipe(shared);
+      const url = shareUrl(shared.shareToken!);
+      // Native share sheet on mobile (→ WhatsApp etc.), clipboard fallback on desktop
+      if (navigator.share) {
+        await navigator.share({ title: shared.title, url }).catch(() => {});
+      } else {
+        await navigator.clipboard.writeText(url);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 2000);
+      }
+    } catch {
+      console.error('Failed to share recipe');
+    } finally {
+      setShareBusy(false);
+    }
+  }
+
+  async function handleRevokeShare() {
+    if (!recipe || shareBusy) return;
+    setShareBusy(true);
+    try {
+      setRecipe(await disableRecipeSharing(recipe.id));
+    } catch {
+      console.error('Failed to revoke share link');
+    } finally {
+      setShareBusy(false);
     }
   }
 
@@ -176,6 +216,23 @@ export default function RecipeDetailPage({ params }: PageProps) {
               {recipe.title}
             </h1>
 
+            <div className="shrink-0 flex items-center gap-2">
+            {/* Share button */}
+            <button
+              onClick={handleShare}
+              disabled={shareBusy}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+                         text-slate-500 border border-slate-200 hover:border-slate-300 hover:text-slate-700
+                         disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-indigo-500
+                         transition-all duration-150"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+              </svg>
+              {shareCopied ? 'Link kopiert' : 'Teilen'}
+            </button>
+
             {/* Edit button */}
             <Link
               href={`/recipes/${recipe.id}/edit`}
@@ -190,7 +247,23 @@ export default function RecipeDetailPage({ params }: PageProps) {
               </svg>
               Bearbeiten
             </Link>
+            </div>
           </div>
+
+          {recipe.shareToken && (
+            <div className="flex items-center gap-2 mt-3 text-xs text-slate-500">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" aria-hidden="true" />
+              <span>Öffentlicher Link aktiv – jeder mit dem Link kann das Rezept sehen.</span>
+              <button
+                onClick={handleRevokeShare}
+                disabled={shareBusy}
+                className="ml-auto shrink-0 text-red-500 hover:text-red-700 disabled:opacity-60
+                           focus:outline-none focus:ring-2 focus:ring-red-400 rounded"
+              >
+                Link widerrufen
+              </button>
+            </div>
+          )}
 
           {/* Metadata row */}
           <div className="flex flex-wrap items-center gap-3 mt-3">

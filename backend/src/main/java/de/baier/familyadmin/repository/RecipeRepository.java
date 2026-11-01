@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
@@ -14,4 +15,5 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
     Page<Recipe> findAllByOrderByTitleAsc(Pageable pageable);
     List<Recipe> findByPhotoDataIsNull();
     long countByPhotoDataIsNull();
+    Optional<Recipe> findByShareToken(String shareToken);
 }
