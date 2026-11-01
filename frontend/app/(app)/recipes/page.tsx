@@ -107,6 +107,35 @@ function RecipeTableView({ recipes, selectMode, selectedIds, onToggleSelect, onR
   );
 }
 
+// ─── Saved view (search survives detail → back, cleared when the app closes) ──
+
+const VIEW_STORAGE_KEY = 'recipes:view';
+
+interface SavedView {
+  query: string;
+  minRating: number;
+  selectedCategory: string;
+  showAll: boolean;
+  scrollY: number;
+}
+
+function readSavedView(): SavedView | null {
+  try {
+    const raw = sessionStorage.getItem(VIEW_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as SavedView) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSavedView(view: SavedView) {
+  try {
+    sessionStorage.setItem(VIEW_STORAGE_KEY, JSON.stringify(view));
+  } catch {
+    // storage unavailable (private mode) — search just isn't remembered
+  }
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function RecipesPage() {
@@ -163,10 +192,68 @@ export default function RecipesPage() {
     }
   }, []);
 
-  // Initial load
+  const runSearch = useCallback(async (trimmed: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await searchRecipes(trimmed);
+      setRecipes(data);
+      setHasMore(false);
+      setIsSearchMode(true);
+    } catch (err) {
+      setError('Suche fehlgeschlagen. Bitte erneut versuchen.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Initial load — restore the previous search/filters if we come back from a recipe
+  const pendingScrollRef = useRef<number | null>(null);
+  const restoredRef = useRef(false);
+  const scrollYRef = useRef(0);
   useEffect(() => {
-    if (sessionReady) loadPage(0, true);
-  }, [sessionReady, loadPage]);
+    if (!sessionReady) return;
+    const saved = readSavedView();
+    if (saved) {
+      setQuery(saved.query);
+      setMinRating(saved.minRating);
+      setSelectedCategory(saved.selectedCategory);
+      setShowAll(saved.showAll);
+      pendingScrollRef.current = saved.scrollY;
+      scrollYRef.current = saved.scrollY;
+    }
+    restoredRef.current = true;
+    const trimmed = saved?.query.trim();
+    if (trimmed) runSearch(trimmed);
+    else loadPage(0, true);
+  }, [sessionReady, loadPage, runSearch]);
+
+  // Jump back to the previous scroll position once the restored list is rendered
+  useEffect(() => {
+    if (loading || pendingScrollRef.current == null) return;
+    const y = pendingScrollRef.current;
+    pendingScrollRef.current = null;
+    requestAnimationFrame(() => window.scrollTo(0, y));
+  }, [loading]);
+
+  // Persist search, filters and scroll position for the back navigation
+  const viewRef = useRef({ query, minRating, selectedCategory, showAll });
+  viewRef.current = { query, minRating, selectedCategory, showAll };
+  useEffect(() => {
+    if (restoredRef.current) writeSavedView({ ...viewRef.current, scrollY: scrollYRef.current });
+  }, [query, minRating, selectedCategory, showAll]);
+  useEffect(() => {
+    const onScroll = () => {
+      // Ignore scroll events until the restored position has been applied
+      if (pendingScrollRef.current == null) scrollYRef.current = window.scrollY;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (restoredRef.current) writeSavedView({ ...viewRef.current, scrollY: scrollYRef.current });
+    };
+  }, []);
 
   // Infinite scroll: stable observer that reads latest state via ref
   const loadMoreRef = useRef<(() => void) | null>(null);
@@ -195,19 +282,7 @@ export default function RecipesPage() {
     debounceRef.current = setTimeout(async () => {
       const trimmed = value.trim();
       if (trimmed) {
-        setLoading(true);
-        setError(null);
-        try {
-          const data = await searchRecipes(trimmed);
-          setRecipes(data);
-          setHasMore(false);
-          setIsSearchMode(true);
-        } catch (err) {
-          setError('Suche fehlgeschlagen. Bitte erneut versuchen.');
-          console.error(err);
-        } finally {
-          setLoading(false);
-        }
+        runSearch(trimmed);
       } else {
         loadPage(0, true);
       }
