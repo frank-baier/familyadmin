@@ -78,10 +78,10 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
     int markAllUnindexedAsSkipped();
 
     @Query(value = """
-            SELECT id FROM documents
-            WHERE NOT EXISTS (SELECT 1 FROM document_chunks dc WHERE dc.document_id = id)
-              AND indexing_skipped = false
-              AND content_type NOT IN ('image/jpeg', 'image/jpg', 'image/heic')
+            SELECT d.id FROM documents d
+            WHERE NOT EXISTS (SELECT 1 FROM document_chunks dc WHERE dc.document_id = d.id)
+              AND d.indexing_skipped = false
+              AND d.content_type NOT IN ('image/jpeg', 'image/jpg', 'image/heic')
             """, nativeQuery = true)
     List<UUID> findUnindexedIds();
 }
