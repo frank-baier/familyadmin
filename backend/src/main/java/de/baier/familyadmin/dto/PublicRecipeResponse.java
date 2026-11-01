@@ -24,7 +24,7 @@ public record PublicRecipeResponse(
         List<Ingredient> ingredients,
         List<Step> steps
 ) {
-    public record Ingredient(String name, BigDecimal amount, String unit, int position) {}
+    public record Ingredient(String name, BigDecimal amount, String unit, int position, String section) {}
 
     public record Step(String text, int position) {}
 
@@ -45,7 +45,7 @@ public record PublicRecipeResponse(
                 recipe.getSourceUrl(),
                 photoUrl,
                 recipe.getIngredients().stream()
-                        .map(i -> new Ingredient(i.getName(), i.getAmount(), i.getUnit(), i.getPosition()))
+                        .map(i -> new Ingredient(i.getName(), i.getAmount(), i.getUnit(), i.getPosition(), i.getSection()))
                         .toList(),
                 recipe.getSteps().stream()
                         .map(s -> new Step(s.getText(), s.getPosition()))

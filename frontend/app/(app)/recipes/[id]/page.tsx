@@ -13,6 +13,7 @@ import Image from 'next/image';
 import { getRecipe, deleteRecipe, updateRecipeRating, enableRecipeSharing, disableRecipeSharing } from '@/lib/recipes';
 import type { Recipe } from '@/lib/recipes';
 import { EditableStarRating } from '@/components/recipes/EditableStarRating';
+import { groupIngredients } from '@/lib/ingredient-groups';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -352,19 +353,28 @@ export default function RecipeDetailPage({ params }: PageProps) {
                   ({sortedIngredients.length})
                 </span>
               </h2>
-              <ul className="space-y-2" aria-label="Zutatenliste">
-                {sortedIngredients.map((ing) => (
-                  <li key={ing.id} className="flex items-center gap-3">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-300 shrink-0" aria-hidden="true" />
-                    <span className="text-sm text-slate-500 w-24 shrink-0 text-right">
-                      {ing.amount != null || ing.unit
-                        ? formatAmount(ing.amount, ing.unit)
-                        : ''}
-                    </span>
-                    <span className="text-sm text-slate-800 font-medium">{ing.name}</span>
-                  </li>
+              <div className="space-y-5">
+                {groupIngredients(sortedIngredients).map((group, gi) => (
+                  <div key={gi}>
+                    {group.section && (
+                      <h3 className="text-sm font-semibold text-slate-700 mb-2">{group.section}</h3>
+                    )}
+                    <ul className="space-y-2" aria-label={group.section ?? 'Zutatenliste'}>
+                      {group.items.map((ing) => (
+                        <li key={ing.id} className="flex items-center gap-3">
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-300 shrink-0" aria-hidden="true" />
+                          <span className="text-sm text-slate-500 w-24 shrink-0 text-right">
+                            {ing.amount != null || ing.unit
+                              ? formatAmount(ing.amount, ing.unit)
+                              : ''}
+                          </span>
+                          <span className="text-sm text-slate-800 font-medium">{ing.name}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
           </>
         )}

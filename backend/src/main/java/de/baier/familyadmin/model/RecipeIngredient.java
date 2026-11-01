@@ -32,6 +32,9 @@ public class RecipeIngredient {
     @Column(length = 50)
     private String unit;
 
+    /** Group heading such as "Für die Gremolata"; null when the recipe has no ingredient groups. */
+    private String section;
+
     @Builder.Default
     private int position = 0;
 }

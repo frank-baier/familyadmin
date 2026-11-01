@@ -15,6 +15,7 @@ export interface RecipeIngredient {
   amount: number | null;
   unit: string;
   position: number;
+  section: string | null;
 }
 
 export interface RecipeStep {
@@ -30,6 +31,11 @@ export interface Recipe {
   servings: number | null;
   prepMinutes: number | null;
   cookMinutes: number | null;
+  totalMinutes: number | null;
+  source: string | null;
+  sourceUrl: string | null;
+  difficulty: string | null;
+  nutritionalInfo: string | null;
   rating: number | null;
   notes: string | null;
   categories: string | null;
@@ -47,6 +53,7 @@ export interface RecipeIngredientRequest {
   amount?: number;
   unit?: string;
   position: number;
+  section?: string;
 }
 
 export interface RecipeStepRequest {
@@ -60,6 +67,15 @@ export interface RecipeRequest {
   servings?: number;
   prepMinutes?: number;
   cookMinutes?: number;
+  // Not editable in the form, but must be sent back on update — PUT replaces all fields
+  totalMinutes?: number;
+  source?: string;
+  sourceUrl?: string;
+  rating?: number;
+  difficulty?: string;
+  notes?: string;
+  nutritionalInfo?: string;
+  categories?: string;
   ingredients?: RecipeIngredientRequest[];
   steps?: RecipeStepRequest[];
 }

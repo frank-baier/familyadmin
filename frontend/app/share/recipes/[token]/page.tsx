@@ -7,6 +7,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getSharedRecipe } from '@/lib/recipes-public';
+import { groupIngredients } from '@/lib/ingredient-groups';
 
 interface PageProps {
   params: Promise<{ token: string }>;
@@ -107,16 +108,25 @@ export default async function SharedRecipePage({ params }: PageProps) {
             <div className="hairline mx-4" />
             <section className="px-6 py-5">
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">Zutaten</h2>
-              <ul className="space-y-2">
-                {ingredients.map((ing, i) => (
-                  <li key={i} className="flex items-baseline gap-3">
-                    <span className="text-sm text-slate-500 w-24 shrink-0 text-right">
-                      {formatAmount(ing.amount, ing.unit)}
-                    </span>
-                    <span className="text-sm text-slate-800 font-medium">{ing.name}</span>
-                  </li>
+              <div className="space-y-5">
+                {groupIngredients(ingredients).map((group, gi) => (
+                  <div key={gi}>
+                    {group.section && (
+                      <h3 className="text-sm font-semibold text-slate-700 mb-2">{group.section}</h3>
+                    )}
+                    <ul className="space-y-2">
+                      {group.items.map((ing, i) => (
+                        <li key={i} className="flex items-baseline gap-3">
+                          <span className="text-sm text-slate-500 w-24 shrink-0 text-right">
+                            {formatAmount(ing.amount, ing.unit)}
+                          </span>
+                          <span className="text-sm text-slate-800 font-medium">{ing.name}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </section>
           </>
         )}

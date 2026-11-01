@@ -32,9 +32,9 @@ public record RecipeResponse(
         Instant createdAt,
         Instant updatedAt
 ) {
-    public record IngredientResponse(UUID id, String name, BigDecimal amount, String unit, int position) {
+    public record IngredientResponse(UUID id, String name, BigDecimal amount, String unit, int position, String section) {
         public static IngredientResponse from(RecipeIngredient i) {
-            return new IngredientResponse(i.getId(), i.getName(), i.getAmount(), i.getUnit(), i.getPosition());
+            return new IngredientResponse(i.getId(), i.getName(), i.getAmount(), i.getUnit(), i.getPosition(), i.getSection());
         }
     }
 

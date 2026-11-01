@@ -20,7 +20,9 @@ import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -44,8 +46,8 @@ public class RecipeUrlImportService {
     /** Fetches the page at the given URL and returns the image URL from its schema.org/Recipe JSON-LD, or null. */
     public String extractPhotoUrl(String pageUrl) {
         try {
-            JsonNode node = extractRecipeJsonLd(pageUrl);
-            return extractImageUrl(node.path("image"));
+            ParsedPage page = extractRecipeJsonLd(pageUrl);
+            return extractImageUrl(page.resolve(page.recipe().path("image")));
         } catch (Exception e) {
             log.debug("No recipe image found at {}: {}", pageUrl, e.getMessage());
             return null;
@@ -55,8 +57,8 @@ public class RecipeUrlImportService {
     @Transactional
     public PaprikaImportService.ImportResult importFromUrl(String url, User currentUser) {
         try {
-            JsonNode node = extractRecipeJsonLd(url);
-            Recipe recipe = buildRecipe(node, url, currentUser);
+            ParsedPage page = extractRecipeJsonLd(url);
+            Recipe recipe = buildRecipe(page, url, currentUser);
             return new PaprikaImportService.ImportResult(recipe.getId(), recipe.getTitle(), "success", null);
         } catch (Exception e) {
             log.warn("Failed to import recipe from URL {}: {}", url, e.getMessage());
@@ -66,25 +68,54 @@ public class RecipeUrlImportService {
 
     // ─── JSON-LD extraction ──────────────────────────────────────────────────
 
-    private JsonNode extractRecipeJsonLd(String url) throws Exception {
+    /**
+     * The recipe node plus every JSON-LD node by its @id — sites like chefkoch.de put image and
+     * author into a @graph and only reference them from the recipe ({"@id": "...#primaryimage"}).
+     */
+    private record ParsedPage(JsonNode recipe, Map<String, JsonNode> nodesById, org.jsoup.nodes.Document doc) {
+        JsonNode resolve(JsonNode node) {
+            if (node != null && node.isObject() && node.size() == 1 && node.has("@id")) {
+                JsonNode target = nodesById.get(node.path("@id").asText());
+                if (target != null) return target;
+            }
+            return node;
+        }
+    }
+
+    private ParsedPage extractRecipeJsonLd(String url) throws Exception {
         String html = restClient.get().uri(url).retrieve().body(String.class);
         if (html == null || html.isBlank()) {
             throw new IllegalArgumentException("Leere Antwort von URL: " + url);
         }
         org.jsoup.nodes.Document doc = Jsoup.parse(html);
+        Map<String, JsonNode> nodesById = new HashMap<>();
+        JsonNode recipe = null;
         for (org.jsoup.nodes.Element script : doc.select("script[type=application/ld+json]")) {
             String json = script.data().strip();
             if (json.isBlank()) continue;
             try {
-                JsonNode found = findRecipeNode(objectMapper.readTree(json));
-                if (found != null) return found;
+                JsonNode tree = objectMapper.readTree(json);
+                collectNodesById(tree, nodesById);
+                if (recipe == null) recipe = findRecipeNode(tree);
             } catch (Exception e) {
                 log.debug("Skipping unparseable ld+json block: {}", e.getMessage());
             }
         }
+        if (recipe != null) return new ParsedPage(recipe, nodesById, doc);
         throw new IllegalArgumentException(
                 "Kein schema.org/Recipe JSON-LD auf der Seite gefunden. " +
                 "Bitte eine direkte Rezept-URL von chefkoch.de oder rezeptewelt.de verwenden.");
+    }
+
+    private void collectNodesById(JsonNode node, Map<String, JsonNode> nodesById) {
+        if (node.isArray()) {
+            for (JsonNode el : node) collectNodesById(el, nodesById);
+        } else if (node.isObject()) {
+            // Only nodes with content are targets — {"@id": ...} alone is itself a reference
+            if (node.has("@id") && node.size() > 1) nodesById.put(node.path("@id").asText(), node);
+            JsonNode graph = node.path("@graph");
+            if (graph.isArray()) collectNodesById(graph, nodesById);
+        }
     }
 
     private JsonNode findRecipeNode(JsonNode node) {
@@ -118,8 +149,15 @@ public class RecipeUrlImportService {
 
     // ─── Recipe builder ──────────────────────────────────────────────────────
 
-    private Recipe buildRecipe(JsonNode node, String sourceUrl, User currentUser) {
+    private Recipe buildRecipe(ParsedPage page, String sourceUrl, User currentUser) {
+        JsonNode node = page.recipe();
+        String author = extractAuthorName(page.resolve(node.path("author")));
+
         String title = node.path("name").asText("Untitled").strip();
+        // chefkoch.de appends the author to the name: "Ossobuco alla Milanese von matze1660"
+        if (author != null && title.endsWith(" von " + author)) {
+            title = title.substring(0, title.length() - (" von " + author).length()).strip();
+        }
         if (title.isBlank()) title = "Untitled";
 
         String rawDesc = node.path("description").asText(null);
@@ -128,11 +166,11 @@ public class RecipeUrlImportService {
         Recipe recipe = Recipe.builder()
                 .title(title)
                 .description(description)
-                .servings(parseServings(node.path("recipeYield").asText(null)))
+                .servings(parseServings(firstText(node.path("recipeYield"))))
                 .prepMinutes(parseDuration(node.path("prepTime").asText(null)))
                 .cookMinutes(parseDuration(node.path("cookTime").asText(null)))
                 .totalMinutes(parseDuration(node.path("totalTime").asText(null)))
-                .source(extractAuthorName(node.path("author")))
+                .source(author)
                 .sourceUrl(sourceUrl)
                 .categories(extractCategories(node.path("recipeCategory")))
                 .createdBy(currentUser)
@@ -151,6 +189,7 @@ public class RecipeUrlImportService {
                     recipe.getIngredients().add(ri);
                 }
             }
+            applyIngredientSections(page.doc(), recipe.getIngredients());
         }
 
         // Steps
@@ -162,7 +201,7 @@ public class RecipeUrlImportService {
         recipe.getSteps().addAll(steps);
 
         // Photo
-        String imageUrl = extractImageUrl(node.path("image"));
+        String imageUrl = extractImageUrl(page.resolve(node.path("image")));
         if (imageUrl != null) {
             byte[] photoBytes = downloadAndCompressPhoto(imageUrl);
             if (photoBytes != null) {
@@ -172,6 +211,29 @@ public class RecipeUrlImportService {
         }
 
         return recipeRepository.save(recipe);
+    }
+
+    // ─── Ingredient sections ─────────────────────────────────────────────────
+
+    /**
+     * JSON-LD only has a flat ingredient list; group headings ("Für die Gremolata:") exist only in
+     * the HTML. chefkoch.de renders one table per group — assign the headings by row count, but only
+     * if the tables account for exactly the imported ingredients (otherwise leave them ungrouped).
+     */
+    private void applyIngredientSections(org.jsoup.nodes.Document doc, List<RecipeIngredient> ingredients) {
+        org.jsoup.select.Elements tables = doc.select("table.ds-ingredients-table");
+        List<String> rowSections = new ArrayList<>();
+        boolean anyHeading = false;
+        for (org.jsoup.nodes.Element table : tables) {
+            org.jsoup.nodes.Element headline = table.selectFirst(".ds-ingredients-table__headline");
+            String section = headline != null ? headline.text().strip().replaceFirst(":$", "").strip() : null;
+            if (section != null && section.isBlank()) section = null;
+            anyHeading |= section != null;
+            int rows = table.select("tbody tr.ds-ingredients-table__tr").size();
+            for (int i = 0; i < rows; i++) rowSections.add(section);
+        }
+        if (!anyHeading || rowSections.size() != ingredients.size()) return;
+        for (int i = 0; i < ingredients.size(); i++) ingredients.get(i).setSection(rowSections.get(i));
     }
 
     // ─── Instruction parsing ─────────────────────────────────────────────────
@@ -298,6 +360,13 @@ public class RecipeUrlImportService {
         return total > 0 ? total : null;
     }
 
+    /** recipeYield may be a string, a number or an array like ["4", "4 Portionen"]. */
+    private String firstText(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull()) return null;
+        if (node.isArray()) return node.size() > 0 ? node.get(0).asText(null) : null;
+        return node.asText(null);
+    }
+
     private Integer parseServings(String s) {
         if (s == null || s.isBlank()) return null;
         Matcher m = Pattern.compile("\\d+").matcher(s);
@@ -314,6 +383,7 @@ public class RecipeUrlImportService {
             return (u != null && !u.isBlank()) ? u : null;
         }
         String u = img.path("url").asText(null);
+        if (u == null || u.isBlank()) u = img.path("contentUrl").asText(null);
         return (u != null && !u.isBlank()) ? u : null;
     }
 

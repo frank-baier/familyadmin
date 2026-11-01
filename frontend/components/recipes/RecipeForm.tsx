@@ -100,6 +100,16 @@ export function RecipeForm({ initialData, redirectTo }: RecipeFormProps) {
       servings,
       prepMinutes,
       cookMinutes,
+      ...(initialData && {
+        totalMinutes: initialData.totalMinutes ?? undefined,
+        source: initialData.source ?? undefined,
+        sourceUrl: initialData.sourceUrl ?? undefined,
+        rating: initialData.rating ?? undefined,
+        difficulty: initialData.difficulty ?? undefined,
+        notes: initialData.notes ?? undefined,
+        nutritionalInfo: initialData.nutritionalInfo ?? undefined,
+        categories: initialData.categories ?? undefined,
+      }),
       ingredients: ingredientRowsToRequest(ingredients),
       steps: steps
         .filter((s) => s.trim().length > 0)

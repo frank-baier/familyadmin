@@ -21,7 +21,7 @@ export interface PublicRecipe {
   source: string | null;
   sourceUrl: string | null;
   photoUrl: string | null;
-  ingredients: { name: string; amount: number | null; unit: string; position: number }[];
+  ingredients: { name: string; amount: number | null; unit: string; position: number; section: string | null }[];
   steps: { text: string; position: number }[];
 }
 

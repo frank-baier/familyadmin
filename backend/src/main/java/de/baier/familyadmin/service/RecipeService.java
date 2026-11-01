@@ -72,6 +72,7 @@ public class RecipeService {
                             .amount(i.amount())
                             .unit(i.unit())
                             .position(i.position())
+                            .section(i.section())
                             .build()));
         }
 
@@ -114,6 +115,7 @@ public class RecipeService {
                             .amount(i.amount())
                             .unit(i.unit())
                             .position(i.position())
+                            .section(i.section())
                             .build()));
         }
 

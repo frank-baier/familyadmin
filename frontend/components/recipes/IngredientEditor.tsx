@@ -22,6 +22,7 @@ export interface IngredientRow {
   name: string;
   amount: string; // string for input, parsed to number on submit
   unit: Unit;
+  section?: string | null; // group heading from import, kept as-is when editing
 }
 
 interface IngredientEditorProps {
@@ -46,7 +47,9 @@ export function IngredientEditor({ items, onChange }: IngredientEditorProps) {
   function addItem(afterIndex?: number) {
     const newItems = [...items];
     const insertAt = afterIndex !== undefined ? afterIndex + 1 : items.length;
-    newItems.splice(insertAt, 0, { name: '', amount: '', unit: '' });
+    // New rows join the group of the row they're inserted after
+    const section = items[insertAt - 1]?.section ?? null;
+    newItems.splice(insertAt, 0, { name: '', amount: '', unit: '', section });
     onChange(newItems);
     setJustAddedIdx(insertAt);
   }
@@ -139,6 +142,10 @@ export function IngredientEditor({ items, onChange }: IngredientEditorProps) {
                        transition-colors duration-150"
             aria-label={`Einheit für Zutat ${index + 1}`}
           >
+            {/* Imported units (e.g. "EL", "Bund") aren't in UNITS — show them instead of a blank select */}
+            {!(UNITS as readonly string[]).includes(item.unit) && (
+              <option value={item.unit}>{item.unit}</option>
+            )}
             {UNITS.map((u) => (
               <option key={u} value={u}>
                 {u === '' ? '—' : u}
@@ -210,6 +217,7 @@ export function ingredientRowsToRequest(rows: IngredientRow[]): import('@/lib/re
       amount: r.amount ? parseFloat(r.amount) : undefined,
       unit: r.unit || undefined,
       position,
+      section: r.section || undefined,
     }));
 }
 
@@ -218,5 +226,6 @@ export function ingredientToRow(ing: import('@/lib/recipes').RecipeIngredient): 
     name: ing.name,
     amount: ing.amount != null ? String(ing.amount) : '',
     unit: (ing.unit as Unit) ?? '',
+    section: ing.section,
   };
 }

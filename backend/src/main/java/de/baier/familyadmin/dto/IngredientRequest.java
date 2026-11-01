@@ -8,5 +8,6 @@ public record IngredientRequest(
         @NotBlank String name,
         BigDecimal amount,
         String unit,
-        int position
+        int position,
+        String section
 ) {}
