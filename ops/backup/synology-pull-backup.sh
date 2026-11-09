@@ -8,10 +8,15 @@
 # Setup on the Synology (once):
 #   1. ssh-keygen -t ed25519 -N "" -f /volume1/backup/familyadmin/.ssh/id_ed25519
 #   2. On the Mac, from the repo root: bash ops/backup/install-server.sh "<contents of id_ed25519.pub>"
-#   3. As root, trust the server's host key once:  ssh-keyscan -t ed25519 178.104.152.16 >> /root/.ssh/known_hosts
+#   3. Pin the server's host key next to the client key (DSM has no ssh-keyscan, and Task Scheduler
+#      does not run with root's $HOME, so /root/.ssh/known_hosts is NOT read):
+#      echo "178.104.152.16 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK97sipBPSGjg1IxzSAypuNMQeYXkJ2pid9VWnMXcAg2" \
+#          > /volume1/backup/familyadmin/.ssh/known_hosts
 #   4. DSM → Control Panel → Task Scheduler → Create → Scheduled Task → User-defined script
-#      User: root, daily 03:00, command: bash /volume1/backup/familyadmin/synology-pull-backup.sh
+#      User: root, daily at 08:30, command: bash /volume1/backup/familyadmin/synology-pull-backup.sh
 #      Enable "Send run details by email" → "only when the script terminates abnormally".
+#      The NAS uses HDD hibernation only (DSM keeps running, never reboots), so a boot trigger never
+#      fires but a fixed time always does. Hourly runs would wake the disks just to skip (see MARKER).
 #
 # Restore: pg_restore --clean --if-exists -U <user> -d familyadmin <file>.dump
 set -euo pipefail
@@ -25,19 +30,32 @@ KEEP_MONTHLY=12
 
 mkdir -p "$DEST/daily" "$DEST/weekly" "$DEST/monthly"
 stamp=$(date +%Y-%m-%d)
+# At most one dump per day. The marker lives in /tmp (RAM) so the hourly check doesn't wake the
+# disks; after a reboot it's gone and the day's dump is simply taken again, which is harmless.
+MARKER="${MARKER_DIR:-/tmp}/familyadmin-backup-$stamp.done"
+[ -e "$MARKER" ] && exit 0
 file="familyadmin-$stamp.dump"
 tmp="$DEST/.incoming-$file"
 trap 'rm -f "$tmp"' EXIT
 
-ssh -T -i "$KEY" -o BatchMode=yes -o ServerAliveInterval=30 "$HOST" > "$tmp"
+server() {
+    ssh -T -i "$KEY" -o BatchMode=yes -o ServerAliveInterval=30 \
+        -o UserKnownHostsFile="$DEST/.ssh/known_hosts" -o StrictHostKeyChecking=yes \
+        "$HOST" "$1" < /dev/null
+}
 
-# Custom-format dumps start with the magic bytes "PGDMP"
-if [ "$(head -c 5 "$tmp")" != "PGDMP" ]; then
-    echo "ERROR: received file is not a pg_dump archive" >&2
+server dump > "$tmp"
+
+# A transfer can end early yet still report success (it did on 2026-11-09), so compare
+# against the checksum and size the server computed for the dump it sent
+expected=$(server verify)
+size=$(wc -c < "$tmp" | tr -d " ")
+actual="$(sha256sum < "$tmp" | cut -d' ' -f1) $size"
+if [ "$actual" != "$expected" ]; then
+    echo "ERROR: incomplete transfer — server sent '$expected', received '$actual'" >&2
     exit 1
 fi
 
-size=$(wc -c < "$tmp" | tr -d " ")
 warn=""
 dailies=("$DEST"/daily/*.dump)
 prev="${dailies[${#dailies[@]}-1]}"
@@ -64,6 +82,7 @@ prune "$DEST/daily" "$KEEP_DAILY"
 prune "$DEST/weekly" "$KEEP_WEEKLY"
 prune "$DEST/monthly" "$KEEP_MONTHLY"
 
+touch "$MARKER"
 echo "OK: $file ($size bytes)"
 if [ -n "$warn" ]; then
     echo "$warn" >&2

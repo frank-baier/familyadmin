@@ -1,10 +1,36 @@
 #!/bin/sh
-# Streams a compressed pg_dump (custom format) of the FamilyAdmin database to stdout.
+# Backup endpoint for the Synology, installed as /usr/local/bin/familyadmin-dump (root:root, 0755).
+# The Synology connects as user `fabackup`, whose SSH key is pinned to this script via a forced
+# command; sudo allows exactly these two invocations:
 #
-# Installed on the Hetzner server as /usr/local/bin/familyadmin-dump (root:root, 0755).
-# The Synology connects as user `fabackup`, whose SSH key is pinned to this script via a
-# forced command, so the key can do nothing except produce a dump. See synology-pull-backup.sh.
+#   familyadmin-dump dump    write a dump to a temp file, check it is complete, stream it to stdout
+#   familyadmin-dump verify  print "<sha256> <bytes>" of that dump, then delete it
+#
+# The dump goes to a file first because streaming straight out of `docker compose exec` ended early
+# with exit 0 (2026-11-09), producing truncated backups that looked successful.
 set -eu
-cd /root/familyadmin
-exec docker compose -f docker-compose.prod.yml exec -T postgres \
-    sh -c 'pg_dump --format=custom --compress=6 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+
+OUT=/var/tmp/familyadmin-backup.dump
+CONTAINER=familyadmin-postgres-1
+
+case "${1:-}" in
+dump)
+    rm -f "$OUT" "$OUT.part"
+    docker exec "$CONTAINER" \
+        sh -c 'pg_dump --format=custom --compress=6 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
+        < /dev/null > "$OUT.part"
+    # Reads every data block — fails if the archive is truncated or corrupt
+    docker exec -i "$CONTAINER" pg_restore --file=/dev/null < "$OUT.part"
+    mv "$OUT.part" "$OUT"
+    cat "$OUT"
+    ;;
+verify)
+    [ -f "$OUT" ] || { echo "no dump to verify" >&2; exit 1; }
+    printf '%s %s\n' "$(sha256sum < "$OUT" | cut -d' ' -f1)" "$(wc -c < "$OUT")"
+    rm -f "$OUT"
+    ;;
+*)
+    echo "usage: familyadmin-dump dump|verify" >&2
+    exit 2
+    ;;
+esac
