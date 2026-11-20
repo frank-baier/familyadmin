@@ -6,14 +6,18 @@
 # hardlinks to the daily file, so they cost no extra space until the daily copy is pruned.
 #
 # Setup on the Synology (once):
-#   1. ssh-keygen -t ed25519 -N "" -f /volume1/backup/familyadmin/.ssh/id_ed25519
+#   1. mkdir -m 700 /volume1/@familyadmin-backup
+#      ssh-keygen -t ed25519 -N "" -f /volume1/@familyadmin-backup/id_ed25519
+#      (Not inside the backup share: shared folders apply Synology ACLs that override chmod and
+#      left the private key world-readable. @-folders at the volume root are never shared.)
 #   2. On the Mac, from the repo root: bash ops/backup/install-server.sh "<contents of id_ed25519.pub>"
 #   3. Pin the server's host key next to the client key (DSM has no ssh-keyscan, and Task Scheduler
 #      does not run with root's $HOME, so /root/.ssh/known_hosts is NOT read):
 #      echo "178.104.152.16 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK97sipBPSGjg1IxzSAypuNMQeYXkJ2pid9VWnMXcAg2" \
-#          > /volume1/backup/familyadmin/.ssh/known_hosts
+#          > /volume1/@familyadmin-backup/known_hosts
 #   4. DSM → Control Panel → Task Scheduler → Create → Scheduled Task → User-defined script
-#      User: root, daily at 08:30, command: bash /volume1/backup/familyadmin/synology-pull-backup.sh
+#      User: root, daily at 08:30, command: bash /volume1/@familyadmin-backup/synology-pull-backup.sh
+#      (The script runs as root, so it lives next to the key, not in the share where it could be edited.)
 #      Enable "Send run details by email" → "only when the script terminates abnormally".
 #      The NAS uses HDD hibernation only (DSM keeps running, never reboots), so a boot trigger never
 #      fires but a fixed time always does. Hourly runs would wake the disks just to skip (see MARKER).
@@ -23,7 +27,8 @@ set -euo pipefail
 
 HOST="${HOST:-fabackup@178.104.152.16}"
 DEST="${DEST:-/volume1/backup/familyadmin}"
-KEY="$DEST/.ssh/id_ed25519"
+SSH_DIR="${SSH_DIR:-/volume1/@familyadmin-backup}"
+KEY="$SSH_DIR/id_ed25519"
 KEEP_DAILY=7
 KEEP_WEEKLY=4
 KEEP_MONTHLY=12
@@ -34,13 +39,17 @@ stamp=$(date +%Y-%m-%d)
 # disks; after a reboot it's gone and the day's dump is simply taken again, which is harmless.
 MARKER="${MARKER_DIR:-/tmp}/familyadmin-backup-$stamp.done"
 [ -e "$MARKER" ] && exit 0
+# A slow transfer can outlast the hourly interval; the next run must not touch the same temp file
+# (on 2026-11-20 its cleanup deleted the dump still being received). /tmp is cleared at power-off.
+LOCK="${MARKER_DIR:-/tmp}/familyadmin-backup.lock"
+mkdir "$LOCK" 2>/dev/null || exit 0
 file="familyadmin-$stamp.dump"
 tmp="$DEST/.incoming-$file"
-trap 'rm -f "$tmp"' EXIT
+trap 'rm -f "$tmp"; rmdir "$LOCK"' EXIT
 
 server() {
     ssh -T -i "$KEY" -o BatchMode=yes -o ServerAliveInterval=30 \
-        -o UserKnownHostsFile="$DEST/.ssh/known_hosts" -o StrictHostKeyChecking=yes \
+        -o UserKnownHostsFile="$SSH_DIR/known_hosts" -o StrictHostKeyChecking=yes \
         "$HOST" "$1" < /dev/null
 }
 
