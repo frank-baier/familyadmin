@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { askQuestion, getChatHistory, deleteChatHistoryEntry, type ChatHistoryEntry } from '@/lib/documents';
 
-const POLL_INTERVAL_MS = 5000;
+const POLL_INTERVAL_MS = 2000;
 
 // ─── Source badge ─────────────────────────────────────────────────────────────
 
@@ -30,6 +30,13 @@ function HistoryCard({
   const [open, setOpen] = useState(entry.status === 'DONE' || entry.status === 'ERROR');
   const isPending = entry.status === 'PENDING';
   const isError = entry.status === 'ERROR';
+
+  // A streamed answer was visible while pending — keep it open once it is finished.
+  const [prevStatus, setPrevStatus] = useState(entry.status);
+  if (prevStatus !== entry.status) {
+    setPrevStatus(entry.status);
+    if (entry.status !== 'PENDING') setOpen(true);
+  }
 
   function formatDate(iso: string) {
     return new Date(iso).toLocaleString('de-CH', {
@@ -60,7 +67,7 @@ function HistoryCard({
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-slate-800 line-clamp-2">{entry.question}</p>
           <p className={`text-xs mt-0.5 ${isPending ? 'text-amber-500' : 'text-slate-400'}`}>
-            {isPending ? 'KI denkt nach…' : formatDate(entry.createdAt)}
+            {isPending ? (entry.answer ? 'KI schreibt…' : 'KI denkt nach…') : formatDate(entry.createdAt)}
           </p>
         </div>
         {!isPending && (
@@ -84,6 +91,15 @@ function HistoryCard({
           </button>
         )}
       </button>
+
+      {isPending && entry.answer && (
+        <div className="px-4 pb-4 pt-1 border-t border-slate-100">
+          <div className="glass rounded-xl px-3.5 py-3 text-sm leading-relaxed whitespace-pre-wrap text-slate-800">
+            {entry.answer}
+            <span className="inline-block w-1.5 h-3.5 ml-0.5 align-middle bg-amber-400 animate-pulse rounded-sm" />
+          </div>
+        </div>
+      )}
 
       {open && !isPending && (
         <div className="px-4 pb-4 pt-1 border-t border-slate-100">

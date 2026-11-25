@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Service
@@ -14,50 +15,53 @@ import java.util.stream.Collectors;
 @Slf4j
 public class RAGService {
 
+    private static final int CANDIDATES_PER_RETRIEVER = 20;
+    private static final int CONTEXT_CHUNKS = 6;
+    private static final double TEMPERATURE = 0.1;
+
+    static final String NOT_FOUND = "Dazu habe ich in deinen Dokumenten nichts gefunden.";
+
     private final OllamaService ollamaService;
     private final JdbcTemplate jdbcTemplate;
 
     public ChatResponse query(String question) {
-        float[] queryEmbedding = ollamaService.embed(question);
-        String vectorStr = toVectorString(queryEmbedding);
+        return query(question, partial -> {});
+    }
 
-        List<ChunkResult> chunks = jdbcTemplate.query(
-                """
-                SELECT dc.chunk_text, d.filename
-                FROM document_chunks dc
-                JOIN documents d ON d.id = dc.document_id
-                ORDER BY dc.embedding <=> ?::vector
-                LIMIT 5
-                """,
-                (rs, rowNum) -> new ChunkResult(rs.getString("chunk_text"), rs.getString("filename")),
-                vectorStr);
+    public ChatResponse query(String question, Consumer<String> onPartial) {
+        List<ChunkResult> chunks = retrieve(question);
 
         if (chunks.isEmpty()) {
             return new ChatResponse(
-                    "No documents have been indexed yet. Please upload some documents first.",
+                    "Es sind noch keine Dokumente indexiert. Bitte lade zuerst Dokumente hoch.",
                     List.of());
         }
 
         String context = chunks.stream()
-                .map(c -> "[" + c.filename() + "]\n" + c.chunkText())
-                .collect(Collectors.joining("\n\n"));
+                .map(ChunkResult::asContext)
+                .collect(Collectors.joining("\n\n---\n\n"));
 
         String prompt = """
-                You are a helpful assistant answering questions about personal family documents.
-                Answer based ONLY on the document excerpts provided below.
-                If the answer is not in the documents, say exactly: "I could not find this information in the available documents."
-                Be concise and precise. For dates, amounts, and names, be exact.
+                Du bist ein sorgfältiger Assistent, der Fragen zu den persönlichen Dokumenten einer Familie beantwortet.
 
-                Documents:
+                Regeln:
+                - Antworte ausschließlich anhand der Dokumentauszüge unten. Nutze kein Vorwissen.
+                - Steht die Antwort nicht in den Auszügen, antworte genau: "%s"
+                - Übernimm Daten, Beträge, Nummern und Namen exakt so, wie sie im Dokument stehen.
+                - Nenne bei jeder Angabe in Klammern den Dateinamen, aus dem sie stammt.
+                - Antworte kurz und auf Deutsch.
+
+                Dokumentauszüge:
+
                 %s
 
-                Question: %s
-                Answer:""".formatted(context, question);
+                Frage: %s
+                Antwort:""".formatted(NOT_FOUND, context, question);
 
         log.debug("RAG query: '{}' — {} chunks from {} sources", question, chunks.size(),
                 chunks.stream().map(ChunkResult::filename).distinct().count());
 
-        String answer = ollamaService.generate(prompt);
+        String answer = ollamaService.generateStreaming(prompt, TEMPERATURE, onPartial);
 
         List<String> sources = chunks.stream()
                 .map(ChunkResult::filename)
@@ -65,6 +69,61 @@ public class RAGService {
                 .toList();
 
         return new ChatResponse(answer.strip(), sources);
+    }
+
+    /**
+     * Hybrid retrieval: semantic vector search (finds paraphrases) plus German full-text
+     * search (finds exact terms such as invoice numbers, names, amounts), merged with
+     * Reciprocal Rank Fusion. Chunks still waiting for re-embedding are found via full text.
+     */
+    private List<ChunkResult> retrieve(String question) {
+        String vectorStr = toVectorString(ollamaService.embed(question));
+
+        return jdbcTemplate.query(
+                """
+                WITH q AS (
+                    SELECT to_tsquery('german',
+                             replace(plainto_tsquery('german', ?)::text, ' & ', ' | ')) AS tsq
+                ),
+                vec AS (
+                    SELECT id, row_number() OVER (ORDER BY dist) AS rnk
+                    FROM (
+                        SELECT id, embedding <=> ?::vector AS dist
+                        FROM document_chunks
+                        WHERE embedding IS NOT NULL
+                        ORDER BY dist
+                        LIMIT ?
+                    ) v
+                ),
+                kw AS (
+                    SELECT id, row_number() OVER (ORDER BY rank DESC) AS rnk
+                    FROM (
+                        SELECT dc.id, ts_rank_cd(dc.search_tsv, q.tsq) AS rank
+                        FROM document_chunks dc, q
+                        WHERE dc.search_tsv @@ q.tsq
+                        ORDER BY rank DESC
+                        LIMIT ?
+                    ) k
+                ),
+                fused AS (
+                    SELECT id, SUM(1.0 / (60 + rnk)) AS score
+                    FROM (SELECT * FROM vec UNION ALL SELECT * FROM kw) u
+                    GROUP BY id
+                )
+                SELECT dc.chunk_text, d.filename, d.category, d.subcategory, d.year
+                FROM fused f
+                JOIN document_chunks dc ON dc.id = f.id
+                JOIN documents d ON d.id = dc.document_id
+                ORDER BY f.score DESC
+                LIMIT ?
+                """,
+                (rs, rowNum) -> new ChunkResult(
+                        rs.getString("chunk_text"),
+                        rs.getString("filename"),
+                        rs.getString("category"),
+                        rs.getString("subcategory"),
+                        rs.getObject("year", Integer.class)),
+                question, vectorStr, CANDIDATES_PER_RETRIEVER, CANDIDATES_PER_RETRIEVER, CONTEXT_CHUNKS);
     }
 
     private String toVectorString(float[] embedding) {
@@ -76,5 +135,16 @@ public class RAGService {
         return sb.append("]").toString();
     }
 
-    private record ChunkResult(String chunkText, String filename) {}
+    private record ChunkResult(String chunkText, String filename, String category,
+                               String subcategory, Integer year) {
+        String asContext() {
+            StringBuilder header = new StringBuilder("[Datei: ").append(filename);
+            if (category != null && !category.isBlank()) {
+                header.append(" | Kategorie: ").append(category);
+                if (subcategory != null && !subcategory.isBlank()) header.append(" / ").append(subcategory);
+            }
+            if (year != null) header.append(" | Jahr: ").append(year);
+            return header.append("]\n").append(chunkText).toString();
+        }
+    }
 }

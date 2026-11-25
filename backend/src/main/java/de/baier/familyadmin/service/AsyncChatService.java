@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 @Service
@@ -16,13 +17,26 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AsyncChatService {
 
+    // How often the partial answer is written to the DB while it is being generated.
+    // The frontend polls the history and shows the answer as it grows.
+    private static final long PARTIAL_SAVE_INTERVAL_MS = 1_500;
+
     private final RAGService ragService;
     private final ChatHistoryRepository chatHistoryRepository;
 
     @Async
     public void processQuery(UUID historyId, String question) {
         try {
-            ChatResponse result = ragService.query(question);
+            AtomicLong lastSave = new AtomicLong(System.currentTimeMillis());
+            ChatResponse result = ragService.query(question, partial -> {
+                long now = System.currentTimeMillis();
+                if (now - lastSave.get() < PARTIAL_SAVE_INTERVAL_MS) return;
+                lastSave.set(now);
+                chatHistoryRepository.findById(historyId).ifPresent(entry -> {
+                    entry.setAnswer(partial);
+                    chatHistoryRepository.save(entry);
+                });
+            });
             chatHistoryRepository.findById(historyId).ifPresent(entry -> {
                 entry.setAnswer(result.answer());
                 entry.setSources(result.sources().stream().collect(Collectors.joining(",")));
