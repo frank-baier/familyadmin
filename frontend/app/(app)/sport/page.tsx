@@ -14,6 +14,7 @@ import { EfficiencyCard, IntensityCard, Vo2maxCard } from '@/components/sport/Fi
 import { CumulativeChart, MonthsChart, YearsChart, type Metric } from '@/components/sport/VolumeCharts';
 import { HabitsCard, Heatmap, Insights, KpiTiles, LifetimeCard, RecentCard, RecordsCard } from '@/components/sport/Overview';
 import { SportSettings, StravaImport } from '@/components/sport/ImportAndSettings';
+import { HealthSection } from '@/components/sport/HealthSection';
 
 export default function SportPage() {
   const [stats, setStats] = useState<SportStats | null>(null);
@@ -62,6 +63,8 @@ export default function SportPage() {
           <button onClick={load} className="font-medium underline shrink-0 ml-4">Erneut versuchen</button>
         </div>
       )}
+
+      <HealthSection />
 
       {loading ? (
         <div className="space-y-4">
