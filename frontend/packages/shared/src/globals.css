@@ -1,0 +1,262 @@
+@import "tailwindcss";
+/* Scan the shared components too — they live outside the app directory. */
+@source "./";
+
+/* ─── Design Tokens (Ledger) ─────────────────────────────────────────────── */
+
+@theme {
+  --color-bg:        #fafaf7;
+  --color-bg-2:      #f5f5f2;
+  --color-surface:   #ffffff;
+  --color-ink:       #111111;
+  --color-ink-soft:  #6b6b64;
+  --color-muted:     #a8a8a2;
+  --color-hairline:  #e8e8e4;
+
+  --color-accent:       #d97706;
+  --color-accent-hover: #b45309;
+  --color-accent-50:    #fffbeb;
+  --color-accent-100:   #fef3c7;
+  --color-accent-500:   #d97706;
+  --color-accent-600:   #b45309;
+  --color-accent-700:   #92400e;
+  --color-accent-2:     #f59e0b;
+  --color-accent-warm:  #d97706;
+
+  --font-sans: var(--font-outfit);
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius-card: 0.75rem;
+  --radius-pill: 9999px;
+
+  --shadow-soft:   0 1px 3px rgb(0 0 0 / 0.06), 0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow-lift:   0 4px 12px rgb(0 0 0 / 0.08), 0 2px 4px rgb(0 0 0 / 0.05);
+  --shadow-accent: 0 4px 12px rgb(217 119 6 / 0.25);
+}
+
+/* ─── Base ───────────────────────────────────────────────────────────────── */
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  html {
+    min-height: 100dvh;
+    background-color: #fafaf7;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    color: #111111;
+    font-family: var(--font-outfit), ui-sans-serif, system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.005em;
+    min-height: 100dvh;
+  }
+  h1, h2, h3, h4, h5 {
+    letter-spacing: -0.02em;
+  }
+  ::selection {
+    background: rgb(217 119 6 / 0.2);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* ─── Components ─────────────────────────────────────────────────────────── */
+
+@layer components {
+
+  /* Card surfaces — replaces all former glass variants */
+  .glass {
+    background: #ffffff;
+    border: 1px solid #e8e8e4;
+    box-shadow: var(--shadow-soft);
+  }
+  .glass-strong {
+    background: #ffffff;
+    border: 1px solid #e0e0dc;
+    box-shadow: var(--shadow-soft);
+  }
+  .glass-subtle {
+    background: #f5f5f2;
+    border: 1px solid #e8e8e4;
+  }
+  .glass-interactive {
+    background: #ffffff;
+    border: 1px solid #e8e8e4;
+    box-shadow: var(--shadow-soft);
+    transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  }
+  .glass-interactive:hover {
+    background: #f5f5f2;
+    border-color: #d4d4ce;
+    box-shadow: var(--shadow-lift);
+  }
+  .glass-interactive:focus-visible {
+    outline: 2px solid #d97706;
+    outline-offset: 2px;
+  }
+
+  .card {
+    background: #ffffff;
+    border: 1px solid #e8e8e4;
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-soft);
+  }
+
+  /* Buttons */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 2.75rem;
+    padding: 0 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #ffffff;
+    border-radius: var(--radius-pill);
+    background: #111111;
+    border: 1px solid #111111;
+    transition: background-color 150ms ease, transform 100ms ease;
+    cursor: pointer;
+    letter-spacing: 0.005em;
+  }
+  .btn-primary:hover {
+    background: #333333;
+    border-color: #333333;
+    transform: translateY(-1px);
+  }
+  .btn-primary:active  { transform: translateY(0); }
+  .btn-primary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .btn-primary:focus-visible {
+    outline: 2px solid #d97706;
+    outline-offset: 2px;
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 2.75rem;
+    padding: 0 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #111111;
+    border-radius: var(--radius-pill);
+    background: #ffffff;
+    border: 1px solid #e0e0dc;
+    transition: background-color 150ms ease, border-color 150ms ease;
+    cursor: pointer;
+  }
+  .btn-secondary:hover {
+    background: #f5f5f2;
+    border-color: #c8c8c2;
+  }
+  .btn-secondary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .btn-secondary:focus-visible {
+    outline: 2px solid #d97706;
+    outline-offset: 2px;
+  }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 2.5rem;
+    padding: 0 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6b6b64;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    border: none;
+    transition: background-color 150ms ease, color 150ms ease;
+    cursor: pointer;
+  }
+  .btn-ghost:hover {
+    background: #f5f5f2;
+    color: #111111;
+  }
+
+  /* Compact pill badge */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.625rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    border-radius: var(--radius-pill);
+    letter-spacing: 0.01em;
+  }
+
+  /* Section eyebrow */
+  .section-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: #a8a8a2;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* Input */
+  .input-field {
+    width: 100%;
+    height: 2.75rem;
+    padding: 0 0.875rem;
+    font-size: 0.9375rem;
+    color: #111111;
+    background: #ffffff;
+    border: 1px solid #e0e0dc;
+    border-radius: 0.5rem;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+  .input-field::placeholder { color: #a8a8a2; }
+  .input-field:hover        { border-color: #c8c8c2; }
+  .input-field:focus {
+    outline: none;
+    border-color: #d97706;
+    box-shadow: 0 0 0 3px rgb(217 119 6 / 0.12);
+  }
+  .input-field:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #f5f5f2;
+  }
+  textarea.input-field {
+    height: auto;
+    min-height: 6rem;
+    padding: 0.75rem 0.875rem;
+    resize: vertical;
+  }
+
+  /* Hairline divider */
+  .hairline {
+    height: 1px;
+    background: #e8e8e4;
+  }
+
+  /* Accent text */
+  .text-gradient {
+    color: #d97706;
+  }
+}
+
+/* ─── Safe-area helpers ──────────────────────────────────────────────────── */
+.pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0.5rem); }
+.pt-safe  { padding-top:    max(env(safe-area-inset-top),    0.5rem); }

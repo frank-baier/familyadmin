@@ -9,7 +9,10 @@ FamilyAdmin is a self-hosted family management app. It covers tasks, recipes, me
 ```
 familyadmin/
 ├── backend/          # Spring Boot 3 + Java 21 REST API
-├── frontend/         # Next.js 16 + React 19 (App Router)
+├── frontend/         # npm workspaces: Next.js 16 + React 19 (App Router)
+│   ├── apps/portal/      #   the app (app/, components/, lib/, proxy.ts)
+│   └── packages/shared/  #   @familyadmin/shared: api, auth, user context, module
+│                         #   routing, app shell, nav, login page, globals.css
 ├── docker-compose.yml          # Dev (postgres + mailpit)
 ├── docker-compose.prod.yml     # Prod (postgres, backend, frontend, caddy)
 └── Caddyfile                   # Reverse proxy routing
@@ -130,6 +133,8 @@ HikariCP max pool = 5 (sized for Railway free tier constraints).
 
 ### Route Structure
 
+Paths below are relative to `frontend/apps/portal/`. Code in `packages/shared/src/` is imported as `@familyadmin/shared/<name>`; a new file there needs an entry in its `package.json` `exports`.
+
 ```
 app/
 ├── (auth)/login/          # Login page (centered layout)
@@ -156,9 +161,9 @@ app/
 
 | File | Purpose |
 |------|---------|
-| `lib/api.ts` | `apiFetch()` + `apiFetchMultipart()` — adds auth header, auto-refresh on 401, JSON error handling |
-| `lib/auth.ts` | `login()`, `logout()`, `refreshToken()`, `getCurrentUser()` |
-| `lib/user-context.tsx` | React Context for current user + `sessionReady` flag |
+| `shared: api.ts` | `apiFetch()` + `apiFetchMultipart()` — adds auth header, auto-refresh on 401, JSON error handling |
+| `shared: auth.ts` | `login()`, `logout()`, `refreshToken()`, `getCurrentUser()` |
+| `shared: user-context.tsx` | React Context for current user + `sessionReady` flag |
 | `lib/tasks.ts` | Task CRUD API calls |
 | `lib/recipes.ts` | Recipe CRUD API calls |
 | `lib/recipes-mealplan.ts` | Meal plan API calls |
@@ -168,7 +173,7 @@ app/
 
 ### API Communication
 
-All API calls use `apiFetch<T>('/api/...', options)` from `lib/api.ts`.
+All API calls use `apiFetch<T>('/api/...', options)` from `@familyadmin/shared/api`.
 - Injects `Authorization: Bearer <token>` automatically
 - Sends cookies (`credentials: 'include'`) for HttpOnly refresh token
 - Base URL from `NEXT_PUBLIC_API_URL` env var
@@ -182,8 +187,8 @@ No external component library. All custom with Tailwind CSS.
 | `components/tasks/` | TaskCard, TaskForm, ChecklistEditor, ChecklistItem, TemplateForm |
 | `components/recipes/` | RecipeCard, RecipeForm, IngredientEditor, StepEditor, RecipePicker, WeeklyPlanner, MealSlotCell |
 | `components/travel/` | TripCard, TripForm, PackingList |
-| `components/nav/` | Sidebar (role-based links), UserMenu |
-| `components/` | SessionRestorer |
+| `shared: nav/` | Sidebar (role-based links), BottomNav, MobileHeader, UserMenu, ModuleLink |
+| `shared:` | AppShell, SessionRestorer, LoginPage |
 
 **Tailwind color conventions**: slate (neutral), indigo (primary/tasks), emerald (success/recipes), orange (travel), sky/violet (accents).
 
@@ -236,7 +241,7 @@ NEXT_PUBLIC_API_URL=https://<your-domain>
 - **New API endpoint**: Add Controller method → Service method → Repository if needed → DTO if needed.
 - **New DB column**: Add Flyway migration `V{N+1}__description.sql`. Never edit existing migrations.
 - **New frontend route**: Create `app/(app)/<route>/page.tsx`. Add to Sidebar if user-facing.
-- **Auth in frontend**: Always use `apiFetch` from `lib/api.ts`, never raw `fetch`.
+- **Auth in frontend**: Always use `apiFetch` from `@familyadmin/shared/api`, never raw `fetch`.
 - **Admin features**: Guard with `@PreAuthorize("hasRole('ADMIN')")` on backend; check `user?.role === 'ADMIN'` on frontend.
 
 ---

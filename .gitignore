@@ -6,10 +6,10 @@ backend/*.jar
 *.log
 
 # Frontend
-frontend/.next/
-frontend/node_modules/
-frontend/.env.local
-frontend/.env*.local
+frontend/**/.next/
+frontend/**/node_modules/
+frontend/**/.env.local
+frontend/**/.env*.local
 
 # IDE
 .idea/

@@ -1,0 +1,26 @@
+{
+  "name": "@familyadmin/shared",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    "./globals.css": "./src/globals.css",
+    "./AppShell": "./src/AppShell.tsx",
+    "./LoginPage": "./src/LoginPage.tsx",
+    "./SessionRestorer": "./src/SessionRestorer.tsx",
+    "./api": "./src/api.ts",
+    "./auth": "./src/auth.ts",
+    "./login-redirect": "./src/login-redirect.ts",
+    "./modules": "./src/modules.ts",
+    "./nav/BottomNav": "./src/nav/BottomNav.tsx",
+    "./nav/MobileHeader": "./src/nav/MobileHeader.tsx",
+    "./nav/ModuleLink": "./src/nav/ModuleLink.tsx",
+    "./nav/Sidebar": "./src/nav/Sidebar.tsx",
+    "./nav/UserMenu": "./src/nav/UserMenu.tsx",
+    "./user-context": "./src/user-context.tsx"
+  },
+  "peerDependencies": {
+    "next": "16.2.1",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  }
+}
