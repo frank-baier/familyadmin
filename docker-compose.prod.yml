@@ -94,6 +94,16 @@ services:
     depends_on:
       - backend
 
+  frontend-travel:
+    build:
+      context: ./frontend
+      args:
+        APP: travel
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    restart: unless-stopped
+    depends_on:
+      - backend
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
@@ -111,6 +121,7 @@ services:
     depends_on:
       - frontend
       - frontend-notes
+      - frontend-travel
       - frontend-sport
       - frontend-recipes
       - backend
