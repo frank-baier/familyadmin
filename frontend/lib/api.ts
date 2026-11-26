@@ -7,8 +7,14 @@
  */
 
 import { loginUrlForCurrentPage } from './login-redirect';
+import { parseHost } from './modules';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
+// Module subdomains proxy /api themselves — use relative URLs there (same origin, no CORS).
+const API_BASE =
+  typeof window !== 'undefined' && parseHost(window.location.host).module
+    && !window.location.hostname.endsWith('localhost')
+    ? ''
+    : process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 
 // Module-level token storage (memory only — survives page-level re-renders, lost on tab close)
 let _accessToken: string | null = null;

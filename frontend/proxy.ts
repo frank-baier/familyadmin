@@ -1,49 +1,30 @@
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { parseHost, targetHost } from '@/lib/modules';
+
 /**
- * Route protection middleware for FamilyAdmin
- *
- * - Protects all routes except /login (and static assets)
- * - Checks for auth_session cookie set by the backend on login
- * - Unauthenticated → redirect to /login
- * - Authenticated visiting /login → redirect to /dashboard
- *
- * Next.js 16: use async Request APIs (await cookies/headers)
+ * Keeps every module subdomain on its own content: "/" opens the module, paths of other
+ * modules (or of the portal) are sent to their host. The portal serves everything.
  */
+export function proxy(request: NextRequest) {
+  const host = request.headers.get('host') ?? '';
+  const { module } = parseHost(host);
+  if (!module) return NextResponse.next();
 
-import { type NextRequest, NextResponse } from 'next/server';
+  const { pathname, search } = request.nextUrl;
+  const protocol = request.headers.get('x-forwarded-proto') ?? 'http';
 
-// Paths where unauthenticated access is allowed
-const PUBLIC_PATHS = ['/login', '/tasks/preview', '/share', '/manifest.webmanifest'];
-// Paths where authenticated users should be bounced away (i.e. the login page)
-const AUTH_BOUNCE_PATHS = ['/login'];
-
-export async function proxy(request: NextRequest): Promise<NextResponse> {
-  const { pathname } = request.nextUrl;
-
-  const authCookie = request.cookies.get('refresh_token');
-  const isAuthenticated = Boolean(authCookie?.value);
-
-  const isPublicPath = PUBLIC_PATHS.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`),
-  );
-  const isAuthBouncePath = AUTH_BOUNCE_PATHS.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`),
-  );
-
-  // Authenticated user visiting /login → send to /dashboard
-  if (isAuthenticated && isAuthBouncePath) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+  if (pathname === '/') {
+    return NextResponse.redirect(`${protocol}://${host}/${module.key}${search}`);
   }
 
-  // Unauthenticated user visiting a protected route → send to /login
-  if (!isAuthenticated && !isPublicPath) {
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('next', pathname);
-    return NextResponse.redirect(loginUrl);
+  const target = targetHost(pathname, host);
+  if (target) {
+    return NextResponse.redirect(`${protocol}://${target}${pathname}${search}`);
   }
-
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: ['/((?!api|uploads|_next/static|_next/image|favicon.ico).*)'],
 };

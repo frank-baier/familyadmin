@@ -1,4 +1,5 @@
-{$APP_DOMAIN} {
+# Portal and module subdomains share one frontend and one backend (app split, phase 1)
+{$APP_DOMAIN}, tasks.{$APP_DOMAIN}, recipes.{$APP_DOMAIN}, travel.{$APP_DOMAIN}, notes.{$APP_DOMAIN}, documents.{$APP_DOMAIN}, finance.{$APP_DOMAIN}, sport.{$APP_DOMAIN} {
     handle /api/* {
         reverse_proxy backend:8080
     }

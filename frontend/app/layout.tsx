@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
+import { headers } from "next/headers";
+import { parseHost } from "@/lib/modules";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -8,10 +10,15 @@ const outfit = Outfit({
   weight: ["300", "400", "500", "600"],
 });
 
-export const metadata: Metadata = {
-  title: "FamilyAdmin — Baier Family Hub",
-  description: "Der private Verwaltungsbereich für die Familie Baier.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { module } = parseHost((await headers()).get("host") ?? "");
+  const name = module?.name ?? "FamilyAdmin";
+  return {
+    title: module ? name : "FamilyAdmin — Baier Family Hub",
+    description: "Der private Verwaltungsbereich für die Familie Baier.",
+    appleWebApp: { title: name },
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",

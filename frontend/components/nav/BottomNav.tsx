@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { ModuleLink } from '@/components/nav/ModuleLink';
 import { usePathname } from 'next/navigation';
 
 interface Tab {
@@ -89,7 +89,7 @@ export function BottomNav() {
         {tabs.map((tab) => {
           const active = isActive(pathname, tab);
           return (
-            <Link
+            <ModuleLink
               key={tab.href}
               href={tab.href}
               aria-current={active ? 'page' : undefined}
@@ -114,7 +114,7 @@ export function BottomNav() {
               <span className="text-[0.625rem] font-semibold tracking-tight">
                 {tab.label}
               </span>
-            </Link>
+            </ModuleLink>
           );
         })}
       </div>

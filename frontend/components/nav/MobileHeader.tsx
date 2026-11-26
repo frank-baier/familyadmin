@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { ModuleLink } from '@/components/nav/ModuleLink';
 import { useUser } from '@/lib/user-context';
 
 export function MobileHeader() {
@@ -16,7 +16,7 @@ export function MobileHeader() {
         className="bg-white rounded-xl pl-3 pr-2 py-2.5 flex items-center justify-between gap-3"
         style={{ border: '1px solid #e0e0dc', boxShadow: '0 2px 8px rgb(0 0 0 / 0.05)' }}
       >
-        <Link
+        <ModuleLink
           href="/dashboard"
           className="flex items-center gap-2.5 min-w-0 rounded-lg px-1 py-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
           aria-label="FamilyAdmin Startseite"
@@ -47,9 +47,9 @@ export function MobileHeader() {
               Familie Baier
             </span>
           </span>
-        </Link>
+        </ModuleLink>
 
-        <Link
+        <ModuleLink
           href="/profile"
           aria-label={user?.name ? `Angemeldet als ${user.name}` : 'Dein Profil'}
           className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-[0.75rem] font-semibold
@@ -58,7 +58,7 @@ export function MobileHeader() {
                      transition-opacity duration-150 active:opacity-70"
         >
           {initials}
-        </Link>
+        </ModuleLink>
       </div>
     </header>
   );

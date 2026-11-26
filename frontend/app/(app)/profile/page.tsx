@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { ModuleLink } from '@/components/nav/ModuleLink';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
 import { useUser } from '@/lib/user-context';
@@ -132,7 +132,7 @@ export default function ProfilePage() {
       <div className="glass rounded-3xl px-6 py-4 space-y-1">
         <h2 className="section-label mb-3">Mehr</h2>
 
-        <Link
+        <ModuleLink
           href="/documents"
           className="flex items-center gap-3 px-3 py-3 rounded-2xl text-sm text-slate-600
                      hover:bg-white/50 hover:text-slate-900 transition-colors cursor-pointer"
@@ -145,10 +145,10 @@ export default function ProfilePage() {
           <svg className="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.25 4.5l7.5 7.5-7.5 7.5" />
           </svg>
-        </Link>
+        </ModuleLink>
 
         {user?.role === 'ADMIN' && (
-          <Link
+          <ModuleLink
             href="/admin/users"
             className="flex items-center gap-3 px-3 py-3 rounded-2xl text-sm text-slate-600
                        hover:bg-white/50 hover:text-slate-900 transition-colors cursor-pointer"
@@ -161,7 +161,7 @@ export default function ProfilePage() {
             <svg className="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.25 4.5l7.5 7.5-7.5 7.5" />
             </svg>
-          </Link>
+          </ModuleLink>
         )}
 
         <div className="hairline my-1" />

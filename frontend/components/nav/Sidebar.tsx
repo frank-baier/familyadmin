@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { ModuleLink } from '@/components/nav/ModuleLink';
 import { usePathname } from 'next/navigation';
 import { UserMenu } from './UserMenu';
 import { useUser } from '@/lib/user-context';
@@ -163,7 +163,7 @@ export function Sidebar() {
 
             return (
               <li key={item.href}>
-                <Link
+                <ModuleLink
                   href={item.href}
                   aria-current={topActive ? 'page' : undefined}
                   className={[
@@ -179,7 +179,7 @@ export function Sidebar() {
                     {item.icon}
                   </span>
                   <span className="flex-1">{item.label}</span>
-                </Link>
+                </ModuleLink>
 
                 {item.children && sectionOpen && (
                   <ul className="mt-0.5 ml-6 space-y-0.5" role="list">
@@ -187,7 +187,7 @@ export function Sidebar() {
                       const childActive = pathname === child.href || pathname.startsWith(`${child.href}/`);
                       return (
                         <li key={child.href}>
-                          <Link
+                          <ModuleLink
                             href={child.href}
                             aria-current={childActive ? 'page' : undefined}
                             className={[
@@ -200,7 +200,7 @@ export function Sidebar() {
                           >
                             <span className="w-1 h-1 rounded-full bg-current opacity-50 shrink-0" aria-hidden="true" />
                             {child.label}
-                          </Link>
+                          </ModuleLink>
                         </li>
                       );
                     })}
