@@ -116,6 +116,16 @@ services:
     depends_on:
       - backend
 
+  frontend-finance:
+    build:
+      context: ./frontend
+      args:
+        APP: finance
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    restart: unless-stopped
+    depends_on:
+      - backend
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
@@ -133,6 +143,7 @@ services:
     depends_on:
       - frontend
       - frontend-notes
+      - frontend-finance
       - frontend-tasks
       - frontend-travel
       - frontend-sport

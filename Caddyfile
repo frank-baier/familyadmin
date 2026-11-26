@@ -12,12 +12,16 @@
 }
 
 # Portal plus the modules it still renders itself
-{$APP_DOMAIN}, documents.{$APP_DOMAIN}, finance.{$APP_DOMAIN} {
+{$APP_DOMAIN}, documents.{$APP_DOMAIN} {
     import app frontend
 }
 
 notes.{$APP_DOMAIN} {
     import app frontend-notes
+}
+
+finance.{$APP_DOMAIN} {
+    import app frontend-finance
 }
 
 tasks.{$APP_DOMAIN} {
