@@ -111,12 +111,32 @@ export function askQuestion(question: string): Promise<ChatHistoryEntry> {
   });
 }
 
-export function getChatHistory(): Promise<ChatHistoryEntry[]> {
-  return apiFetch<ChatHistoryEntry[]>('/api/chat/history');
+export interface ChatSession {
+  id: string;
+  createdAt: string;
+  /** null while the session is open */
+  closedAt: string | null;
+  /** oldest first */
+  entries: ChatHistoryEntry[];
 }
 
-export function deleteChatHistoryEntry(id: string): Promise<void> {
-  return apiFetch<void>(`/api/chat/history/${id}`, { method: 'DELETE' });
+/** The open chat session, or null if none has been started yet. */
+export async function getOpenChatSession(): Promise<ChatSession | null> {
+  return (await apiFetch<ChatSession | undefined>('/api/chat/session')) ?? null;
+}
+
+/** Ends the open session; it moves into the history. */
+export function closeChatSession(): Promise<void> {
+  return apiFetch<void>('/api/chat/session/close', { method: 'POST' });
+}
+
+/** Closed sessions, newest first. */
+export function getChatHistory(): Promise<ChatSession[]> {
+  return apiFetch<ChatSession[]>('/api/chat/history');
+}
+
+export function deleteChatSession(id: string): Promise<void> {
+  return apiFetch<void>(`/api/chat/sessions/${id}`, { method: 'DELETE' });
 }
 
 export function reindexUnindexed(): Promise<{ queued: number }> {

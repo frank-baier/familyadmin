@@ -1,6 +1,7 @@
 package de.baier.familyadmin.service;
 
 import de.baier.familyadmin.dto.ChatResponse;
+import de.baier.familyadmin.service.AnthropicChatService.Turn;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,6 +37,15 @@ public class RAGService {
     static final String CREDIT_HINT =
             "\n\n(Hinweis: Das Anthropic-Guthaben ist aufgebraucht – diese Antwort stammt vom lokalen Modell.)";
 
+    /** How many earlier turns of a session are passed to the model. */
+    static final int MAX_HISTORY_TURNS = 6;
+
+    private static final String CONDENSE_PROMPT = """
+            Du formulierst Folgefragen aus einem Gespräch über Familiendokumente in eine eigenständige
+            Suchfrage um. Ersetze Pronomen und Bezüge ("das", "dort", "davor") durch die gemeinten Dinge
+            aus dem Verlauf. Antworte nur mit der umformulierten Frage auf Deutsch, ohne Erklärung.
+            Ist die Frage schon eigenständig, gib sie unverändert zurück.""";
+
     private final OllamaService ollamaService;
     private final AnthropicChatService anthropicChatService;
     private final AnthropicCreditAlertService creditAlertService;
@@ -46,12 +56,22 @@ public class RAGService {
     private String llmProvider;
 
     public ChatResponse query(String question) {
-        return query(question, partial -> {});
+        return query(question, List.of(), partial -> {});
     }
 
-    public ChatResponse query(String question, Consumer<String> onPartial) {
+    /**
+     * @param history earlier turns of the same chat session, oldest first (may be empty)
+     */
+    public ChatResponse query(String question, List<Turn> history, Consumer<String> onPartial) {
         long start = System.currentTimeMillis();
-        List<ChunkResult> chunks = retrieve(question);
+        List<Turn> recent = history.size() > MAX_HISTORY_TURNS
+                ? history.subList(history.size() - MAX_HISTORY_TURNS, history.size())
+                : history;
+
+        Generation searchQuery = recent.isEmpty()
+                ? new Generation(question, null, BigDecimal.ZERO)
+                : condense(question, recent);
+        List<ChunkResult> chunks = retrieve(searchQuery.text());
 
         if (chunks.isEmpty()) {
             return new ChatResponse(
@@ -71,10 +91,10 @@ public class RAGService {
 
                 Frage: %s""".formatted(context, question);
 
-        log.debug("RAG query: '{}' — {} chunks from {} sources", question, chunks.size(),
-                chunks.stream().map(ChunkResult::filename).distinct().count());
+        log.debug("RAG query: '{}' (search: '{}') — {} chunks from {} sources", question, searchQuery.text(),
+                chunks.size(), chunks.stream().map(ChunkResult::filename).distinct().count());
 
-        Generation generation = generate(system, userMessage, onPartial);
+        Generation generation = generate(system, recent, userMessage, onPartial);
 
         List<String> sources = chunks.stream()
                 .map(ChunkResult::filename)
@@ -82,16 +102,39 @@ public class RAGService {
                 .toList();
 
         return new ChatResponse(generation.text().strip(), sources, generation.model(),
-                generation.costUsd(), System.currentTimeMillis() - start);
+                generation.costUsd().add(searchQuery.costUsd()), System.currentTimeMillis() - start);
     }
 
     record Generation(String text, String model, BigDecimal costUsd) {}
 
-    Generation generate(String system, String userMessage, Consumer<String> onPartial) {
+    /**
+     * Turns a follow-up ("und wann war das?") into a standalone search query so retrieval
+     * finds the right documents. Without Claude, the previous question is prepended instead.
+     */
+    Generation condense(String question, List<Turn> history) {
+        String fallback = history.get(history.size() - 1).question() + " " + question;
+        if (!useClaude()) return new Generation(fallback, null, BigDecimal.ZERO);
+        try {
+            String transcript = history.stream()
+                    .map(t -> "Frage: " + t.question() + "\nAntwort: " + t.answer())
+                    .collect(Collectors.joining("\n\n"));
+            var result = anthropicChatService.complete(CONDENSE_PROMPT,
+                    "Gesprächsverlauf:\n" + transcript + "\n\nFolgefrage: " + question);
+            return new Generation(result.text(), anthropicChatService.model(), result.costUsd());
+        } catch (Exception e) {
+            log.warn("Rephrasing follow-up failed, using concatenation: {}", e.getMessage());
+            if (AnthropicCreditAlertService.isCreditExhausted(e)) {
+                creditAlertService.notifyCreditExhausted("Dokumenten-Chat");
+            }
+            return new Generation(fallback, null, BigDecimal.ZERO);
+        }
+    }
+
+    Generation generate(String system, List<Turn> history, String userMessage, Consumer<String> onPartial) {
         boolean creditExhausted = false;
-        if ("anthropic".equalsIgnoreCase(llmProvider) && anthropicChatService.isConfigured()) {
+        if (useClaude()) {
             try {
-                var result = anthropicChatService.generateStreaming(system, userMessage, onPartial);
+                var result = anthropicChatService.generateStreaming(system, history, userMessage, onPartial);
                 return new Generation(result.text(), anthropicChatService.model(), result.costUsd());
             } catch (Exception e) {
                 // onPartial always receives the full text so far, so a restart on Ollama
@@ -104,10 +147,20 @@ public class RAGService {
                 }
             }
         }
-        String prompt = system + "\n\n" + userMessage + "\nAntwort:";
-        String text = ollamaService.generateStreaming(prompt, TEMPERATURE, onPartial);
+        StringBuilder prompt = new StringBuilder(system).append("\n\n");
+        if (!history.isEmpty()) {
+            prompt.append("Bisheriger Gesprächsverlauf:\n");
+            history.forEach(t -> prompt.append("Frage: ").append(t.question())
+                    .append("\nAntwort: ").append(t.answer()).append("\n\n"));
+        }
+        prompt.append(userMessage).append("\nAntwort:");
+        String text = ollamaService.generateStreaming(prompt.toString(), TEMPERATURE, onPartial);
         if (creditExhausted) text = text.strip() + CREDIT_HINT;
         return new Generation(text, "ollama:" + ollamaService.chatModel(), BigDecimal.ZERO);
+    }
+
+    private boolean useClaude() {
+        return "anthropic".equalsIgnoreCase(llmProvider) && anthropicChatService.isConfigured();
     }
 
     /**

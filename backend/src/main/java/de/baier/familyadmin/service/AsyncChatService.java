@@ -3,11 +3,13 @@ package de.baier.familyadmin.service;
 import de.baier.familyadmin.dto.ChatResponse;
 import de.baier.familyadmin.model.ChatHistory;
 import de.baier.familyadmin.repository.ChatHistoryRepository;
+import de.baier.familyadmin.service.AnthropicChatService.Turn;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -25,10 +27,15 @@ public class AsyncChatService {
     private final ChatHistoryRepository chatHistoryRepository;
 
     @Async
-    public void processQuery(UUID historyId, String question) {
+    public void processQuery(UUID historyId, UUID sessionId, String question) {
         try {
+            // Earlier answered questions of the same session give follow-ups their context.
+            List<Turn> history = chatHistoryRepository.findBySessionIdOrderByCreatedAtAsc(sessionId).stream()
+                    .filter(h -> !h.getId().equals(historyId) && "DONE".equals(h.getStatus()))
+                    .map(h -> new Turn(h.getQuestion(), h.getAnswer()))
+                    .toList();
             AtomicLong lastSave = new AtomicLong(System.currentTimeMillis());
-            ChatResponse result = ragService.query(question, partial -> {
+            ChatResponse result = ragService.query(question, history, partial -> {
                 long now = System.currentTimeMillis();
                 if (now - lastSave.get() < PARTIAL_SAVE_INTERVAL_MS) return;
                 lastSave.set(now);
