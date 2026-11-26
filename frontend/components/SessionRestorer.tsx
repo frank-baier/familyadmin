@@ -3,7 +3,7 @@
 /**
  * Runs on every page load inside the app shell.
  * Attempts a silent token refresh using the HttpOnly refresh_token cookie.
- * If it fails (cookie expired/missing), redirects to /login.
+ * If it fails (cookie expired/missing), redirects to /login?next=<current page>.
  * On success, fetches /api/auth/me and stores the user in UserContext.
  */
 
@@ -11,6 +11,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { useUser } from '@/lib/user-context';
+import { loginUrlForCurrentPage } from '@/lib/login-redirect';
 
 export function SessionRestorer() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export function SessionRestorer() {
       // This shares the singleton refresh promise with any concurrent apiFetch calls.
       const me = await getCurrentUser();
       if (!me) {
-        router.push('/login');
+        router.push(loginUrlForCurrentPage());
         return;
       }
       setUser(me);

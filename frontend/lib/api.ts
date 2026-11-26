@@ -6,6 +6,8 @@
  * - Auto-refresh on 401, retries once
  */
 
+import { loginUrlForCurrentPage } from './login-redirect';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 
 // Module-level token storage (memory only — survives page-level re-renders, lost on tab close)
@@ -178,7 +180,7 @@ export async function apiFetchBlob(path: string): Promise<{ blob: Blob; filename
 function redirectToLogin(): void {
   clearAccessToken();
   if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
-    window.location.href = '/login';
+    window.location.href = loginUrlForCurrentPage();
   }
 }
 

@@ -3,16 +3,18 @@ package de.baier.familyadmin.controller;
 import de.baier.familyadmin.dto.LoginRequest;
 import de.baier.familyadmin.dto.LoginResponse;
 import de.baier.familyadmin.dto.UserResponse;
-import de.baier.familyadmin.model.RefreshToken;
 import de.baier.familyadmin.model.User;
-import de.baier.familyadmin.repository.RefreshTokenRepository;
 import de.baier.familyadmin.service.JwtService;
+import de.baier.familyadmin.service.RefreshTokenService;
 import de.baier.familyadmin.service.UserService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -20,20 +22,31 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Instant;
+import java.time.Duration;
 import java.util.Arrays;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
-    private static final int REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60;
+    private static final String COOKIE_NAME = "refresh_token";
 
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final UserService userService;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenService refreshTokenService;
+
+    /**
+     * Domain the refresh cookie is shared across (e.g. "familyadmin.baier-family.de" makes it
+     * valid for all module subdomains below it). Empty = host-only cookie (dev, single host).
+     */
+    @Value("${app.auth.cookie-domain:}")
+    private String cookieDomain;
+
+    @Value("${app.auth.cookie-secure:false}")
+    private boolean cookieSecure;
 
     @PostMapping("/login")
     @Transactional
@@ -43,57 +56,36 @@ public class AuthController {
                 new UsernamePasswordAuthenticationToken(request.email(), request.password()));
 
         User user = (User) userService.loadUserByUsername(request.email());
-        String accessToken = jwtService.generateAccessToken(user);
-        String jti = jwtService.generateRefreshToken();
-
-        refreshTokenRepository.save(RefreshToken.builder()
-                .user(user)
-                .jti(jti)
-                .expiresAt(Instant.now().plusSeconds(REFRESH_TTL_SECONDS))
-                .build());
+        String jti = refreshTokenService.issue(user);
 
         setRefreshCookie(response, jti);
-        return ResponseEntity.ok(new LoginResponse(accessToken, UserResponse.from(user)));
+        return ResponseEntity.ok(new LoginResponse(jwtService.generateAccessToken(user), UserResponse.from(user)));
     }
 
     @PostMapping("/refresh")
     @Transactional
     public ResponseEntity<LoginResponse> refresh(HttpServletRequest request,
                                                  HttpServletResponse response) {
-        String jti = getRefreshCookie(request);
-        if (jti == null) return ResponseEntity.status(401).build();
+        List<String> candidates = getRefreshCookies(request);
+        if (candidates.isEmpty()) return ResponseEntity.status(401).build();
 
-        RefreshToken token = refreshTokenRepository.findByJti(jti).orElse(null);
-        if (token == null || token.getExpiresAt().isBefore(Instant.now())) {
-            if (token != null) refreshTokenRepository.deleteByJti(jti);
-            clearRefreshCookie(response);
-            return ResponseEntity.status(401).build();
-        }
-
-        User user = token.getUser();
-        String newAccessToken = jwtService.generateAccessToken(user);
-        String newJti = jwtService.generateRefreshToken();
-
-        // Rotate: replace old token with new one
-        refreshTokenRepository.deleteByJti(jti);
-        refreshTokenRepository.save(RefreshToken.builder()
-                .user(user)
-                .jti(newJti)
-                .expiresAt(Instant.now().plusSeconds(REFRESH_TTL_SECONDS))
-                .build());
-
-        setRefreshCookie(response, newJti);
-        return ResponseEntity.ok(new LoginResponse(newAccessToken, UserResponse.from(user)));
+        return refreshTokenService.rotate(candidates)
+                .map(session -> {
+                    setRefreshCookie(response, session.jti());
+                    return ResponseEntity.ok(new LoginResponse(
+                            jwtService.generateAccessToken(session.user()), UserResponse.from(session.user())));
+                })
+                .orElseGet(() -> {
+                    clearRefreshCookie(response);
+                    return ResponseEntity.status(401).build();
+                });
     }
 
     @PostMapping("/logout")
     @Transactional
     public ResponseEntity<Void> logout(HttpServletRequest request,
                                        HttpServletResponse response) {
-        String jti = getRefreshCookie(request);
-        if (jti != null) {
-            refreshTokenRepository.deleteByJti(jti);
-        }
+        refreshTokenService.revoke(getRefreshCookies(request));
         clearRefreshCookie(response);
         return ResponseEntity.noContent().build();
     }
@@ -105,30 +97,40 @@ public class AuthController {
     }
 
     private void setRefreshCookie(HttpServletResponse response, String jti) {
-        Cookie cookie = new Cookie("refresh_token", jti);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false);
-        cookie.setPath("/");
-        cookie.setMaxAge(REFRESH_TTL_SECONDS);
-        cookie.setAttribute("SameSite", "Lax");
-        response.addCookie(cookie);
+        response.addHeader(HttpHeaders.SET_COOKIE,
+                cookie(jti, Duration.ofSeconds(RefreshTokenService.REFRESH_TTL_SECONDS), cookieDomain).toString());
+        if (!cookieDomain.isBlank()) {
+            // Remove a pre-existing host-only cookie, otherwise the browser keeps sending both.
+            response.addHeader(HttpHeaders.SET_COOKIE, cookie("", Duration.ZERO, "").toString());
+        }
     }
 
     private void clearRefreshCookie(HttpServletResponse response) {
-        Cookie cookie = new Cookie("refresh_token", "");
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        cookie.setAttribute("SameSite", "Lax");
-        response.addCookie(cookie);
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie("", Duration.ZERO, cookieDomain).toString());
+        if (!cookieDomain.isBlank()) {
+            response.addHeader(HttpHeaders.SET_COOKIE, cookie("", Duration.ZERO, "").toString());
+        }
     }
 
-    private String getRefreshCookie(HttpServletRequest request) {
-        if (request.getCookies() == null) return null;
+    private ResponseCookie cookie(String value, Duration maxAge, String domain) {
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(COOKIE_NAME, value)
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .path("/")
+                .maxAge(maxAge)
+                .sameSite("Lax");
+        if (!domain.isBlank()) builder.domain(domain);
+        return builder.build();
+    }
+
+    /** All refresh_token cookies sent — during migration a host-only and a domain cookie can coexist. */
+    private List<String> getRefreshCookies(HttpServletRequest request) {
+        if (request.getCookies() == null) return List.of();
         return Arrays.stream(request.getCookies())
-                .filter(c -> "refresh_token".equals(c.getName()))
+                .filter(c -> COOKIE_NAME.equals(c.getName()))
                 .map(Cookie::getValue)
-                .findFirst()
-                .orElse(null);
+                .filter(v -> v != null && !v.isBlank())
+                .distinct()
+                .toList();
     }
 }

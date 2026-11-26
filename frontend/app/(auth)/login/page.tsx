@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { login } from '@/lib/auth';
+import { resolveAfterLogin } from '@/lib/login-redirect';
 
 interface LoginState { error?: string; success?: boolean; }
 const initialState: LoginState = {};
@@ -25,7 +26,11 @@ export default function LoginPage() {
   const [state, action, pending] = useActionState(loginAction, initialState);
 
   useEffect(() => {
-    if (state.success) router.push('/dashboard');
+    if (!state.success) return;
+    const next = new URLSearchParams(window.location.search).get('next');
+    const target = resolveAfterLogin(next, window.location.hostname);
+    if (target.startsWith('/')) router.push(target);
+    else window.location.href = target; // another module app (subdomain)
   }, [state.success, router]);
 
   return (
