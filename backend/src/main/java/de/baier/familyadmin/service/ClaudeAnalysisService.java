@@ -26,6 +26,7 @@ import java.util.Map;
 public class ClaudeAnalysisService {
 
     private final YahooNewsService yahooNewsService;
+    private final AnthropicCreditAlertService creditAlertService;
 
     @Value("${anthropic.api-key:}")
     private String apiKey;
@@ -50,14 +51,23 @@ public class ClaudeAnalysisService {
                 "messages", List.of(Map.of("role", "user", "content", prompt))
         );
 
-        Map<?, ?> response = restClient.post()
-                .uri("/messages")
-                .header("x-api-key", apiKey)
-                .header("anthropic-version", "2023-06-01")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(body)
-                .retrieve()
-                .body(Map.class);
+        Map<?, ?> response;
+        try {
+            response = restClient.post()
+                    .uri("/messages")
+                    .header("x-api-key", apiKey)
+                    .header("anthropic-version", "2023-06-01")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .body(Map.class);
+        } catch (RuntimeException e) {
+            if (AnthropicCreditAlertService.isCreditExhausted(e)) {
+                creditAlertService.notifyCreditExhausted("Portfolio-Analyse");
+                throw new IllegalStateException("Das Anthropic-Guthaben ist aufgebraucht.", e);
+            }
+            throw e;
+        }
 
         String text = extractText(response);
         if (!StringUtils.hasText(text)) {

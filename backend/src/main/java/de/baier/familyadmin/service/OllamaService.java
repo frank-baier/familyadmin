@@ -77,6 +77,10 @@ public class OllamaService {
                 .build();
     }
 
+    public String chatModel() {
+        return chatModel;
+    }
+
     public float[] embed(String text) {
         OLLAMA_LOCK.readLock().lock();
         try {

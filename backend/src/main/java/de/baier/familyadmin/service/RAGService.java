@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -17,7 +18,7 @@ import java.util.stream.Collectors;
 public class RAGService {
 
     private static final int CANDIDATES_PER_RETRIEVER = 20;
-    private static final int CONTEXT_CHUNKS = 6;
+    private static final int CONTEXT_CHUNKS = 10;
     private static final double TEMPERATURE = 0.1;
 
     static final String NOT_FOUND = "Dazu habe ich in deinen Dokumenten nichts gefunden.";
@@ -32,8 +33,12 @@ public class RAGService {
             - Nenne bei jeder Angabe in Klammern den Dateinamen, aus dem sie stammt.
             - Antworte kurz und auf Deutsch.""";
 
+    static final String CREDIT_HINT =
+            "\n\n(Hinweis: Das Anthropic-Guthaben ist aufgebraucht – diese Antwort stammt vom lokalen Modell.)";
+
     private final OllamaService ollamaService;
     private final AnthropicChatService anthropicChatService;
+    private final AnthropicCreditAlertService creditAlertService;
     private final JdbcTemplate jdbcTemplate;
 
     /** "anthropic" (Claude via API, falls back to Ollama on errors) or "ollama" (local only). */
@@ -45,6 +50,7 @@ public class RAGService {
     }
 
     public ChatResponse query(String question, Consumer<String> onPartial) {
+        long start = System.currentTimeMillis();
         List<ChunkResult> chunks = retrieve(question);
 
         if (chunks.isEmpty()) {
@@ -68,29 +74,40 @@ public class RAGService {
         log.debug("RAG query: '{}' — {} chunks from {} sources", question, chunks.size(),
                 chunks.stream().map(ChunkResult::filename).distinct().count());
 
-        String answer = generate(system, userMessage, onPartial);
+        Generation generation = generate(system, userMessage, onPartial);
 
         List<String> sources = chunks.stream()
                 .map(ChunkResult::filename)
                 .distinct()
                 .toList();
 
-        return new ChatResponse(answer.strip(), sources);
+        return new ChatResponse(generation.text().strip(), sources, generation.model(),
+                generation.costUsd(), System.currentTimeMillis() - start);
     }
 
-    String generate(String system, String userMessage, Consumer<String> onPartial) {
+    record Generation(String text, String model, BigDecimal costUsd) {}
+
+    Generation generate(String system, String userMessage, Consumer<String> onPartial) {
+        boolean creditExhausted = false;
         if ("anthropic".equalsIgnoreCase(llmProvider) && anthropicChatService.isConfigured()) {
             try {
-                return anthropicChatService.generateStreaming(system, userMessage, onPartial);
+                var result = anthropicChatService.generateStreaming(system, userMessage, onPartial);
+                return new Generation(result.text(), anthropicChatService.model(), result.costUsd());
             } catch (Exception e) {
                 // onPartial always receives the full text so far, so a restart on Ollama
                 // simply replaces whatever partial answer was shown.
                 log.warn("Claude ({}) failed, falling back to Ollama: {}",
                         anthropicChatService.model(), e.getMessage());
+                if (AnthropicCreditAlertService.isCreditExhausted(e)) {
+                    creditExhausted = true;
+                    creditAlertService.notifyCreditExhausted("Dokumenten-Chat");
+                }
             }
         }
         String prompt = system + "\n\n" + userMessage + "\nAntwort:";
-        return ollamaService.generateStreaming(prompt, TEMPERATURE, onPartial);
+        String text = ollamaService.generateStreaming(prompt, TEMPERATURE, onPartial);
+        if (creditExhausted) text = text.strip() + CREDIT_HINT;
+        return new Generation(text, "ollama:" + ollamaService.chatModel(), BigDecimal.ZERO);
     }
 
     /**

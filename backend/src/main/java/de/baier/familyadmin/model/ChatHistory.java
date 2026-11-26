@@ -5,6 +5,7 @@ import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -38,6 +39,16 @@ public class ChatHistory {
     @Column(nullable = false, length = 20)
     @Builder.Default
     private String status = "DONE";
+
+    /** Model that wrote the answer, e.g. "claude-haiku-5-5" or "ollama:qwen2.5:3b". */
+    @Column(length = 100)
+    private String model;
+
+    @Column(name = "cost_usd", precision = 12, scale = 6)
+    private BigDecimal costUsd;
+
+    @Column(name = "duration_ms")
+    private Long durationMs;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -28,6 +28,32 @@ export interface ChatHistoryEntry {
   sources: string[];
   status: string;
   createdAt: string;
+  /** e.g. "claude-haiku-5-5" or "ollama:qwen2.5:3b"; null for older entries */
+  model?: string | null;
+  costUsd?: number | null;
+  durationMs?: number | null;
+}
+
+/** "claude-haiku-5-5" → "Claude Haiku 5.5", "ollama:qwen2.5:3b" → "Lokal (qwen2.5:3b)" */
+export function formatModelName(model: string): string {
+  if (model.startsWith('ollama:')) return `Lokal (${model.slice('ollama:'.length)})`;
+  const m = model.match(/^claude-([a-z]+)-(\d+)(?:-(\d+))?$/);
+  if (!m) return model;
+  const family = m[1].charAt(0).toUpperCase() + m[1].slice(1);
+  return `Claude ${family} ${m[2]}${m[3] ? '.' + m[3] : ''}`;
+}
+
+export function formatCostUsd(cost: number): string {
+  if (cost === 0) return 'kostenlos';
+  if (cost < 0.01) return `$${cost.toFixed(4)}`;
+  return `$${cost.toFixed(2)}`;
+}
+
+export function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms} ms`;
+  const seconds = ms / 1000;
+  if (seconds < 60) return `${seconds.toFixed(1).replace('.', ',')} s`;
+  return `${Math.floor(seconds / 60)} min ${Math.round(seconds % 60)} s`;
 }
 
 export interface PagedDocuments {

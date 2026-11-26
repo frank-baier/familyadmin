@@ -40,6 +40,9 @@ public class AsyncChatService {
             chatHistoryRepository.findById(historyId).ifPresent(entry -> {
                 entry.setAnswer(result.answer());
                 entry.setSources(result.sources().stream().collect(Collectors.joining(",")));
+                entry.setModel(result.model());
+                entry.setCostUsd(result.costUsd());
+                entry.setDurationMs(result.durationMs());
                 entry.setStatus("DONE");
                 chatHistoryRepository.save(entry);
             });

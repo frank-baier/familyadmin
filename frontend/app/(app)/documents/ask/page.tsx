@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { askQuestion, getChatHistory, deleteChatHistoryEntry, type ChatHistoryEntry } from '@/lib/documents';
+import { askQuestion, getChatHistory, deleteChatHistoryEntry, formatModelName, formatCostUsd, formatDuration, type ChatHistoryEntry } from '@/lib/documents';
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -112,6 +112,15 @@ function HistoryCard({
             <div className="flex flex-wrap gap-1.5 mt-2">
               {entry.sources.map((s) => <SourceBadge key={s} filename={s} />)}
             </div>
+          )}
+          {!isError && entry.model && (
+            <p className="mt-2 text-[11px] text-slate-400">
+              {[
+                formatModelName(entry.model),
+                entry.costUsd != null ? formatCostUsd(entry.costUsd) : null,
+                entry.durationMs != null ? formatDuration(entry.durationMs) : null,
+              ].filter(Boolean).join(' · ')}
+            </p>
           )}
         </div>
       )}
