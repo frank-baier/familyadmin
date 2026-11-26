@@ -36,8 +36,10 @@ export function proxy(request: NextRequest): NextResponse {
 
   const isAuthenticated = Boolean(request.cookies.get('refresh_token')?.value);
 
-  // Authenticated user visiting /login → send to the start page
-  if (isAuthenticated && matches(pathname, '/login')) {
+  // Authenticated user visiting /login → send to the start page.
+  // Not when ?next= is set: the app only sends users there after its token refresh failed,
+  // so the cookie is unusable — bouncing back would reload the page in an endless loop.
+  if (isAuthenticated && matches(pathname, '/login') && !request.nextUrl.searchParams.has('next')) {
     return NextResponse.redirect(new URL(module ? `/${module.key}` : '/dashboard', request.url));
   }
 

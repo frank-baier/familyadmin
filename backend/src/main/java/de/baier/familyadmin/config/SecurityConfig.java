@@ -63,13 +63,24 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:3000", frontendUrl));
+        // Module apps live on subdomains of the portal (recipes.<portal>, tasks.<portal> …).
+        // Their same-origin POSTs still carry an Origin header, so they must be allowed here —
+        // otherwise /api/auth/refresh answers 403 and the app loops between page and /login.
+        config.setAllowedOriginPatterns(List.of(
+                "http://localhost:3000", "http://*.localhost:3000",
+                frontendUrl, subdomainPattern(frontendUrl)));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", config);
         return source;
+    }
+
+    /** "https://admin.example.com" → "https://*.admin.example.com" */
+    static String subdomainPattern(String origin) {
+        int schemeEnd = origin.indexOf("://");
+        return schemeEnd < 0 ? origin : origin.substring(0, schemeEnd + 3) + "*." + origin.substring(schemeEnd + 3);
     }
 
     @Bean
