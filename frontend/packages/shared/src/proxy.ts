@@ -10,7 +10,7 @@
  */
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { MODULES, parseHost, targetHost } from './modules';
+import { moduleOfPath, parseHost, targetHost } from './modules';
 
 const COMMON_PUBLIC_PATHS = ['/login', '/manifest.webmanifest', '/apple-icon'];
 
@@ -40,8 +40,8 @@ export function createProxy({ serves, publicPaths = [] }: ProxyOptions) {
 
     const target = targetHost(pathname, host);
     if (target) {
-      const segment = pathname.split('/')[1] ?? '';
-      const servedElsewhere = MODULES.some((m) => m.key === segment) && !serves.includes(segment);
+      const owner = moduleOfPath(pathname);
+      const servedElsewhere = owner !== null && !serves.includes(owner);
       if (module || servedElsewhere) {
         return NextResponse.redirect(`${protocol}://${target}${pathname}${search}`);
       }

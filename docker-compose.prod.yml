@@ -72,6 +72,18 @@ services:
     depends_on:
       - backend
 
+  frontend-recipes:
+    build:
+      context: ./frontend
+      args:
+        APP: recipes
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    restart: unless-stopped
+    environment:
+      API_INTERNAL_URL: http://backend:8080
+    depends_on:
+      - backend
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
@@ -89,6 +101,7 @@ services:
     depends_on:
       - frontend
       - frontend-notes
+      - frontend-recipes
       - backend
 
 volumes:

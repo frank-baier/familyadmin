@@ -53,6 +53,17 @@ export function parseHost(host: string): HostInfo {
   return found ? { module: found, portal: rest.join('.') } : { module: null, portal: lower };
 }
 
+/**
+ * Module a path belongs to: "/recipes/1" → "recipes". Public share links
+ * ("/share/recipes/<token>") belong to their module too.
+ */
+export function moduleOfPath(path: string): string | null {
+  const [, first = '', second = ''] = path.split(/[?#]/)[0].split('/');
+  if (findModule(first)) return first;
+  if (first === 'share' && findModule(second)) return second;
+  return null;
+}
+
 /** Subdomains exist for real domains and *.localhost, not for plain localhost or IPs. */
 function hasSubdomains(portal: string): boolean {
   const name = portal.split(':')[0];
@@ -68,8 +79,9 @@ export function targetHost(path: string, host: string): string | null {
   if (!hasSubdomains(portal)) return null;
 
   const segment = path.split(/[/?#]/)[1] ?? '';
+  const owner = moduleOfPath(path);
   let target: string;
-  if (findModule(segment)) target = `${segment}.${portal}`;
+  if (owner) target = `${owner}.${portal}`;
   else if (PORTAL_SEGMENTS.includes(segment)) target = portal;
   else return null;
 
