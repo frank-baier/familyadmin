@@ -10,9 +10,11 @@ FamilyAdmin is a self-hosted family management app. It covers tasks, recipes, me
 familyadmin/
 ├── backend/          # Spring Boot 3 + Java 21 REST API
 ├── frontend/         # npm workspaces: Next.js 16 + React 19 (App Router)
-│   ├── apps/portal/      #   the app (app/, components/, lib/, proxy.ts)
+│   ├── apps/portal/      #   admin.<domain>: login, dashboard, profile, admin pages
+│   ├── apps/<module>/    #   one app per module on <module>.<domain>: tasks, recipes,
+│   │                     #   travel, notes, documents, finance, sport
 │   └── packages/shared/  #   @familyadmin/shared: api, auth, user context, module
-│                         #   routing, app shell, nav, login page, globals.css
+│                         #   routing, proxy, app shell, nav, login page, layouts, globals.css
 ├── docker-compose.yml          # Dev (postgres + mailpit)
 ├── docker-compose.prod.yml     # Prod (postgres, backend, frontend, caddy)
 └── Caddyfile                   # Reverse proxy routing
@@ -133,7 +135,7 @@ HikariCP max pool = 5 (sized for Railway free tier constraints).
 
 ### Route Structure
 
-Paths below are relative to `frontend/apps/portal/`. Code in `packages/shared/src/` is imported as `@familyadmin/shared/<name>`; a new file there needs an entry in its `package.json` `exports`.
+Each module is its own Next.js app in `frontend/apps/<module>/` (own container `frontend-<module>`, own host `<module>.<domain>` in the Caddyfile); paths below are relative to that app, e.g. `app/(app)/recipes/` lives in `apps/recipes/`. Every app re-exports root layout, auth layout, manifest, apple icon, login page and app shell from shared, and its `proxy.ts` calls `createProxy({ serves: ['<module>'], publicPaths })`. Links to another module use `ModuleLink` (cross-host). Build one app with `npm run build -w @familyadmin/<module>`; the Dockerfile takes build arg `APP`. Dev: `npm run dev -w @familyadmin/<module>` (on plain localhost no host redirects happen). Code in `packages/shared/src/` is imported as `@familyadmin/shared/<name>`; a new file there needs an entry in its `package.json` `exports`.
 
 ```
 app/
@@ -199,11 +201,12 @@ No external component library. All custom with Tailwind CSS.
 ### Routing (Caddy)
 
 ```
-/api/*  →  backend:8080
-/*      →  frontend:3000
+/api/*, /uploads/*  →  backend:8080        (every host)
+admin.<domain>/*    →  frontend:3000         (portal)
+<module>.<domain>/* →  frontend-<module>:3000
 ```
 
-Single domain, path-based routing. No cross-origin issues — backend and frontend share the same origin.
+Each host proxies `/api` itself, so API calls stay same-origin. The refresh cookie is shared across all hosts via `AUTH_COOKIE_DOMAIN`; CORS allows `https://*.<domain>`.
 
 ### Docker Compose (Production)
 
@@ -240,7 +243,8 @@ NEXT_PUBLIC_API_URL=https://<your-domain>
 - **Frontend**: Server components for layout, client components (`'use client'`) for interactivity. Use `useActionState` for forms.
 - **New API endpoint**: Add Controller method → Service method → Repository if needed → DTO if needed.
 - **New DB column**: Add Flyway migration `V{N+1}__description.sql`. Never edit existing migrations.
-- **New frontend route**: Create `app/(app)/<route>/page.tsx`. Add to Sidebar if user-facing.
+- **New frontend route**: Create `app/(app)/<route>/page.tsx` in the module's app. Add to Sidebar (shared) if user-facing.
+- **Backend links into the UI**: build them with `ModuleLinks.of(appUrl, "<module>", path)`, not `appUrl + path`.
 - **Auth in frontend**: Always use `apiFetch` from `@familyadmin/shared/api`, never raw `fetch`.
 - **Admin features**: Guard with `@PreAuthorize("hasRole('ADMIN')")` on backend; check `user?.role === 'ADMIN'` on frontend.
 

@@ -46,7 +46,7 @@ public class NotificationService {
     @Async
     public void sendTaskAssigned(User recipient, String assignerName,
                                  String taskTitle, String taskId, String dueDate) {
-        String taskUrl = appUrl + "/tasks/" + taskId;
+        String taskUrl = ModuleLinks.of(appUrl, "tasks", "/tasks/" + taskId);
         String dueDateStr = dueDate != null ? dueDate : "kein Fälligkeitsdatum";
 
         sendWhatsApp(recipient, TEMPLATE_TASK_ASSIGNED,
@@ -63,7 +63,7 @@ public class NotificationService {
 
     @Async
     public void sendChecklistComplete(User recipient, String taskTitle, String taskId) {
-        String taskUrl = appUrl + "/tasks/" + taskId;
+        String taskUrl = ModuleLinks.of(appUrl, "tasks", "/tasks/" + taskId);
 
         sendWhatsApp(recipient, TEMPLATE_CHECKLIST_DONE,
                 List.of(recipient.getName(), taskTitle, taskUrl));
@@ -78,7 +78,7 @@ public class NotificationService {
     @Async
     public void sendTaskReminder(User recipient, String taskTitle,
                                  String taskId, String dueDate, boolean isOverdue) {
-        String taskUrl = appUrl + "/tasks/" + taskId;
+        String taskUrl = ModuleLinks.of(appUrl, "tasks", "/tasks/" + taskId);
         String template = isOverdue ? TEMPLATE_TASK_OVERDUE : TEMPLATE_TASK_REMINDER;
 
         sendWhatsApp(recipient, template,

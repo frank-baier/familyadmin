@@ -29,7 +29,7 @@ public class PortfolioNotificationService {
 
     @Async
     public void notifyAnalysisReady(Portfolio portfolio, PortfolioAnalysis analysis) {
-        String portfolioUrl = appUrl + "/finance/" + portfolio.getId();
+        String portfolioUrl = ModuleLinks.of(appUrl, "finance", "/finance/" + portfolio.getId());
         sendEmail(portfolio.getCreatedBy(), portfolio, analysis, portfolioUrl);
     }
 
