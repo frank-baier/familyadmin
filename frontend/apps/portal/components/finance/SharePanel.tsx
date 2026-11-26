@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getShareableUsers } from '@/lib/document-shares';
+import { getShareableUsers } from '@familyadmin/shared/document-shares';
 import { sharePortfolio, revokePortfolioShare } from '@/lib/portfolio';
 import type { Portfolio } from '@/lib/portfolio';
-import type { ShareableUser } from '@/lib/document-shares';
+import type { ShareableUser } from '@familyadmin/shared/document-shares';
 
 export function SharePanel({
   portfolio,

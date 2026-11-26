@@ -21,7 +21,7 @@ import {
   shareWith,
   revokeShare,
   type ShareableUser,
-} from '@/lib/document-shares';
+} from '@familyadmin/shared/document-shares';
 import { ApiError, apiFetchBlob, openBlobInNewTab } from '@familyadmin/shared/api';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────

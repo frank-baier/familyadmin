@@ -1,5 +1,5 @@
-# Portal and module subdomains share one frontend and one backend (app split, phase 1)
-{$APP_DOMAIN}, tasks.{$APP_DOMAIN}, recipes.{$APP_DOMAIN}, travel.{$APP_DOMAIN}, notes.{$APP_DOMAIN}, documents.{$APP_DOMAIN}, finance.{$APP_DOMAIN}, sport.{$APP_DOMAIN} {
+# One backend for all hosts; each module app gets its own frontend container (app split).
+(app) {
     handle /api/* {
         reverse_proxy backend:8080
     }
@@ -7,8 +7,17 @@
         reverse_proxy backend:8080
     }
     handle {
-        reverse_proxy frontend:3000
+        reverse_proxy {args[0]}:3000
     }
+}
+
+# Portal plus the modules it still renders itself
+{$APP_DOMAIN}, tasks.{$APP_DOMAIN}, recipes.{$APP_DOMAIN}, travel.{$APP_DOMAIN}, documents.{$APP_DOMAIN}, finance.{$APP_DOMAIN}, sport.{$APP_DOMAIN} {
+    import app frontend
+}
+
+notes.{$APP_DOMAIN} {
+    import app frontend-notes
 }
 
 # Former address — 308 keeps the HTTP method, so webhooks and sync scripts that

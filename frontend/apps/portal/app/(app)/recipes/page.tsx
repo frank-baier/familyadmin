@@ -7,7 +7,7 @@ import { EditableStarRating } from '@/components/recipes/EditableStarRating';
 import { getRecipes, searchRecipes, importPaprikaFile, importFromUrl, updateRecipeRating, deleteRecipe } from '@/lib/recipes';
 import type { Recipe, PaprikaImportResult, UrlImportResult } from '@/lib/recipes';
 import { useUser } from '@familyadmin/shared/user-context';
-import { useViewMode } from '@/lib/use-view-mode';
+import { useViewMode } from '@familyadmin/shared/use-view-mode';
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
 

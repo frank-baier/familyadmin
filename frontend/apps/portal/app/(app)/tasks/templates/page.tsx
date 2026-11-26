@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { getTemplates, deleteTemplate } from '@/lib/templates';
 import type { TaskTemplate } from '@/lib/templates';
 import { useUser } from '@familyadmin/shared/user-context';
-import { useViewMode } from '@/lib/use-view-mode';
+import { useViewMode } from '@familyadmin/shared/use-view-mode';
 
 // ─── Template card ─────────────────────────────────────────────────────────
 

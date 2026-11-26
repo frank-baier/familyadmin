@@ -8,7 +8,12 @@
     "./LoginPage": "./src/LoginPage.tsx",
     "./SessionRestorer": "./src/SessionRestorer.tsx",
     "./api": "./src/api.ts",
+    "./app/AppleIcon": "./src/app/AppleIcon.tsx",
+    "./app/AuthLayout": "./src/app/AuthLayout.tsx",
+    "./app/RootLayout": "./src/app/RootLayout.tsx",
+    "./app/manifest": "./src/app/manifest.ts",
     "./auth": "./src/auth.ts",
+    "./document-shares": "./src/document-shares.ts",
     "./login-redirect": "./src/login-redirect.ts",
     "./modules": "./src/modules.ts",
     "./nav/BottomNav": "./src/nav/BottomNav.tsx",
@@ -16,6 +21,8 @@
     "./nav/ModuleLink": "./src/nav/ModuleLink.tsx",
     "./nav/Sidebar": "./src/nav/Sidebar.tsx",
     "./nav/UserMenu": "./src/nav/UserMenu.tsx",
+    "./proxy": "./src/proxy.ts",
+    "./use-view-mode": "./src/use-view-mode.ts",
     "./user-context": "./src/user-context.tsx"
   },
   "peerDependencies": {

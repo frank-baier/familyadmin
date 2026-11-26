@@ -1,23 +1,23 @@
-# Build stage — npm workspaces: apps/portal plus packages/shared
+# Build stage — npm workspaces. APP selects which app to build: portal, notes, …
 FROM node:20-alpine AS build
+ARG APP=portal
 WORKDIR /app
-COPY package*.json ./
-COPY apps/portal/package.json apps/portal/
-COPY packages/shared/package.json packages/shared/
-RUN npm ci
 COPY . .
+RUN npm ci
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-RUN npm run build
+RUN npm run build -w @familyadmin/$APP
 
 # Runtime stage
 FROM node:20-alpine
+ARG APP=portal
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
-COPY --from=build /app/apps/portal/.next/standalone ./
-COPY --from=build /app/apps/portal/.next/static ./apps/portal/.next/static
-COPY --from=build /app/apps/portal/public ./apps/portal/public
-CMD ["node", "apps/portal/server.js"]
+COPY --from=build /app/apps/$APP/.next/standalone ./
+COPY --from=build /app/apps/$APP/.next/static ./apps/$APP/.next/static
+COPY --from=build /app/apps/$APP/public ./apps/$APP/public
+ENV APP=$APP
+CMD ["sh", "-c", "exec node apps/$APP/server.js"]
 EXPOSE 3000

@@ -1,4 +1,4 @@
-import { apiFetch } from '@familyadmin/shared/api';
+import { apiFetch } from './api';
 
 export interface ShareableUser {
   id: string;
