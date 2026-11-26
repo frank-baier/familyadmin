@@ -2,8 +2,7 @@ import { createProxy } from '@familyadmin/shared/proxy';
 
 // Modules still rendered by the portal; the others run as their own app on <module>.<portal>.
 export const proxy = createProxy({
-  serves: ['tasks', 'documents', 'finance'],
-  publicPaths: ['/tasks/preview'],
+  serves: ['documents', 'finance'],
 });
 
 export const config = {
