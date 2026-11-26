@@ -84,6 +84,16 @@ services:
     depends_on:
       - backend
 
+  frontend-sport:
+    build:
+      context: ./frontend
+      args:
+        APP: sport
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    restart: unless-stopped
+    depends_on:
+      - backend
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
@@ -101,6 +111,7 @@ services:
     depends_on:
       - frontend
       - frontend-notes
+      - frontend-sport
       - frontend-recipes
       - backend
 
