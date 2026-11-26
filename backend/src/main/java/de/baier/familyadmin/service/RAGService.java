@@ -3,6 +3,7 @@ package de.baier.familyadmin.service;
 import de.baier.familyadmin.dto.ChatResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -21,8 +22,23 @@ public class RAGService {
 
     static final String NOT_FOUND = "Dazu habe ich in deinen Dokumenten nichts gefunden.";
 
+    private static final String SYSTEM_PROMPT = """
+            Du bist ein sorgfältiger Assistent, der Fragen zu den persönlichen Dokumenten einer Familie beantwortet.
+
+            Regeln:
+            - Antworte ausschließlich anhand der Dokumentauszüge in der Nachricht. Nutze kein Vorwissen.
+            - Steht die Antwort nicht in den Auszügen, antworte genau: "%s"
+            - Übernimm Daten, Beträge, Nummern und Namen exakt so, wie sie im Dokument stehen.
+            - Nenne bei jeder Angabe in Klammern den Dateinamen, aus dem sie stammt.
+            - Antworte kurz und auf Deutsch.""";
+
     private final OllamaService ollamaService;
+    private final AnthropicChatService anthropicChatService;
     private final JdbcTemplate jdbcTemplate;
+
+    /** "anthropic" (Claude via API, falls back to Ollama on errors) or "ollama" (local only). */
+    @Value("${rag.llm-provider:anthropic}")
+    private String llmProvider;
 
     public ChatResponse query(String question) {
         return query(question, partial -> {});
@@ -41,27 +57,18 @@ public class RAGService {
                 .map(ChunkResult::asContext)
                 .collect(Collectors.joining("\n\n---\n\n"));
 
-        String prompt = """
-                Du bist ein sorgfältiger Assistent, der Fragen zu den persönlichen Dokumenten einer Familie beantwortet.
-
-                Regeln:
-                - Antworte ausschließlich anhand der Dokumentauszüge unten. Nutze kein Vorwissen.
-                - Steht die Antwort nicht in den Auszügen, antworte genau: "%s"
-                - Übernimm Daten, Beträge, Nummern und Namen exakt so, wie sie im Dokument stehen.
-                - Nenne bei jeder Angabe in Klammern den Dateinamen, aus dem sie stammt.
-                - Antworte kurz und auf Deutsch.
-
+        String system = SYSTEM_PROMPT.formatted(NOT_FOUND);
+        String userMessage = """
                 Dokumentauszüge:
 
                 %s
 
-                Frage: %s
-                Antwort:""".formatted(NOT_FOUND, context, question);
+                Frage: %s""".formatted(context, question);
 
         log.debug("RAG query: '{}' — {} chunks from {} sources", question, chunks.size(),
                 chunks.stream().map(ChunkResult::filename).distinct().count());
 
-        String answer = ollamaService.generateStreaming(prompt, TEMPERATURE, onPartial);
+        String answer = generate(system, userMessage, onPartial);
 
         List<String> sources = chunks.stream()
                 .map(ChunkResult::filename)
@@ -69,6 +76,21 @@ public class RAGService {
                 .toList();
 
         return new ChatResponse(answer.strip(), sources);
+    }
+
+    String generate(String system, String userMessage, Consumer<String> onPartial) {
+        if ("anthropic".equalsIgnoreCase(llmProvider) && anthropicChatService.isConfigured()) {
+            try {
+                return anthropicChatService.generateStreaming(system, userMessage, onPartial);
+            } catch (Exception e) {
+                // onPartial always receives the full text so far, so a restart on Ollama
+                // simply replaces whatever partial answer was shown.
+                log.warn("Claude ({}) failed, falling back to Ollama: {}",
+                        anthropicChatService.model(), e.getMessage());
+            }
+        }
+        String prompt = system + "\n\n" + userMessage + "\nAntwort:";
+        return ollamaService.generateStreaming(prompt, TEMPERATURE, onPartial);
     }
 
     /**
