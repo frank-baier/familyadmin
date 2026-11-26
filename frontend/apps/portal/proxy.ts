@@ -1,8 +1,8 @@
 import { createProxy } from '@familyadmin/shared/proxy';
 
-// Modules still rendered by the portal; the others run as their own app on <module>.<portal>.
+// The portal renders no module itself any more: every module runs as its own app on <module>.<portal>.
 export const proxy = createProxy({
-  serves: ['documents'],
+  serves: [],
 });
 
 export const config = {
