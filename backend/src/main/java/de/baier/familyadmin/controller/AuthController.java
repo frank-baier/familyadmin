@@ -39,7 +39,7 @@ public class AuthController {
     private final RefreshTokenService refreshTokenService;
 
     /**
-     * Domain the refresh cookie is shared across (e.g. "familyadmin.baier-family.de" makes it
+     * Domain the refresh cookie is shared across (e.g. "admin.baier-family.de" makes it
      * valid for all module subdomains below it). Empty = host-only cookie (dev, single host).
      */
     @Value("${app.auth.cookie-domain:}")

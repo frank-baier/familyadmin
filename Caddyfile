@@ -9,3 +9,9 @@
         reverse_proxy frontend:3000
     }
 }
+
+# Former address — 308 keeps the HTTP method, so webhooks and sync scripts that
+# still POST to the old host keep working. Keep at least a few months after the move.
+{$APP_LEGACY_DOMAIN} {
+    redir https://{$APP_DOMAIN}{uri} 308
+}
