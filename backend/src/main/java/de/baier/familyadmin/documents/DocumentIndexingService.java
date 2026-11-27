@@ -63,6 +63,9 @@ public class DocumentIndexingService {
             String text = extractText(data, filename);
             if (text.isBlank()) {
                 log.warn("No text extracted from {} — may be a scanned/image-only document", filename);
+                // The scheduler retries such documents only weekly instead of every hour.
+                jdbcTemplate.update("UPDATE documents SET last_index_attempt_at = now() WHERE id = ?::uuid",
+                        documentId.toString());
             } else {
                 List<String> chunks = chunk(text);
                 log.info("Indexing '{}' → {} chunks", filename, chunks.size());

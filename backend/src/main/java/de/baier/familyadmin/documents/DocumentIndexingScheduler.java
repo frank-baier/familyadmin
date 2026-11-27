@@ -22,7 +22,8 @@ public class DocumentIndexingScheduler {
     public void indexPendingDocuments() {
         AtomicInteger total = new AtomicInteger();
         Integer pending = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM documents d WHERE NOT EXISTS (SELECT 1 FROM document_chunks dc WHERE dc.document_id = d.id) AND d.indexing_skipped = false",
+                "SELECT COUNT(*) FROM documents d WHERE NOT EXISTS (SELECT 1 FROM document_chunks dc WHERE dc.document_id = d.id) AND d.indexing_skipped = false "
+                + "AND (d.last_index_attempt_at IS NULL OR d.last_index_attempt_at < now() - interval '7 days')",
                 Integer.class);
 
         if (pending == null || pending == 0) {
@@ -42,6 +43,8 @@ public class DocumentIndexingScheduler {
                     SELECT 1 FROM document_chunks dc WHERE dc.document_id = d.id
                 )
                 AND d.indexing_skipped = false
+                -- Documents without extractable text are retried only once a week.
+                AND (d.last_index_attempt_at IS NULL OR d.last_index_attempt_at < now() - interval '7 days')
                 ORDER BY d.created_at ASC
                 """,
                 rs -> {
