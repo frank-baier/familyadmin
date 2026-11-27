@@ -34,17 +34,18 @@ familyadmin/
 
 ### Package Structure
 
-| Package | Role |
-|---------|------|
-| `controller/` | REST endpoints — Auth, Tasks, Recipes, Travel, MealPlan, Itinerary, PackingItems, Photos, Profile, TaskTemplates, Admin |
-| `service/` | Business logic — UserService, TaskService, RecipeService, TripService, JwtService, NotificationService, PaprikaImportService, PhotoService |
-| `repository/` | Spring Data JPA repositories |
-| `model/` | JPA entities (UUID PKs, TIMESTAMPTZ audit fields) |
-| `dto/` | Request/response DTOs |
-| `filter/` | JwtAuthFilter (runs before UsernamePasswordAuthenticationFilter) |
-| `scheduler/` | TaskReminderScheduler (daily 8am UTC via @Scheduled) |
-| `config/` | SecurityConfig, CORS, password encoder |
-| `exception/` | GlobalExceptionHandler |
+One backend, organised by module (`de.baier.familyadmin.<module>`). Each module package holds its controllers, services, repositories, entities, DTOs and schedulers side by side.
+
+| Package | Content |
+|---------|---------|
+| `auth/` | Login, refresh tokens (RefreshTokenService, rotation grace), JwtService |
+| `user/` | User entity, roles, profile, admin user management |
+| `notification/` | WhatsApp/e-mail notifications, WhatsApp webhook, `ModuleLinks` |
+| `ai/` | Ollama and Anthropic clients, credit alerts, portfolio analysis LLM |
+| `tasks/` `recipes/` `travel/` `notes/` `documents/` `finance/` `sport/` | One package per module (documents includes the RAG chat) |
+| `config/` `filter/` `exception/` | Security, async, JWT/API-key filters, global error handling |
+
+Modules may use each other's public classes (e.g. travel uses `ai`), but keep module-specific code in its package. New class → put it in the module it belongs to.
 
 ### Auth Architecture
 
@@ -239,7 +240,7 @@ NEXT_PUBLIC_API_URL=https://<your-domain>
 
 ## Development Conventions
 
-- **Backend**: Layered arch (Controller → Service → Repository). No business logic in controllers.
+- **Backend**: Package per module; inside it Controller → Service → Repository. No business logic in controllers.
 - **Frontend**: Server components for layout, client components (`'use client'`) for interactivity. Use `useActionState` for forms.
 - **New API endpoint**: Add Controller method → Service method → Repository if needed → DTO if needed.
 - **New DB column**: Add Flyway migration `V{N+1}__description.sql`. Never edit existing migrations.

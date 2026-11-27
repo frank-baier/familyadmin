@@ -1,0 +1,40 @@
+package de.baier.familyadmin.travel;
+
+import de.baier.familyadmin.user.UserResponse;
+
+import java.time.LocalDate;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+public record TripResponse(
+        UUID id,
+        String title,
+        String destination,
+        LocalDate startDate,
+        LocalDate endDate,
+        String description,
+        String coverPhotoUrl,
+        UUID emailToken,
+        UserResponse createdBy,
+        List<TripKeyInfoResponse> keyInfos,
+        Instant createdAt,
+        Instant updatedAt
+) {
+    public static TripResponse from(Trip trip) {
+        return new TripResponse(
+                trip.getId(),
+                trip.getTitle(),
+                trip.getDestination(),
+                trip.getStartDate(),
+                trip.getEndDate(),
+                trip.getDescription(),
+                trip.getCoverPhotoUrl(),
+                trip.getEmailToken(),
+                UserResponse.from(trip.getCreatedBy()),
+                trip.getKeyInfos().stream().map(TripKeyInfoResponse::from).toList(),
+                trip.getCreatedAt(),
+                trip.getUpdatedAt()
+        );
+    }
+}

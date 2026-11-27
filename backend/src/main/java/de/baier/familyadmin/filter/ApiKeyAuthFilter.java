@@ -1,6 +1,7 @@
 package de.baier.familyadmin.filter;
 
-import de.baier.familyadmin.service.UserService;
+import de.baier.familyadmin.user.UserService;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

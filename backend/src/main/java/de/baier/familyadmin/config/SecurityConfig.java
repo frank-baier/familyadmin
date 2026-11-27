@@ -1,6 +1,8 @@
 package de.baier.familyadmin.config;
 
+import de.baier.familyadmin.filter.ApiKeyAuthFilter;
 import de.baier.familyadmin.filter.JwtAuthFilter;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

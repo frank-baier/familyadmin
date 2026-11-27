@@ -1,0 +1,59 @@
+package de.baier.familyadmin.travel;
+
+import de.baier.familyadmin.exception.ResourceNotFoundException;
+import de.baier.familyadmin.user.User;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class PackingItemService {
+
+    private final PackingItemRepository packingItemRepository;
+    private final TripRepository tripRepository;
+
+    @Transactional(readOnly = true)
+    public List<PackingItem> getSharedItems(UUID tripId) {
+        return packingItemRepository.findByTripIdAndOwnerIsNullOrderByCategoryAscPositionAsc(tripId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PackingItem> getPersonalItems(UUID tripId, UUID userId) {
+        return packingItemRepository.findByTripIdAndOwnerIdOrderByCategoryAscPositionAsc(tripId, userId);
+    }
+
+    public PackingItem addItem(UUID tripId, PackingItemRequest req, User currentUser) {
+        Trip trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new ResourceNotFoundException("Trip not found: " + tripId));
+
+        var item = PackingItem.builder()
+                .trip(trip)
+                .owner(req.personal() ? currentUser : null)
+                .createdBy(currentUser)
+                .label(req.label())
+                .category(req.category())
+                .position(req.position())
+                .build();
+        return packingItemRepository.save(item);
+    }
+
+    public PackingItem togglePacked(UUID itemId) {
+        PackingItem item = packingItemRepository.findById(itemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Packing item not found: " + itemId));
+        item.setPacked(!item.isPacked());
+        return packingItemRepository.save(item);
+    }
+
+    public void deleteItem(UUID itemId) {
+        if (!packingItemRepository.existsById(itemId)) {
+            throw new ResourceNotFoundException("Packing item not found: " + itemId);
+        }
+        packingItemRepository.deleteById(itemId);
+    }
+}
