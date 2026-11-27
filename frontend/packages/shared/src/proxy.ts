@@ -12,7 +12,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { moduleOfPath, parseHost, targetHost } from './modules';
 
-const COMMON_PUBLIC_PATHS = ['/login', '/manifest.webmanifest', '/apple-icon'];
+const COMMON_PUBLIC_PATHS = ['/login', '/manifest.webmanifest', '/apple-icon', '/icon'];
 
 export interface ProxyOptions {
   /** Module keys whose pages this app renders itself. */
