@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { apiFetch } from '@familyadmin/shared/api';
 import { useUser } from '@familyadmin/shared/user-context';
 import { useRouter } from 'next/navigation';
+import { MODULES } from '@familyadmin/shared/modules';
 
 interface UserEntry {
   id: string;
@@ -11,6 +12,7 @@ interface UserEntry {
   email: string;
   role: 'ADMIN' | 'MEMBER';
   whatsappPhone?: string;
+  modules?: string[];
 }
 
 type ModalMode =
@@ -18,6 +20,29 @@ type ModalMode =
   | { type: 'edit'; user: UserEntry }
   | { type: 'password'; user: UserEntry }
   | null;
+
+const ALL_MODULES = MODULES.map((m) => m.key);
+
+/** Checkboxes for the module apps a member may use (admins always get all). */
+function ModulePicker({ value, onChange, isAdmin }: { value: string[]; onChange: (v: string[]) => void; isAdmin: boolean }) {
+  return (
+    <Field label="Apps">
+      {isAdmin ? (
+        <p className="text-sm text-slate-500">Admins haben Zugriff auf alle Apps.</p>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          {MODULES.map((m) => (
+            <label key={m.key} className="flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" checked={value.includes(m.key)}
+                onChange={(e) => onChange(e.target.checked ? [...value, m.key] : value.filter((k) => k !== m.key))} />
+              {m.name}
+            </label>
+          ))}
+        </div>
+      )}
+    </Field>
+  );
+}
 
 function getInitials(name: string) {
   return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
@@ -122,6 +147,11 @@ export default function AdminUsersPage() {
                   <p className="text-xs text-slate-500 truncate">{u.email}</p>
                   {u.whatsappPhone && (
                     <p className="text-xs text-emerald-600 truncate">{u.whatsappPhone}</p>
+                  )}
+                  {u.role !== 'ADMIN' && (
+                    <p className="text-xs text-slate-400 truncate">
+                      Apps: {MODULES.filter((m) => u.modules?.includes(m.key)).map((m) => m.name).join(', ') || 'keine'}
+                    </p>
                   )}
                 </div>
 
@@ -242,6 +272,7 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
   const [password, setPassword] = useState('');
   const [whatsappPhone, setWhatsappPhone] = useState('');
   const [role, setRole] = useState<'ADMIN' | 'MEMBER'>('MEMBER');
+  const [modules, setModules] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -251,7 +282,7 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
     try {
       const user = await apiFetch<UserEntry>('/api/admin/users', {
         method: 'POST',
-        body: JSON.stringify({ name, email, password, whatsappPhone: whatsappPhone || null }),
+        body: JSON.stringify({ name, email, password, whatsappPhone: whatsappPhone || null, modules }),
       });
       if (role === 'ADMIN') {
         const updated = await apiFetch<UserEntry>(`/api/admin/users/${user.id}`, {
@@ -291,6 +322,7 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
             <option value="ADMIN">Admin</option>
           </select>
         </Field>
+        <ModulePicker value={modules} onChange={setModules} isAdmin={role === 'ADMIN'} />
         <div className="flex justify-end gap-3 pt-2">
           <button type="button" onClick={onClose} className="btn-secondary">Abbrechen</button>
           <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Wird erstellt…' : 'Mitglied erstellen'}</button>
@@ -309,6 +341,7 @@ function EditUserModal({ user, onClose, onSaved }: { user: UserEntry; onClose: (
   const [email, setEmail] = useState(user.email);
   const [role, setRole] = useState<'ADMIN' | 'MEMBER'>(user.role);
   const [whatsappPhone, setWhatsappPhone] = useState(user.whatsappPhone ?? '');
+  const [modules, setModules] = useState<string[]>(user.modules ?? ALL_MODULES);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -318,7 +351,7 @@ function EditUserModal({ user, onClose, onSaved }: { user: UserEntry; onClose: (
     try {
       const updated = await apiFetch<UserEntry>(`/api/admin/users/${user.id}`, {
         method: 'PUT',
-        body: JSON.stringify({ name, email, role, whatsappPhone: whatsappPhone || null }),
+        body: JSON.stringify({ name, email, role, whatsappPhone: whatsappPhone || null, modules }),
       });
       onSaved(updated);
     } catch (err: unknown) {
@@ -347,6 +380,7 @@ function EditUserModal({ user, onClose, onSaved }: { user: UserEntry; onClose: (
         <Field label="Mobilnummer">
           <input type="tel" value={whatsappPhone} onChange={(e) => setWhatsappPhone(e.target.value)} className="input-field" placeholder="+491234567890" />
         </Field>
+        <ModulePicker value={modules} onChange={setModules} isAdmin={role === 'ADMIN'} />
         <div className="flex justify-end gap-3 pt-2">
           <button type="button" onClick={onClose} className="btn-secondary">Abbrechen</button>
           <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Wird gespeichert…' : 'Änderungen speichern'}</button>

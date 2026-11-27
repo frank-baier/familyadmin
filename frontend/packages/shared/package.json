@@ -23,7 +23,9 @@
     "./nav/UserMenu": "./src/nav/UserMenu.tsx",
     "./proxy": "./src/proxy.ts",
     "./use-view-mode": "./src/use-view-mode.ts",
-    "./user-context": "./src/user-context.tsx"
+    "./user-context": "./src/user-context.tsx",
+    "./module-access": "./src/module-access.tsx",
+    "./nav/ModuleShell": "./src/nav/ModuleShell.tsx"
   },
   "peerDependencies": {
     "next": "16.2.1",

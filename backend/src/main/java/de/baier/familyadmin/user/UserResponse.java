@@ -8,9 +8,10 @@ public record UserResponse(
         String name,
         String email,
         Role role,
-        String whatsappPhone
+        String whatsappPhone,
+        java.util.List<String> modules
 ) {
     public static UserResponse from(User user) {
-        return new UserResponse(user.getId(), user.getName(), user.getEmail(), user.getRole(), user.getWhatsappPhone());
+        return new UserResponse(user.getId(), user.getName(), user.getEmail(), user.getRole(), user.getWhatsappPhone(), user.effectiveModules());
     }
 }

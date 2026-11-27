@@ -2,6 +2,8 @@
 
 import { ModuleLink } from './ModuleLink';
 import { usePathname } from 'next/navigation';
+import { useUser } from '../user-context';
+import { MODULES } from '../modules';
 
 interface Tab {
   label: string;
@@ -76,6 +78,11 @@ function isActive(pathname: string, tab: Tab): boolean {
 
 export function BottomNav() {
   const pathname = usePathname();
+  const { user } = useUser();
+  const visibleTabs = tabs.filter((t) => {
+    const mod = MODULES.find((m) => t.href === `/${m.key}`);
+    return !mod || user?.role === 'ADMIN' || (user?.modules ?? []).includes(mod.key);
+  });
 
   return (
     <nav
@@ -86,7 +93,7 @@ export function BottomNav() {
         className="bg-white rounded-2xl px-1.5 py-1.5 flex items-center justify-between"
         style={{ border: '1px solid #e0e0dc', boxShadow: '0 -2px 16px rgb(0 0 0 / 0.06), 0 1px 3px rgb(0 0 0 / 0.04)' }}
       >
-        {tabs.map((tab) => {
+        {visibleTabs.map((tab) => {
           const active = isActive(pathname, tab);
           return (
             <ModuleLink

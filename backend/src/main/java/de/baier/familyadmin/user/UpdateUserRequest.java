@@ -8,5 +8,7 @@ public record UpdateUserRequest(
         @NotBlank String name,
         @NotBlank @Email String email,
         @NotNull Role role,
-        String whatsappPhone
+        String whatsappPhone,
+        /** null = keep current modules */
+        java.util.List<String> modules
 ) {}

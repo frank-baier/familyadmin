@@ -30,6 +30,7 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody RegisterRequest request) {
         var user = userService.createUser(request.name(), request.email(), request.password(), Role.MEMBER, request.whatsappPhone());
+        if (request.modules() != null) user = userService.setModules(user.getId(), request.modules());
         return ResponseEntity
                 .created(URI.create("/api/admin/users/" + user.getId()))
                 .body(UserResponse.from(user));
@@ -49,6 +50,7 @@ public class AdminController {
     public ResponseEntity<UserResponse> updateUser(@PathVariable UUID id,
                                                    @Valid @RequestBody UpdateUserRequest request) {
         var user = userService.updateUser(id, request.name(), request.email(), request.role(), request.whatsappPhone());
+        if (request.modules() != null) user = userService.setModules(id, request.modules());
         return ResponseEntity.ok(UserResponse.from(user));
     }
 

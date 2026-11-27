@@ -9,12 +9,28 @@ import { BottomNav } from './nav/BottomNav';
 import { MobileHeader } from './nav/MobileHeader';
 import { SessionRestorer } from './SessionRestorer';
 import { UserProvider } from './user-context';
+import { ModuleShell } from './nav/ModuleShell';
+import { headers } from 'next/headers';
+import { parseHost } from './modules';
+import { appIconDataUrl } from './app/app-icons';
 
-export function AppShell({
+export async function AppShell({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Module host (recipes.<portal> …): standalone app without the portal sidebar.
+  const { module } = parseHost((await headers()).get('host') ?? '');
+  if (module) {
+    return (
+      <UserProvider>
+        <SessionRestorer />
+        <ModuleShell moduleKey={module.key} name={module.name} iconUrl={appIconDataUrl(module.key)}>
+          {children}
+        </ModuleShell>
+      </UserProvider>
+    );
+  }
   return (
     <UserProvider>
       {/* Skip link — keyboard/screen-reader first */}

@@ -62,6 +62,13 @@ public class UserService implements UserDetailsService {
     }
 
     @Transactional
+    public User setModules(UUID id, java.util.List<String> modules) {
+        User user = findById(id);
+        user.setModules(new java.util.ArrayList<>(AppModule.normalise(modules)));
+        return userRepository.save(user);
+    }
+
+    @Transactional
     public User updateProfile(UUID id, String name, String whatsappPhone) {
         User user = findById(id);
         user.setName(name);

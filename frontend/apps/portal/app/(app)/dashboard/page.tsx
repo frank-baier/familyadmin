@@ -1,4 +1,5 @@
 import { ModuleLink } from '@familyadmin/shared/nav/ModuleLink';
+import { IfModule } from '@familyadmin/shared/module-access';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = { title: 'Dashboard — FamilyAdmin' };
@@ -136,8 +137,8 @@ export default function DashboardPage() {
         <h2 id="modules-heading" className="section-label mb-4">Module</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {modules.map((mod) => (
+            <IfModule key={mod.href} module={mod.href.slice(1)}>
             <ModuleLink
-              key={mod.href}
               href={mod.href}
               className="glass-interactive rounded-3xl overflow-hidden group focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
               aria-label={mod.title}
@@ -173,6 +174,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             </ModuleLink>
+            </IfModule>
           ))}
         </div>
       </section>

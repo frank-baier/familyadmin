@@ -51,6 +51,11 @@ public class DocumentService {
 
     public Document storeBytes(byte[] bytes, String filename, String contentType,
                                User uploadedBy, String emailSubject) {
+        return storeBytes(bytes, filename, contentType, uploadedBy, emailSubject, null, null, null);
+    }
+
+    public Document storeBytes(byte[] bytes, String filename, String contentType, User uploadedBy,
+                               String emailSubject, String category, String subcategory, Integer year) {
         String ct = StringUtils.hasText(contentType) ? contentType : "application/octet-stream";
         String fn = StringUtils.hasText(filename) ? filename : "attachment";
 
@@ -62,6 +67,9 @@ public class DocumentService {
                 .uploadedBy(uploadedBy)
                 .source(DocumentSource.EMAIL)
                 .emailSubject(emailSubject)
+                .category(category)
+                .subcategory(subcategory)
+                .year(year)
                 .build();
         Document saved = documentRepository.save(doc);
         scheduleIndexing(saved);

@@ -1,5 +1,9 @@
 package de.baier.familyadmin.user;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import java.util.ArrayList;
+
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -45,6 +49,12 @@ public class User implements UserDetails {
     @Column(name = "whatsapp_phone")
     private String whatsappPhone;
 
+    /** Module apps this user may use (see AppModule); ignored for admins, who get all. */
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "modules", nullable = false, columnDefinition = "text[]")
+    @Builder.Default
+    private List<String> modules = new ArrayList<>(AppModule.ALL);
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -55,7 +65,15 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        effectiveModules().forEach(m -> authorities.add(new SimpleGrantedAuthority(AppModule.authority(m))));
+        return authorities;
+    }
+
+    /** Modules the user can actually use: all for admins. */
+    public List<String> effectiveModules() {
+        return role == Role.ADMIN ? AppModule.ALL : AppModule.normalise(modules);
     }
 
     @Override

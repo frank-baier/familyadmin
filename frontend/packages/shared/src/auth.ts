@@ -12,6 +12,8 @@ export interface User {
   email: string;
   role: 'ADMIN' | 'MEMBER';
   whatsappPhone?: string;
+  /** Module apps this user may open (admins: all). */
+  modules?: string[];
 }
 
 interface LoginResponse {

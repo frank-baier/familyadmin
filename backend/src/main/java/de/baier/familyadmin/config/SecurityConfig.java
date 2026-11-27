@@ -53,7 +53,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/actuator/health", "/api/webhooks/whatsapp", "/api/recipes/*/photo", "/api/trips/ingest/email", "/api/health/ingest", "/api/public/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/actuator/health", "/api/webhooks/whatsapp", "/api/recipes/*/photo", "/api/trips/ingest/email", "/api/health/ingest", "/api/public/**", "/error").permitAll()
+                        .requestMatchers(this::requiresModule).access(this::moduleAccess)
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
@@ -96,5 +97,30 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
+    }
+
+    // ── Module access: /api/<module paths> need authority MODULE_<module> ──
+    private static final org.springframework.util.AntPathMatcher PATHS = new org.springframework.util.AntPathMatcher();
+
+    private static java.util.Optional<String> moduleOf(jakarta.servlet.http.HttpServletRequest request) {
+        String path = request.getRequestURI().substring(request.getContextPath().length());
+        return de.baier.familyadmin.user.AppModule.API_PATHS.entrySet().stream()
+                .filter(e -> e.getValue().stream().anyMatch(p -> PATHS.match(p, path) || PATHS.match(p.replace("/**", ""), path)))
+                .map(java.util.Map.Entry::getKey).findFirst();
+    }
+
+    private boolean requiresModule(jakarta.servlet.http.HttpServletRequest request) {
+        return moduleOf(request).isPresent();
+    }
+
+    private org.springframework.security.authorization.AuthorizationDecision moduleAccess(
+            java.util.function.Supplier<org.springframework.security.core.Authentication> auth,
+            org.springframework.security.web.access.intercept.RequestAuthorizationContext ctx) {
+        String needed = de.baier.familyadmin.user.AppModule.authority(moduleOf(ctx.getRequest()).orElseThrow());
+        var a = auth.get();
+        boolean ok = a != null && a.isAuthenticated()
+                && !(a instanceof org.springframework.security.authentication.AnonymousAuthenticationToken)
+                && a.getAuthorities().stream().anyMatch(g -> g.getAuthority().equals(needed));
+        return new org.springframework.security.authorization.AuthorizationDecision(ok);
     }
 }
