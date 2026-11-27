@@ -95,8 +95,7 @@ public class DocumentIndexingService {
         }
     }
 
-    /** Text of a document (Tika, OCR fallback for scanned PDFs); empty if none. */
-    public String extractText(byte[] data, String filename) {
+    private String extractText(byte[] data, String filename) {
         String text = extractTextViaTika(data, filename);
         if (!text.isBlank()) return text;
 
