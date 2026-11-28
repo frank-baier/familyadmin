@@ -44,6 +44,7 @@ public class DocumentSearchService {
     /** bge-m3 cosine distances lie close together; only chunks near the best one count. */
     private static final double VECTOR_WINDOW = 0.045;
     private static final double MIN_SCORE = 0.12;
+    private static final double RELATIVE_CUTOFF = 0.3;
     private static final int PLAN_CACHE_SIZE = 300;
 
     private static final String PLAN_PROMPT = """
@@ -117,8 +118,7 @@ public class DocumentSearchService {
         }
         scored.sort(Comparator.comparingDouble(Scored::score).reversed());
 
-        List<Scored> merged = mergeCopies(scored);
-        if (merged.size() > MAX_RESULTS) merged = merged.subList(0, MAX_RESULTS);
+        List<Scored> merged = cutTail(mergeCopies(scored));
 
         Map<UUID, String> snippets = snippets(
                 merged.stream().filter(s -> s.matchedBy().contains("Inhalt")).map(s -> s.doc().id()).toList(),
@@ -442,6 +442,13 @@ public class DocumentSearchService {
                 .map(DocumentSearchService::fold)
                 .filter(w -> !w.isEmpty())
                 .collect(Collectors.toSet());
+    }
+
+    /** Drops weak hits far below the best one (sorted input) and caps the list. */
+    static List<Scored> cutTail(List<Scored> sorted) {
+        if (sorted.isEmpty()) return sorted;
+        double min = sorted.get(0).score() * RELATIVE_CUTOFF;
+        return sorted.stream().filter(s -> s.score() >= min).limit(MAX_RESULTS).toList();
     }
 
     /** The same file (name + size) filed in several folders becomes one hit. */

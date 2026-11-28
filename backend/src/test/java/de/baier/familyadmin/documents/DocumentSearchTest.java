@@ -123,6 +123,15 @@ class DocumentSearchTest {
     }
 
     @Test
+    void weakHitsFarBelowTheBestAreDropped() {
+        var list = List.of(
+                new Scored(doc("a.pdf", "A", null), 1.2, List.of(), List.of()),
+                new Scored(doc("b.pdf", "A", null), 0.4, List.of(), List.of()),
+                new Scored(doc("c.pdf", "A", null), 0.2, List.of(), List.of()));
+        assertThat(DocumentSearchService.cutTail(list)).hasSize(2);
+    }
+
+    @Test
     void tsqueryUsesPrefixesAndOnlyLettersAndDigits() {
         assertThat(DocumentSearchService.tsquery(List.of("Fernwärme", "Wärme-Lieferung", "x'); DROP")))
                 .isEqualTo("(fernwärme:*) | (wärme:* & lieferung:*) | (drop:*)");
