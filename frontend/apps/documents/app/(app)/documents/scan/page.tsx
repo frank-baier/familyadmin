@@ -326,7 +326,14 @@ export default function ScanInboxPage() {
       <div className="mb-4 flex items-start gap-3">
         <div className="flex-1">
           <Link href="/documents" className="text-xs text-slate-500 hover:underline">‹ Dokumente</Link>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Eingang</h1>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            Eingang
+            {items && (
+              <span className={`rounded-full px-2.5 py-0.5 text-sm font-semibold ${open.length > 0 ? 'bg-indigo-600 text-white' : 'bg-emerald-100 text-emerald-800'}`}>
+                {open.length > 0 ? `${open.length} abzulegen` : 'alles abgelegt'}
+              </span>
+            )}
+          </h1>
           <p className="text-sm text-slate-500">
             Scans aus iCloud „Dokumente/_Wohin?“{status?.mailConfigured && ' und Anhänge aus deinen E-Mails'} mit
             Vorschlag für Ordner und Namen. Erst nach „Ablegen“ legt dein Mac die Datei in iCloud ab.
