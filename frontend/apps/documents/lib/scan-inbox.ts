@@ -13,6 +13,8 @@ export interface ScanItem {
   mailDate: string | null;
   /** false = the AI thinks it need not be kept (ads, T&Cs, newsletters …) */
   worthKeeping: boolean | null;
+  /** Filed and in the document archive (searchable). */
+  archived: boolean;
   /** File name in iCloud "Dokumente/_Wohin?", or of the mail attachment */
   sourceName: string;
   contentType: string;

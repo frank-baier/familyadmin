@@ -152,6 +152,31 @@ public class ScanInboxController {
         service.moved(id, req != null ? req.finalPath() : null, user);
     }
 
+    /** Mac: filed items that are not in the archive yet (filed before this existed). */
+    @GetMapping("/archive-jobs")
+    public List<ArchiveJob> archiveJobs(@AuthenticationPrincipal User user) {
+        return service.archiveJobs(user);
+    }
+
+    /** Mac: the filed file once more, so it lands in the archive with Claude's description. */
+    @PostMapping(value = "/{id}/archive", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void archive(@PathVariable UUID id, @RequestParam("file") MultipartFile file,
+                        @AuthenticationPrincipal User user) throws java.io.IOException {
+        service.archiveUploaded(id, file.getBytes(), user);
+    }
+
+    /** Admin: suggestion for a file without saving anything (to compare models and prompts). */
+    @PostMapping(value = "/dry-run", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    public ScanFilingSuggestionService.Suggestion dryRun(@RequestParam("file") MultipartFile file,
+                                                         @RequestParam(value = "filename", required = false) String filename,
+                                                         @AuthenticationPrincipal User user) throws java.io.IOException {
+        String name = filename != null && !filename.isBlank() ? filename : file.getOriginalFilename();
+        return analyzer.suggest(name, file.getContentType(), file.getBytes(), null, null,
+                service.catalogFor(user), user.getId());
+    }
+
     @PostMapping("/{id}/move-failed")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void moveFailed(@PathVariable UUID id, @RequestBody(required = false) MoveFailedRequest req,

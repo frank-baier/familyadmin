@@ -68,6 +68,28 @@ public class DocumentService {
         return saved;
     }
 
+    /** A document filed via the Scan-Eingang, with its folder metadata and AI description. */
+    public Document storeArchived(byte[] bytes, String filename, String contentType, User owner,
+                                  DocumentSource source, String emailSubject,
+                                  String category, String subcategory, Integer year, String aiSummary) {
+        Document doc = Document.builder()
+                .filename(filename)
+                .contentType(StringUtils.hasText(contentType) ? contentType : "application/octet-stream")
+                .fileSize(bytes.length)
+                .data(bytes)
+                .uploadedBy(owner)
+                .source(source)
+                .emailSubject(emailSubject)
+                .category(category)
+                .subcategory(subcategory)
+                .year(year)
+                .aiSummary(aiSummary)
+                .build();
+        Document saved = documentRepository.save(doc);
+        scheduleIndexing(saved);
+        return saved;
+    }
+
     private void scheduleIndexing(Document saved) {
         // Capture non-lazy fields before transaction commits
         UUID docId      = saved.getId();

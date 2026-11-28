@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import de.baier.familyadmin.documents.ScanInboxDtos.*;
 import de.baier.familyadmin.user.User;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import java.util.*;
  * folder and name. Nothing is moved automatically: the user approves (or corrects) each
  * suggestion, the Mac script then moves the file and reports back.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -35,10 +37,11 @@ public class ScanInboxService {
     private final ScanInboxItemRepository itemRepository;
     private final ScanFolderCatalogRepository catalogRepository;
     private final ObjectMapper objectMapper;
+    private final ScanArchiveService archiveService;
 
     /** Data the analyzer needs, read in one short transaction. */
     public record AnalysisInput(String sourceName, String contentType, byte[] data, String hint,
-                                String mailContext, List<CatalogFolder> catalog) {}
+                                String mailContext, List<CatalogFolder> catalog, UUID ownerId) {}
 
     private static final java.time.format.DateTimeFormatter MAIL_DATE =
             java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(java.time.ZoneId.of("Europe/Zurich"));
@@ -122,6 +125,11 @@ public class ScanInboxService {
     public List<String> folders(User user) {
         return catalog(user.getId()).stream().map(CatalogFolder::path)
                 .filter(p -> p != null && !p.startsWith("_Wohin")).sorted(String.CASE_INSENSITIVE_ORDER).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CatalogFolder> catalogFor(User user) {
+        return catalog(user.getId());
     }
 
     @Transactional(readOnly = true)
@@ -230,7 +238,30 @@ public class ScanInboxService {
         item.setFinalPath(StringUtils.hasText(finalPath) ? finalPath.strip()
                 : item.getTargetFolder() + "/" + item.getTargetFilename());
         item.setMovedAt(Instant.now());
+        if (item.getData() != null) archive(item, item.getData());
         item.setData(null);
+    }
+
+    /** Files filed before archiving existed (or whose archiving failed): the Mac uploads them again. */
+    @Transactional(readOnly = true)
+    public List<ArchiveJob> archiveJobs(User user) {
+        return itemRepository.findByOwnerIdAndStatusAndDocumentIdIsNullAndFinalPathIsNotNull(user.getId(), ScanInboxStatus.DONE)
+                .stream().map(i -> new ArchiveJob(i.getId(), i.getFinalPath())).toList();
+    }
+
+    public void archiveUploaded(UUID id, byte[] data, User user) {
+        ScanInboxItem item = owned(id, user);
+        requireStatus(item, ScanInboxStatus.DONE);
+        if (item.getDocumentId() == null) archive(item, data);
+    }
+
+    private void archive(ScanInboxItem item, byte[] data) {
+        try {
+            item.setDocumentId(archiveService.archive(item, data, item.getFinalPath()));
+        } catch (Exception e) {
+            // The move itself succeeded; archiving is retried via archiveJobs.
+            log.warn("Archiving '{}' failed: {}", item.getFinalPath(), e.getMessage());
+        }
     }
 
     public void moveFailed(UUID id, String error, User user) {
@@ -247,7 +278,7 @@ public class ScanInboxService {
         return itemRepository.findById(id)
                 .filter(i -> i.getStatus() == ScanInboxStatus.ANALYZING && i.getData() != null)
                 .map(i -> new AnalysisInput(i.getSourceName(), i.getContentType(), i.getData(), i.getUserHint(), mailContext(i),
-                        catalog(i.getOwner().getId())));
+                        catalog(i.getOwner().getId()), i.getOwner().getId()));
     }
 
     /** Sender/date/subject of a mail attachment for the prompt; null for scans. */
@@ -266,6 +297,7 @@ public class ScanInboxService {
             i.setSuggestedFilename(s.filename());
             i.setTaxRelevant(s.taxRelevant());
             i.setSuggestionReason(s.reason());
+            i.setSuggestionSummary(s.summary());
             i.setSuggestionModel(s.model());
             i.setSuggestionCostUsd(s.costUsd());
             i.setAnalysisInput(s.input());

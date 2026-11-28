@@ -234,7 +234,11 @@ function SmallRow({ item, onChanged, onError }: {
       <div className="min-w-0 flex-1">
         <p className="truncate text-slate-800">{item.sourceName}</p>
         {path && <p className="truncate text-xs text-slate-500">→ {path.split('/').join(' › ')}</p>}
-        {item.status === 'DONE' && <p className="text-[11px] text-slate-400">{formatDate(item.movedAt)}</p>}
+        {item.status === 'DONE' && (
+          <p className="text-[11px] text-slate-400">
+            {formatDate(item.movedAt)}{item.archived ? ' · im Archiv, durchsuchbar' : ' · noch nicht im Archiv'}
+          </p>
+        )}
       </div>
       {item.status !== 'DONE' && (
         <button type="button" onClick={undo} disabled={busy} className="shrink-0 text-xs text-amber-700 underline disabled:opacity-50">

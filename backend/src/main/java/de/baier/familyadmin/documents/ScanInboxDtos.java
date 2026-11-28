@@ -64,7 +64,9 @@ public final class ScanInboxDtos {
             String mailFrom,
             String mailSubject,
             Instant mailDate,
-            Boolean worthKeeping
+            Boolean worthKeeping,
+            /** Filed and in the document archive (searchable). */
+            boolean archived
     ) {
         static ItemResponse from(ScanInboxItem i) {
             return new ItemResponse(i.getId(), i.getSourceName(), i.getContentType(), i.getFileSize(), i.getStatus(),
@@ -73,9 +75,13 @@ public final class ScanInboxDtos {
                     i.getAnalysisError(), i.getTargetFolder(), i.getTargetFilename(), i.getFinalPath(),
                     i.getMoveError(), i.getCreatedAt(), i.getMovedAt(),
                     i.getData() == null ? null : "/api/documents/scan/" + i.getId() + "/file",
-                    i.getSource(), i.getMailFrom(), i.getMailSubject(), i.getMailDate(), i.getWorthKeeping());
+                    i.getSource(), i.getMailFrom(), i.getMailSubject(), i.getMailDate(), i.getWorthKeeping(),
+                    i.getDocumentId() != null);
         }
     }
+
+    /** A filed item the Mac should upload once more so it lands in the archive. */
+    public record ArchiveJob(UUID id, String finalPath) {}
 
     public record UploadResponse(UUID id, ScanInboxStatus status, boolean created) {}
 }

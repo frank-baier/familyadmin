@@ -53,10 +53,11 @@ public class DocumentIndexingService {
                         String category, String subcategory, Integer year, UUID uploaderId) {
         try {
             Integer count = jdbcTemplate.queryForObject(
-                    "SELECT COUNT(*) FROM document_chunks WHERE document_id = ?::uuid",
+                    "SELECT COUNT(*) FROM document_chunks WHERE document_id = ?::uuid AND chunk_index >= 0",
                     Integer.class, documentId.toString());
             if (count != null && count > 0) {
                 log.debug("Document {} already indexed, skipping", filename);
+                ensureSummaryChunk(documentId);
                 return;
             }
 
@@ -78,6 +79,8 @@ public class DocumentIndexingService {
                 log.info("Finished indexing '{}' ({} chunks)", filename, chunks.size());
             }
 
+            ensureSummaryChunk(documentId);
+
             if ("Reisen".equalsIgnoreCase(category)) {
                 UUID effectiveUploader = uploaderId;
                 if (effectiveUploader == null) {
@@ -95,7 +98,8 @@ public class DocumentIndexingService {
         }
     }
 
-    private String extractText(byte[] data, String filename) {
+    /** Package-visible so the scan inbox can pick folders by the (OCR) text before Claude sees it. */
+    String extractText(byte[] data, String filename) {
         String text = extractTextViaTika(data, filename);
         if (!text.isBlank()) return text;
 
@@ -184,6 +188,41 @@ public class DocumentIndexingService {
                     try { Files.deleteIfExists(p); } catch (Exception ignored) {}
                 });
             }
+        }
+    }
+
+    /** Chunk index of the AI description written when a document was filed via the Scan-Eingang. */
+    static final int SUMMARY_CHUNK_INDEX = -1;
+
+    @Async
+    public void ensureSummaryChunkAsync(UUID documentId) {
+        ensureSummaryChunk(documentId);
+    }
+
+    /**
+     * Indexes {@code documents.ai_summary} as an extra chunk (index -1), so search and chat
+     * find the document by what Claude read, even if it has no text layer. Replaces an
+     * older summary chunk.
+     */
+    public void ensureSummaryChunk(UUID documentId) {
+        try {
+            List<String> rows = jdbcTemplate.queryForList(
+                    "SELECT ai_summary FROM documents WHERE id = ?::uuid", String.class, documentId.toString());
+            String summary = rows.isEmpty() ? null : rows.get(0);
+            if (summary == null || summary.isBlank()) return;
+            String text = "KI-Beschreibung beim Ablegen: " + summary.strip();
+            List<String> existing = jdbcTemplate.queryForList(
+                    "SELECT chunk_text FROM document_chunks WHERE document_id = ?::uuid AND chunk_index = ?",
+                    String.class, documentId.toString(), SUMMARY_CHUNK_INDEX);
+            if (existing.contains(text)) return;
+            float[] embedding = ollamaService.embed(text);
+            jdbcTemplate.update("DELETE FROM document_chunks WHERE document_id = ?::uuid AND chunk_index = ?",
+                    documentId.toString(), SUMMARY_CHUNK_INDEX);
+            jdbcTemplate.update(
+                    "INSERT INTO document_chunks (document_id, chunk_index, chunk_text, embedding) VALUES (?::uuid, ?, ?, ?::vector)",
+                    documentId.toString(), SUMMARY_CHUNK_INDEX, text, toVectorString(embedding));
+        } catch (Exception e) {
+            log.warn("Summary chunk for document {} failed: {}", documentId, e.getMessage());
         }
     }
 

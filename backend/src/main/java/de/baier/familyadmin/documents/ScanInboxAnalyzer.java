@@ -24,6 +24,8 @@ public class ScanInboxAnalyzer {
 
     private final ScanInboxService service;
     private final ScanFilingSuggestionService suggestionService;
+    private final ScanCatalogSelector catalogSelector;
+    private final DocumentIndexingService indexingService;
 
     @Async
     public void analyzeAsync(UUID id) {
@@ -42,8 +44,8 @@ public class ScanInboxAnalyzer {
             if (input.isEmpty()) return;
             var in = input.get();
             try {
-                service.saveSuggestion(id, suggestionService.suggest(
-                        in.sourceName(), in.contentType(), in.data(), in.catalog(), in.hint(), in.mailContext()));
+                service.saveSuggestion(id, suggest(in.sourceName(), in.contentType(), in.data(), in.hint(),
+                        in.mailContext(), in.catalog(), in.ownerId()));
             } catch (Exception e) {
                 log.warn("Scan analysis failed for '{}': {}", in.sourceName(), e.getMessage());
                 service.saveAnalysisError(id, "Analyse fehlgeschlagen: " + e.getMessage());
@@ -51,6 +53,29 @@ public class ScanInboxAnalyzer {
         } finally {
             ONE_AT_A_TIME.release();
         }
+    }
+
+    /**
+     * Sends Claude only the folders that fit this document. They are chosen by the text
+     * layer, or by local OCR (Tesseract) when there is none; Claude itself still reads
+     * the original scan.
+     */
+    ScanFilingSuggestionService.Suggestion suggest(String sourceName, String contentType, byte[] data, String hint,
+                                                   String mailContext, java.util.List<ScanInboxDtos.CatalogFolder> catalog,
+                                                   UUID ownerId) {
+        String text = "application/pdf".equalsIgnoreCase(contentType) || sourceName.toLowerCase().endsWith(".pdf")
+                ? ScanFilingSuggestionService.pdfText(data) : "";
+        if (ScanFilingSuggestionService.nonBlankLength(text) < ScanFilingSuggestionService.MIN_TEXT_CHARS) {
+            try {
+                text = indexingService.extractText(data, sourceName);
+            } catch (Exception e) {
+                log.debug("Local OCR for folder choice failed: {}", e.getMessage());
+            }
+        }
+        String context = String.join("\n", sourceName, hint == null ? "" : hint,
+                mailContext == null ? "" : mailContext, text == null ? "" : text);
+        var folders = catalogSelector.select(catalog, context, ownerId);
+        return suggestionService.suggest(sourceName, contentType, data, folders, hint, mailContext);
     }
 
     /** Picks up analyses lost by a restart. */

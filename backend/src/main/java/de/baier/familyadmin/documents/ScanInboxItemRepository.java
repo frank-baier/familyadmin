@@ -27,4 +27,6 @@ public interface ScanInboxItemRepository extends JpaRepository<ScanInboxItem, UU
     boolean existsByOwnerIdAndSourceAndSha256(UUID ownerId, ScanInboxSource source, String sha256);
 
     long countByOwnerIdAndStatusIn(UUID ownerId, Collection<ScanInboxStatus> statuses);
+
+    List<ScanInboxItem> findByOwnerIdAndStatusAndDocumentIdIsNullAndFinalPathIsNotNull(UUID ownerId, ScanInboxStatus status);
 }

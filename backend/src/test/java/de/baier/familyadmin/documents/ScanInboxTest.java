@@ -47,12 +47,15 @@ class ScanInboxTest {
     void parsesModelAnswer() {
         var s = suggestion.parse("""
                 Hier: {"folder": "Behörden/Finanzamt/Steuerunterlagen 2025/02 Aussergewöhnliche Belastungen",
-                 "filename": "Re_Dres.Spitzer_Anna_10.2025.pdf", "taxRelevant": true, "reason": "Zahnarztrechnung"}
-                """, "Scan 12.pdf", "DOCUMENT", BigDecimal.TEN);
+                 "filename": "Re_Dres.Spitzer_Anna_10.2025.pdf", "taxRelevant": true, "reason": "Zahnarztrechnung",
+                 "summary": "Rechnung von Dres. Spitzer für Anna, 10.2025, 120 EUR."}
+                """, "Scan 12.pdf", "DOCUMENT", BigDecimal.TEN, 42);
         assertThat(s.folder()).isEqualTo("Behörden/Finanzamt/Steuerunterlagen 2025/02 Aussergewöhnliche Belastungen");
         assertThat(s.filename()).isEqualTo("Re_Dres.Spitzer_Anna_10.2025.pdf");
         assertThat(s.taxRelevant()).isTrue();
         assertThat(s.input()).isEqualTo("DOCUMENT");
+        assertThat(s.summary()).startsWith("Rechnung von Dres. Spitzer");
+        assertThat(s.catalogFolders()).isEqualTo(42);
     }
 
     @Test
@@ -72,8 +75,43 @@ class ScanInboxTest {
     // ── Service ─────────────────────────────────────────────────────────────
 
     private final ScanInboxItemRepository items = mock(ScanInboxItemRepository.class);
+    private final ScanArchiveService archive = mock(ScanArchiveService.class);
     private final ScanInboxService service =
-            new ScanInboxService(items, mock(ScanFolderCatalogRepository.class), new ObjectMapper());
+            new ScanInboxService(items, mock(ScanFolderCatalogRepository.class), new ObjectMapper(), archive);
+
+    @Test
+    void movedArchivesTheFileAndDropsItsData() {
+        User u = user();
+        UUID docId = UUID.randomUUID();
+        ScanInboxItem item = ScanInboxItem.builder().id(UUID.randomUUID()).owner(u).status(ScanInboxStatus.APPROVED)
+                .sourceName("Scan.pdf").targetFolder("Auto/2026").targetFilename("Re_ATU_06.2026.pdf")
+                .data(new byte[]{1, 2}).build();
+        org.mockito.Mockito.when(items.findById(item.getId())).thenReturn(java.util.Optional.of(item));
+        org.mockito.Mockito.when(archive.archive(org.mockito.ArgumentMatchers.eq(item), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.eq("Auto/2026/Re_ATU_06.2026 2.pdf"))).thenReturn(docId);
+
+        service.moved(item.getId(), "Auto/2026/Re_ATU_06.2026 2.pdf", u);
+
+        assertThat(item.getStatus()).isEqualTo(ScanInboxStatus.DONE);
+        assertThat(item.getDocumentId()).isEqualTo(docId);
+        assertThat(item.getData()).isNull();
+    }
+
+    @Test
+    void failedArchivingDoesNotUndoTheMove() {
+        User u = user();
+        ScanInboxItem item = ScanInboxItem.builder().id(UUID.randomUUID()).owner(u).status(ScanInboxStatus.APPROVED)
+                .sourceName("Scan.pdf").targetFolder("Auto").targetFilename("a.pdf").data(new byte[]{1}).build();
+        org.mockito.Mockito.when(items.findById(item.getId())).thenReturn(java.util.Optional.of(item));
+        org.mockito.Mockito.when(archive.archive(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any())).thenThrow(new IllegalStateException("DB"));
+
+        service.moved(item.getId(), null, u);
+
+        assertThat(item.getStatus()).isEqualTo(ScanInboxStatus.DONE);
+        assertThat(item.getDocumentId()).isNull();
+        assertThat(item.getFinalPath()).isEqualTo("Auto/a.pdf");
+    }
 
     private User user() {
         User u = new User();

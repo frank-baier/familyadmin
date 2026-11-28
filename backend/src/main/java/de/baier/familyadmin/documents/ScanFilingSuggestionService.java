@@ -33,7 +33,7 @@ public class ScanFilingSuggestionService {
 
     /** Below this many non-blank characters a PDF counts as "no OCR text". */
     static final int MIN_TEXT_CHARS = 80;
-    private static final int MAX_TEXT_CHARS = 20_000;
+    private static final int MAX_TEXT_CHARS = 12_000;
     private static final long MAX_VISION_BYTES = 20L * 1024 * 1024;
     private static final int MAX_EXAMPLES_PER_FOLDER = 4;
     private static final BigDecimal MILLION = BigDecimal.valueOf(1_000_000);
@@ -46,7 +46,8 @@ public class ScanFilingSuggestionService {
     private final ObjectMapper objectMapper;
 
     public record Suggestion(String folder, String filename, Boolean taxRelevant, Boolean worthKeeping,
-                             String reason, String model, String input, BigDecimal costUsd) {}
+                             String reason, String summary, String model, String input, BigDecimal costUsd,
+                             int catalogFolders) {}
 
     public ScanFilingSuggestionService(@Value("${anthropic.api-key:}") String apiKey,
                                        @Value("${scan-inbox.anthropic-model:claude-opus-5-5}") String model,
@@ -106,9 +107,9 @@ public class ScanFilingSuggestionService {
                 .outputConfig(OutputConfig.builder().effort(OutputConfig.Effort.MEDIUM).build())
                 .systemOfTextBlockParams(List.of(
                         TextBlockParam.builder().text(SYSTEM).build(),
-                        // Large and identical for every file → cached across a batch of scans.
-                        TextBlockParam.builder().text(renderCatalog(catalog))
-                                .cacheControl(CacheControlEphemeral.builder().build()).build()))
+                        // Only the part of the tree that fits this document (ScanCatalogSelector),
+                        // different for every file, so not cached.
+                        TextBlockParam.builder().text(renderCatalog(catalog)).build()))
                 .addUserMessageOfContentBlockParams(content)
                 .build());
 
@@ -127,18 +128,21 @@ public class ScanFilingSuggestionService {
                 .add(perMTok(cacheReadPrice, cacheRead))
                 .add(perMTok(outputPrice, usage.outputTokens()))
                 .setScale(6, RoundingMode.HALF_UP);
-        log.info("Scan suggestion for '{}' ({}, {}): {} in / {} cache-write / {} cache-read / {} out, ${}",
-                sourceName, model, input, usage.inputTokens(), cacheWrite, cacheRead, usage.outputTokens(), cost);
+        log.info("Scan suggestion for '{}' ({}, {}, {} folders): {} in / {} cache-write / {} cache-read / {} out, ${}",
+                sourceName, model, input, catalog == null ? 0 : catalog.size(),
+                usage.inputTokens(), cacheWrite, cacheRead, usage.outputTokens(), cost);
 
-        return parse(answer, sourceName, input, cost);
+        return parse(answer, sourceName, input, cost, catalog == null ? 0 : catalog.size());
     }
 
     // ── Prompt ──────────────────────────────────────────────────────────────
 
     private static final String SYSTEM = """
             Du legst gescannte Dokumente und E-Mail-Anhänge einer Familie in ihre iCloud-Ablage "Dokumente" ab.
-            Du bekommst den Ordnerbaum (Pfade relativ zu "Dokumente") mit Beispiel-Dateinamen
-            je Ordner. Schlage für ein Dokument den Zielordner und einen Dateinamen vor.
+            Du bekommst einen Auszug aus dem Ordnerbaum (Pfade relativ zu "Dokumente"): alle Ordner
+            der oberen zwei Ebenen, die Steuerordner und die zum Dokument passendsten Ordner mit
+            Beispiel-Dateinamen und Unterordnern. Schlage für ein Dokument den Zielordner und einen
+            Dateinamen vor.
 
             Zielordner:
             - Nimm einen BESTEHENDEN Ordner und schreibe seinen Pfad exakt so wie in der Liste,
@@ -177,11 +181,13 @@ public class ScanFilingSuggestionService {
             Antworte NUR mit JSON, ohne Text davor oder danach:
             {"folder": "Pfad/relativ/zu/Dokumente", "filename": "Name.ext",
              "taxRelevant": true|false, "worthKeeping": true|false,
-             "reason": "kurzer deutscher Satz, was das Dokument ist und warum dieser Ordner"}
+             "reason": "kurzer deutscher Satz, was das Dokument ist und warum dieser Ordner",
+             "summary": "2–4 deutsche Sätze für die spätere Suche: Art des Dokuments, Aussteller,
+                         Datum, Betrag, Rechnungs-/Vertrags-/Kundennummern, betroffene Person, Gegenstand"}
             """;
 
     static String renderCatalog(List<CatalogFolder> catalog) {
-        StringBuilder sb = new StringBuilder("Ordnerbaum von \"Dokumente\":\n");
+        StringBuilder sb = new StringBuilder("Ordnerbaum von \"Dokumente\" (Auszug):\n");
         if (catalog == null || catalog.isEmpty()) return sb.append("(noch nicht übertragen)\n").toString();
         for (CatalogFolder f : catalog) {
             if (f.path() == null || f.path().startsWith("_Wohin")) continue;
@@ -210,7 +216,7 @@ public class ScanFilingSuggestionService {
 
     // ── Parsing & sanitising ────────────────────────────────────────────────
 
-    Suggestion parse(String answer, String sourceName, String input, BigDecimal cost) {
+    Suggestion parse(String answer, String sourceName, String input, BigDecimal cost, int catalogFolders) {
         int start = answer.indexOf('{');
         int end = answer.lastIndexOf('}');
         if (start < 0 || end <= start) throw new IllegalStateException("Keine JSON-Antwort: " + answer);
@@ -224,7 +230,8 @@ public class ScanFilingSuggestionService {
         String filename = cleanFilename(text(json, "filename"), sourceName);
         Boolean tax = json.hasNonNull("taxRelevant") ? json.get("taxRelevant").asBoolean() : null;
         Boolean keep = json.hasNonNull("worthKeeping") ? json.get("worthKeeping").asBoolean() : null;
-        return new Suggestion(folder, filename, tax, keep, text(json, "reason"), model, input, cost);
+        return new Suggestion(folder, filename, tax, keep, text(json, "reason"), text(json, "summary"),
+                model, input, cost, catalogFolders);
     }
 
     /** Relative path below "Dokumente", or null if unusable. */

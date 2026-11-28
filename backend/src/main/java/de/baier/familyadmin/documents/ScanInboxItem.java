@@ -115,6 +115,13 @@ public class ScanInboxItem {
     private Instant mailDate;
 
     /** false = AI thinks it is not worth keeping. */
+    @Column(name = "suggestion_summary", columnDefinition = "TEXT")
+    private String suggestionSummary;
+
+    /** Archive document created when the file was filed (null before, or if archiving failed). */
+    @Column(name = "document_id")
+    private UUID documentId;
+
     @Column(name = "worth_keeping")
     private Boolean worthKeeping;
 

@@ -56,6 +56,10 @@ public class Document {
     @Column
     private Integer year;
 
+    /** AI description from the Scan-Eingang (issuer, date, amount …), indexed as an extra chunk. */
+    @Column(name = "ai_summary", columnDefinition = "TEXT")
+    private String aiSummary;
+
     @Column(name = "indexing_skipped", nullable = false)
     @Builder.Default
     private boolean indexingSkipped = false;
