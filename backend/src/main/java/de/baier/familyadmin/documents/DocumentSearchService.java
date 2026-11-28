@@ -366,9 +366,10 @@ public class DocumentSearchService {
             // e.g. "Rechnungen 2025": the type itself is the topic.
             if (typeInName) base = Math.max(base, 0.6);
         } else if (!plan.types().isEmpty()) {
-            if (typeInName) base *= 1.25;
+            if (typeInName) base *= 1.3;
+            else if (otherTypeInName(doc, plan.types())) base *= 0.35;
             else if (textScore == 0 && vectorScore < 0.5) base *= 0.45;
-            else base *= 0.7;
+            else base *= 0.65;
         }
 
         boolean yearMatch = false;
@@ -390,6 +391,23 @@ public class DocumentSearchService {
         if (by.isEmpty() && typeInName) by.add("Dokumentart");
         if (by.isEmpty() && yearMatch) by.add("Jahr");
         return new Scored(doc, base, by, List.of());
+    }
+
+    /** Words in file names that reveal what kind of document it is. */
+    private static final List<String> TYPE_WORDS = List.of(
+            "rechnung", "abrechnung", "re", "quittung", "beleg", "vertrag", "vereinbarung", "angebot",
+            "protokoll", "preisblatt", "preisliste", "bescheid", "police", "mahnung", "kontoauszug",
+            "bestaetigung", "kuendigung", "antrag", "zusage", "informationsblatt", "lieferschein");
+
+    /** True if the file name shows a document type the user did not ask for ("…vertrag" when looking for invoices). */
+    static boolean otherTypeInName(Meta doc, List<String> wanted) {
+        String name = fold(doc.filename());
+        Set<String> tokens = tokens(doc.filename());
+        List<String> wantedFolded = wanted.stream().map(DocumentSearchService::fold).toList();
+        return TYPE_WORDS.stream()
+                .filter(w -> wantedFolded.stream().noneMatch(t -> t.equals(w)
+                        || (t.length() > 3 && (t.contains(w) || w.contains(t)))))
+                .anyMatch(w -> matches(w, name, tokens));
     }
 
     /** Short words ("Re", "AOK") must be whole words, longer ones may be part of a compound. */

@@ -28,7 +28,7 @@ class DocumentSearchTest {
             List.of("Vertrag", "Vereinbarung"), List.of());
 
     private static final Plan FERNWAERME_RECHNUNG = plan(
-            List.of("Fernwärme", "Fermwärme", "Wärmenetz", "Übergabestation"),
+            List.of("Fernwärme", "Fermwärme", "Wärmenetz", "Nahwärme", "Hausanschluss"),
             List.of("Rechnung", "Abrechnung", "Re"), List.of());
 
     @Test
@@ -70,6 +70,15 @@ class DocumentSearchTest {
         assertThat(graf.matchedBy()).containsExactly("Ordner");
         assertThat(stadtwerke.score()).isGreaterThan(graf.score());
         assertThat(graf.score()).isGreaterThan(contract.score());
+        // A contract with the topic in its name and text is still below the invoices.
+        var namedContract = DocumentSearchService.score(doc("Haus-Anschlussvertrag Nahwärme 19.10.2025.pdf",
+                "Lieferanten", "Heizung"), FERNWAERME_RECHNUNG, 0.8, 0.9);
+        assertThat(graf.score()).isGreaterThan(namedContract.score());
+        // "Preisblatt" contains "re", but is not an invoice.
+        assertThat(DocumentSearchService.otherTypeInName(doc("Preisblatt Nahwärme.pdf", "L", null),
+                List.of("Rechnung", "Re"))).isTrue();
+        assertThat(DocumentSearchService.otherTypeInName(doc("Graf_Abschluss-Re_10.2026.pdf", "L", null),
+                List.of("Rechnung", "Abrechnung", "Re"))).isFalse();
         // Only vaguely similar and nothing in name or text: not shown.
         assertThat(water).isNull();
     }
