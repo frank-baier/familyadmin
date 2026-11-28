@@ -23,6 +23,7 @@ import {
   type ShareableUser,
 } from '@familyadmin/shared/document-shares';
 import { ApiError, apiFetchBlob, openBlobInNewTab } from '@familyadmin/shared/api';
+import { getScanStatus } from '@/lib/scan-inbox';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -695,6 +696,11 @@ function TreeNodeRow({
 export default function DocumentsPage() {
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [loading, setLoading] = useState(true);
+  const [scanPending, setScanPending] = useState(0);
+
+  useEffect(() => {
+    getScanStatus().then((s) => setScanPending(s.pending)).catch(() => {});
+  }, []);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -888,6 +894,13 @@ export default function DocumentsPage() {
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Dokumente</h1>
           <p className="text-slate-500 text-sm mt-1">Familien-Dokumentenarchiv</p>
         </div>
+        <div className="flex shrink-0 gap-2">
+        <Link
+          href="/documents/scan"
+          className="px-3 py-2 rounded-xl text-sm font-medium text-amber-700 border border-amber-200 bg-white hover:bg-amber-50 shrink-0 self-center"
+        >
+          Scan-Eingang{scanPending > 0 && <span className="ml-1.5 rounded-full bg-amber-600 px-1.5 py-0.5 text-[11px] text-white">{scanPending}</span>}
+        </Link>
         <Link
           href="/documents/ask"
           className="btn-primary shrink-0"
@@ -899,6 +912,7 @@ export default function DocumentsPage() {
           </svg>
           KI Fragen
         </Link>
+        </div>
       </div>
 
       {error && (
