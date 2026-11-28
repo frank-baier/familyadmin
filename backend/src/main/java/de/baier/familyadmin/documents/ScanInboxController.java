@@ -171,10 +171,12 @@ public class ScanInboxController {
     @PreAuthorize("hasRole('ADMIN')")
     public ScanFilingSuggestionService.Suggestion dryRun(@RequestParam("file") MultipartFile file,
                                                          @RequestParam(value = "filename", required = false) String filename,
+                                                         @RequestParam(value = "model", required = false) String model,
                                                          @AuthenticationPrincipal User user) throws java.io.IOException {
+        if (model != null && !model.matches("claude-[a-z0-9-]+")) throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         String name = filename != null && !filename.isBlank() ? filename : file.getOriginalFilename();
         return analyzer.suggest(name, file.getContentType(), file.getBytes(), null, null,
-                service.catalogFor(user), user.getId());
+                service.catalogFor(user), user.getId(), model);
     }
 
     @PostMapping("/{id}/move-failed")

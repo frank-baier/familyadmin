@@ -33,7 +33,7 @@ public class ScanFilingSuggestionService {
 
     /** Below this many non-blank characters a PDF counts as "no OCR text". */
     static final int MIN_TEXT_CHARS = 80;
-    private static final int MAX_TEXT_CHARS = 12_000;
+    private static final int MAX_TEXT_CHARS = 8_000;
     private static final long MAX_VISION_BYTES = 20L * 1024 * 1024;
     private static final int MAX_EXAMPLES_PER_FOLDER = 4;
     private static final BigDecimal MILLION = BigDecimal.valueOf(1_000_000);
@@ -75,7 +75,15 @@ public class ScanFilingSuggestionService {
     /** {@code mailContext}: sender/date/subject when the file is an e-mail attachment, else null. */
     public Suggestion suggest(String sourceName, String contentType, byte[] data,
                               List<CatalogFolder> catalog, String userHint, String mailContext) {
+        return suggest(sourceName, contentType, data, catalog, userHint, mailContext, null);
+    }
+
+    /** {@code modelOverride}: another model for a comparison run (admin dry-run), else null. */
+    public Suggestion suggest(String sourceName, String contentType, byte[] data, List<CatalogFolder> catalog,
+                              String userHint, String mailContext, String modelOverride) {
         if (client == null) throw new IllegalStateException("ANTHROPIC_API_KEY ist nicht konfiguriert");
+        String model = StringUtils.hasText(modelOverride) ? modelOverride : this.model;
+        Prices prices = prices(model);
 
         List<ContentBlockParam> content = new ArrayList<>();
         String input;
@@ -123,16 +131,16 @@ public class ScanFilingSuggestionService {
         Usage usage = message.usage();
         long cacheWrite = usage.cacheCreationInputTokens().orElse(0L);
         long cacheRead = usage.cacheReadInputTokens().orElse(0L);
-        BigDecimal cost = perMTok(inputPrice, usage.inputTokens())
-                .add(perMTok(inputPrice.multiply(BigDecimal.valueOf(1.25)), cacheWrite))
-                .add(perMTok(cacheReadPrice, cacheRead))
-                .add(perMTok(outputPrice, usage.outputTokens()))
+        BigDecimal cost = perMTok(prices.input(), usage.inputTokens())
+                .add(perMTok(prices.input().multiply(BigDecimal.valueOf(1.25)), cacheWrite))
+                .add(perMTok(prices.cacheRead(), cacheRead))
+                .add(perMTok(prices.output(), usage.outputTokens()))
                 .setScale(6, RoundingMode.HALF_UP);
         log.info("Scan suggestion for '{}' ({}, {}, {} folders): {} in / {} cache-write / {} cache-read / {} out, ${}",
                 sourceName, model, input, catalog == null ? 0 : catalog.size(),
                 usage.inputTokens(), cacheWrite, cacheRead, usage.outputTokens(), cost);
 
-        return parse(answer, sourceName, input, cost, catalog == null ? 0 : catalog.size());
+        return parse(answer, sourceName, input, cost, catalog == null ? 0 : catalog.size(), model);
     }
 
     // ── Prompt ──────────────────────────────────────────────────────────────
@@ -157,7 +165,8 @@ public class ScanFilingSuggestionService {
               z. B. "01 Arbeitnehmer", "02 Aussergewöhnliche Belastungen" (Arzt, Zahnarzt,
               Brille, Therapie, Apotheke), "04 Handwerker und Haushaltsnahe Diensteistungen"
               (Handwerker, Schornsteinfeger, Wartung, Haushaltshilfe), "05 Kapitalanlagen",
-              "06 Kinder", "07 Renten", "08 Sonderausgaben_Spenden", "09 Vermietungen",
+              "06 Kinder" (auch Schulgeld, Kita,
+              Kinderbetreuung), "07 Renten", "08 Sonderausgaben_Spenden", "09 Vermietungen",
               "10 Versicherungen". Gibt es den Jahresordner noch nicht, nimm die Rubriknamen
               aus "Behörden/Finanzamt/Steuerunterlagen Template 2".
             - Nicht steuerrelevant sind z. B. Kassenzettel für Einkäufe, Abo-Rechnungen,
@@ -217,6 +226,11 @@ public class ScanFilingSuggestionService {
     // ── Parsing & sanitising ────────────────────────────────────────────────
 
     Suggestion parse(String answer, String sourceName, String input, BigDecimal cost, int catalogFolders) {
+        return parse(answer, sourceName, input, cost, catalogFolders, model);
+    }
+
+    Suggestion parse(String answer, String sourceName, String input, BigDecimal cost, int catalogFolders,
+                     String model) {
         int start = answer.indexOf('{');
         int end = answer.lastIndexOf('}');
         if (start < 0 || end <= start) throw new IllegalStateException("Keine JSON-Antwort: " + answer);
@@ -282,6 +296,16 @@ public class ScanFilingSuggestionService {
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────
+
+    record Prices(BigDecimal input, BigDecimal output, BigDecimal cacheRead) {}
+
+    /** Configured prices for the configured model; list prices for comparison models. */
+    Prices prices(String model) {
+        if (model.equals(this.model)) return new Prices(inputPrice, outputPrice, cacheReadPrice);
+        if (model.startsWith("claude-sonnet")) return new Prices(new BigDecimal("2.00"), new BigDecimal("10.00"), new BigDecimal("0.10"));
+        if (model.startsWith("claude-haiku")) return new Prices(new BigDecimal("0.10"), new BigDecimal("0.50"), new BigDecimal("0.01"));
+        return new Prices(inputPrice, outputPrice, cacheReadPrice);
+    }
 
     static String pdfText(byte[] data) {
         try (PDDocument doc = PDDocument.load(data)) {

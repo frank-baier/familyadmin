@@ -63,6 +63,12 @@ public class ScanInboxAnalyzer {
     ScanFilingSuggestionService.Suggestion suggest(String sourceName, String contentType, byte[] data, String hint,
                                                    String mailContext, java.util.List<ScanInboxDtos.CatalogFolder> catalog,
                                                    UUID ownerId) {
+        return suggest(sourceName, contentType, data, hint, mailContext, catalog, ownerId, null);
+    }
+
+    ScanFilingSuggestionService.Suggestion suggest(String sourceName, String contentType, byte[] data, String hint,
+                                                   String mailContext, java.util.List<ScanInboxDtos.CatalogFolder> catalog,
+                                                   UUID ownerId, String modelOverride) {
         String text = "application/pdf".equalsIgnoreCase(contentType) || sourceName.toLowerCase().endsWith(".pdf")
                 ? ScanFilingSuggestionService.pdfText(data) : "";
         if (ScanFilingSuggestionService.nonBlankLength(text) < ScanFilingSuggestionService.MIN_TEXT_CHARS) {
@@ -75,7 +81,7 @@ public class ScanInboxAnalyzer {
         String context = String.join("\n", sourceName, hint == null ? "" : hint,
                 mailContext == null ? "" : mailContext, text == null ? "" : text);
         var folders = catalogSelector.select(catalog, context, ownerId);
-        return suggestionService.suggest(sourceName, contentType, data, folders, hint, mailContext);
+        return suggestionService.suggest(sourceName, contentType, data, folders, hint, mailContext, modelOverride);
     }
 
     /** Picks up analyses lost by a restart. */
