@@ -25,6 +25,7 @@ public class DocumentController {
 
     private final DocumentRepository documentRepository;
     private final DocumentService documentService;
+    private final DocumentSearchService documentSearchService;
 
     @GetMapping
     public PagedDocumentsResponse getAll(
@@ -41,6 +42,13 @@ public class DocumentController {
             return PagedDocumentsResponse.from(documentRepository.findVisibleByUser(userId, pageable));
         }
         return PagedDocumentsResponse.from(documentRepository.findFiltered(category, year, subcategory, subcategoryPrefix, userId, pageable));
+    }
+
+    /** Finds documents by topic, type and year ("Fernwärmevertrag", "Rechnungen Fernwärme 2026"). */
+    @GetMapping("/search")
+    public DocumentSearchService.SearchResponse search(@RequestParam String q,
+                                                       @AuthenticationPrincipal User currentUser) {
+        return documentSearchService.search(q, currentUser.getId());
     }
 
     @GetMapping("/tree")

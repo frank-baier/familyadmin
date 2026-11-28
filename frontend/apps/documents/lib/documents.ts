@@ -148,3 +148,39 @@ export function formatFileSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+// ─── Search ───────────────────────────────────────────────────────────────────
+
+export interface SearchHit {
+  id: string;
+  filename: string;
+  contentType: string;
+  fileSize: number;
+  category: string | null;
+  subcategory: string | null;
+  year: number | null;
+  createdAt: string;
+  downloadUrl: string;
+  /** Text excerpt; matched words are wrapped in [[ ]]. */
+  snippet: string | null;
+  /** "Name", "Ordner", "Inhalt", "Bedeutung", "Dokumentart", "Jahr" */
+  matchedBy: string[];
+  /** Folders holding identical copies of the same file. */
+  alsoIn: string[];
+  score: number;
+}
+
+export interface SearchResult {
+  query: string;
+  terms: string[];
+  types: string[];
+  years: number[];
+  results: SearchHit[];
+  model: string | null;
+  costUsd: number | null;
+  durationMs: number;
+}
+
+export function searchDocuments(q: string): Promise<SearchResult> {
+  return apiFetch<SearchResult>(`/api/documents/search?q=${encodeURIComponent(q)}`);
+}

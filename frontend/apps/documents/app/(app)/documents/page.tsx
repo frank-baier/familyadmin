@@ -24,6 +24,7 @@ import {
 } from '@familyadmin/shared/document-shares';
 import { ApiError, apiFetchBlob, openBlobInNewTab } from '@familyadmin/shared/api';
 import { getScanStatus } from '@/lib/scan-inbox';
+import DocumentSearch from '@/components/DocumentSearch';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -697,6 +698,7 @@ export default function DocumentsPage() {
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [scanPending, setScanPending] = useState(0);
+  const [searchActive, setSearchActive] = useState(false);
 
   useEffect(() => {
     getScanStatus().then((s) => setScanPending(s.pending)).catch(() => {});
@@ -928,6 +930,13 @@ export default function DocumentsPage() {
         </div>
       )}
 
+      <DocumentSearch
+        onActiveChange={setSearchActive}
+        onOpen={(url) => openBlobInNewTab(url).catch(() => setError('Öffnen fehlgeschlagen.'))}
+        onDownload={(url) => handleDownload({ downloadUrl: url } as Document)}
+      />
+
+      {!searchActive && (<>
       <div className="mb-6">
         <UploadZone onUpload={handleUpload} uploading={uploading} />
       </div>
@@ -1021,6 +1030,7 @@ export default function DocumentsPage() {
           ))}
         </div>
       )}
+      </>)}
     </div>
   );
 }
