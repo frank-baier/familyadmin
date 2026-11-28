@@ -14,12 +14,17 @@ public interface ScanInboxItemRepository extends JpaRepository<ScanInboxItem, UU
 
     List<ScanInboxItem> findTop10ByOwnerIdAndStatusOrderByMovedAtDesc(UUID ownerId, ScanInboxStatus status);
 
-    Optional<ScanInboxItem> findFirstByOwnerIdAndSha256AndStatusIn(UUID ownerId, String sha256,
+    Optional<ScanInboxItem> findFirstByOwnerIdAndSourceAndSha256AndStatusIn(UUID ownerId, ScanInboxSource source, String sha256,
                                                                    Collection<ScanInboxStatus> statuses);
 
     List<ScanInboxItem> findByOwnerIdAndStatusOrderByDecidedAtAsc(UUID ownerId, ScanInboxStatus status);
 
     List<ScanInboxItem> findByStatusAndCreatedAtBefore(ScanInboxStatus status, Instant before);
+
+    boolean existsByOwnerIdAndMailMessageId(UUID ownerId, String mailMessageId);
+
+    /** Any earlier e-mail attachment with the same content (also rejected ones: they must not come back). */
+    boolean existsByOwnerIdAndSourceAndSha256(UUID ownerId, ScanInboxSource source, String sha256);
 
     long countByOwnerIdAndStatusIn(UUID ownerId, Collection<ScanInboxStatus> statuses);
 }

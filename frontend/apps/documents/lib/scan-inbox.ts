@@ -1,10 +1,19 @@
 import { apiFetch } from '@familyadmin/shared/api';
 
+export type ScanSource = 'SCAN' | 'MAIL';
+
 export type ScanStatus = 'ANALYZING' | 'PENDING' | 'APPROVED' | 'DONE' | 'REJECTED' | 'GONE';
 
 export interface ScanItem {
   id: string;
-  /** File name as it lies in iCloud "Dokumente/_Wohin?" */
+  /** SCAN: file in iCloud "_Wohin?"; MAIL: e-mail attachment (only on the server until filed) */
+  source: ScanSource;
+  mailFrom: string | null;
+  mailSubject: string | null;
+  mailDate: string | null;
+  /** false = the AI thinks it need not be kept (ads, T&Cs, newsletters …) */
+  worthKeeping: boolean | null;
+  /** File name in iCloud "Dokumente/_Wohin?", or of the mail attachment */
   sourceName: string;
   contentType: string;
   fileSize: number;
@@ -33,6 +42,8 @@ export interface ScanInboxStatusInfo {
   pending: number;
   aiConfigured: boolean;
   catalogUpdatedAt: string | null;
+  /** IMAP mailbox configured on the server */
+  mailConfigured: boolean;
 }
 
 const BASE = '/api/documents/scan';
@@ -63,6 +74,11 @@ export function rejectScan(id: string): Promise<ScanItem> {
 
 export function undoScan(id: string): Promise<void> {
   return apiFetch<void>(`${BASE}/${id}/undo`, { method: 'POST' });
+}
+
+/** Admin: check the mailbox now. created = new attachments, -1 = a check is already running */
+export function pollMail(): Promise<{ created: number }> {
+  return apiFetch(`${BASE}/mail/poll`, { method: 'POST' });
 }
 
 export function reanalyzeScan(id: string, hint: string): Promise<void> {

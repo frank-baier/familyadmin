@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError, openBlobInNewTab } from '@familyadmin/shared/api';
+import { useUser } from '@familyadmin/shared/user-context';
 import { formatCostUsd, formatModelName } from '@/lib/documents';
 import {
-  approveScan, getScanFolders, getScanItems, getScanStatus, reanalyzeScan, rejectScan, undoScan,
+  approveScan, getScanFolders, getScanItems, getScanStatus, pollMail, reanalyzeScan, rejectScan, undoScan,
   type ScanInboxStatusInfo, type ScanItem,
 } from '@/lib/scan-inbox';
 
@@ -71,13 +72,14 @@ function ScanCard({ item, onChanged, onError }: {
     && openBlobInNewTab(item.previewUrl).catch(() => onError('Öffnen fehlgeschlagen.'));
   const ext = item.sourceName.split('.').pop()?.slice(0, 4) ?? 'DOC';
   const tax = item.taxRelevant || item.suggestedFolder?.startsWith(TAX_PREFIX);
+  const mail = item.source === 'MAIL';
 
   return (
     <li className={`glass rounded-2xl p-4 ${busy ? 'opacity-60' : ''}`}>
       <div className="flex items-start gap-3">
         <button type="button" onClick={preview}
           className="shrink-0 w-10 h-12 rounded-lg bg-amber-50 border border-amber-100 text-amber-700 text-[10px] font-bold uppercase flex items-center justify-center hover:bg-amber-100"
-          title="Scan ansehen">
+          title={mail ? 'Anhang ansehen' : 'Scan ansehen'}>
           {ext}
         </button>
         <div className="min-w-0 flex-1">
@@ -86,9 +88,18 @@ function ScanCard({ item, onChanged, onError }: {
             {item.sourceName}
           </button>
           <p className="text-xs text-slate-500">
-            {formatDate(item.createdAt)} · {formatSize(item.fileSize)}
+            {formatDate(mail ? item.mailDate : item.createdAt)} · {formatSize(item.fileSize)}
           </p>
+          {mail && (
+            <p className="text-xs text-slate-600 truncate">
+              {item.mailFrom ?? 'Unbekannt'}{item.mailSubject && ` · ${item.mailSubject}`}
+            </p>
+          )}
         </div>
+        <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium ${mail
+          ? 'bg-violet-50 border-violet-200 text-violet-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+          {mail ? 'E-Mail' : 'Scan'}
+        </span>
         {tax && item.status !== 'ANALYZING' && (
           <span className="shrink-0 rounded-full bg-sky-50 border border-sky-200 px-2 py-0.5 text-[11px] font-medium text-sky-700">
             Steuer
@@ -111,6 +122,9 @@ function ScanCard({ item, onChanged, onError }: {
             <p className="text-slate-500">Kein Vorschlag – bitte Ordner und Namen selbst wählen.</p>
           )}
           {item.suggestionReason && <p className="text-xs text-slate-600">{item.suggestionReason}</p>}
+          {item.worthKeeping === false && (
+            <p className="text-xs font-medium text-slate-700">KI meint: wohl nicht aufbewahrenswert{mail ? ' – eher verwerfen.' : '.'}</p>
+          )}
           {item.analysisError && <p className="text-xs text-red-600">{item.analysisError}</p>}
           {item.suggestionModel && (
             <p className="text-[11px] text-slate-400">
@@ -125,7 +139,7 @@ function ScanCard({ item, onChanged, onError }: {
 
       {item.moveError && (
         <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700">
-          Verschieben auf dem Mac fehlgeschlagen: {item.moveError}
+          {mail ? 'Ablegen' : 'Verschieben'} auf dem Mac fehlgeschlagen: {item.moveError}
         </p>
       )}
 
@@ -170,8 +184,9 @@ function ScanCard({ item, onChanged, onError }: {
       {item.status === 'PENDING' && mode === 'view' && (
         <div className="mt-3 flex flex-wrap justify-end gap-2">
           <button type="button" className={btnGhost} disabled={busy}
-            onClick={() => run(() => rejectScan(item.id), `„${item.sourceName}“ bleibt in _Wohin?`)}>
-            Liegen lassen
+            onClick={() => run(() => rejectScan(item.id),
+              mail ? `„${item.sourceName}“ verworfen` : `„${item.sourceName}“ bleibt in _Wohin?`)}>
+            {mail ? 'Verwerfen' : 'Liegen lassen'}
           </button>
           <button type="button" className={btnGhost} disabled={busy} onClick={() => setMode('hint')}>
             Neu analysieren
@@ -249,6 +264,8 @@ function Section({ title, hint, items, onChanged, onError }: {
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function ScanInboxPage() {
+  const { user } = useUser();
+  const [polling, setPolling] = useState(false);
   const [items, setItems] = useState<ScanItem[] | null>(null);
   const [folders, setFolders] = useState<string[]>([]);
   const [status, setStatus] = useState<ScanInboxStatusInfo | null>(null);
@@ -261,7 +278,7 @@ export default function ScanInboxPage() {
       setItems(list);
       setStatus(s);
     } catch {
-      setError('Scan-Eingang konnte nicht geladen werden.');
+      setError('Eingang konnte nicht geladen werden.');
       setItems((prev) => prev ?? []);
     }
   }, []);
@@ -280,6 +297,20 @@ export default function ScanInboxPage() {
     return () => clearInterval(t);
   }, [analyzing, load]);
 
+  async function handlePollMail() {
+    setPolling(true);
+    try {
+      const { created } = await pollMail();
+      setNotice(created < 0 ? 'Abruf läuft bereits.'
+        : created === 0 ? 'Keine neuen E-Mail-Anhänge.' : `${created} neue E-Mail-Anhänge – KI analysiert…`);
+      load();
+    } catch {
+      setError('Postfach konnte nicht abgerufen werden.');
+    } finally {
+      setPolling(false);
+    }
+  }
+
   function changed(message?: string) {
     if (message) setNotice(message);
     load();
@@ -292,13 +323,20 @@ export default function ScanInboxPage() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="mb-4">
-        <Link href="/documents" className="text-xs text-slate-500 hover:underline">‹ Dokumente</Link>
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Scan-Eingang</h1>
-        <p className="text-sm text-slate-500">
-          Neue Dateien aus iCloud „Dokumente/_Wohin?“ mit Vorschlag für Ordner und Namen.
-          Erst nach „Ablegen“ verschiebt dein Mac die Datei.
-        </p>
+      <div className="mb-4 flex items-start gap-3">
+        <div className="flex-1">
+          <Link href="/documents" className="text-xs text-slate-500 hover:underline">‹ Dokumente</Link>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Eingang</h1>
+          <p className="text-sm text-slate-500">
+            Scans aus iCloud „Dokumente/_Wohin?“{status?.mailConfigured && ' und Anhänge aus deinen E-Mails'} mit
+            Vorschlag für Ordner und Namen. Erst nach „Ablegen“ legt dein Mac die Datei in iCloud ab.
+          </p>
+        </div>
+        {user?.role === 'ADMIN' && status?.mailConfigured && (
+          <button type="button" onClick={handlePollMail} disabled={polling} className={`${btnOutline} shrink-0 mt-5`}>
+            {polling ? 'Rufe ab…' : 'E-Mails abrufen'}
+          </button>
+        )}
       </div>
 
       {error && (
@@ -343,7 +381,7 @@ export default function ScanInboxPage() {
       )}
 
       <Section title="Freigegeben – wartet auf den Mac" items={approved}
-        hint="Der Mac verschiebt die Dateien beim nächsten Lauf (alle paar Minuten, wenn er wach ist)."
+        hint="Der Mac legt die Dateien beim nächsten Lauf ab (alle paar Minuten, wenn er wach ist)."
         onChanged={changed} onError={setError} />
       <Section title="Liegen gelassen" items={rejected} onChanged={changed} onError={setError} />
       <Section title="Zuletzt abgelegt" items={done} onChanged={changed} onError={setError} />

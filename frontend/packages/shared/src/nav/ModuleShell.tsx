@@ -13,7 +13,7 @@ interface Tab { label: string; href: string; adminOnly?: boolean }
 const TABS: Record<string, Tab[]> = {
   tasks: [{ label: 'Aufgaben', href: '/tasks' }, { label: 'Vorlagen', href: '/tasks/templates', adminOnly: true }],
   recipes: [{ label: 'Rezepte', href: '/recipes' }, { label: 'Mahlzeitenplan', href: '/recipes/meal-plan' }],
-  documents: [{ label: 'Dokumente', href: '/documents' }, { label: 'Posteingang', href: '/documents/inbox' }, { label: 'KI Fragen', href: '/documents/ask' }],
+  documents: [{ label: 'Dokumente', href: '/documents' }, { label: 'Eingang', href: '/documents/scan' }, { label: 'KI Fragen', href: '/documents/ask' }],
 };
 
 /** Shell of a standalone module app: own header, no portal sidebar, access check. */

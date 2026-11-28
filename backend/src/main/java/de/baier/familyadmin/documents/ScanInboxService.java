@@ -38,7 +38,10 @@ public class ScanInboxService {
 
     /** Data the analyzer needs, read in one short transaction. */
     public record AnalysisInput(String sourceName, String contentType, byte[] data, String hint,
-                                List<CatalogFolder> catalog) {}
+                                String mailContext, List<CatalogFolder> catalog) {}
+
+    private static final java.time.format.DateTimeFormatter MAIL_DATE =
+            java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(java.time.ZoneId.of("Europe/Zurich"));
 
     // ── User side ───────────────────────────────────────────────────────────
 
@@ -48,6 +51,8 @@ public class ScanInboxService {
         itemRepository.findByOwnerIdAndStatusInOrderByCreatedAtDesc(user.getId(),
                         EnumSet.of(ScanInboxStatus.ANALYZING, ScanInboxStatus.PENDING, ScanInboxStatus.APPROVED,
                                 ScanInboxStatus.REJECTED))
+                .stream()
+                .filter(i -> !(i.isMail() && i.getStatus() == ScanInboxStatus.REJECTED))   // discarded
                 .forEach(i -> result.add(ItemResponse.from(i)));
         itemRepository.findTop10ByOwnerIdAndStatusOrderByMovedAtDesc(user.getId(), ScanInboxStatus.DONE)
                 .forEach(i -> result.add(ItemResponse.from(i)));
@@ -83,12 +88,13 @@ public class ScanInboxService {
         return ItemResponse.from(item);
     }
 
-    /** Leave the file in _Wohin?; no further suggestions. */
+    /** Scan: leave the file in _Wohin?, no further suggestions. Mail: throw the attachment away. */
     public ItemResponse reject(UUID id, User user) {
         ScanInboxItem item = owned(id, user);
         requireStatus(item, ScanInboxStatus.PENDING, ScanInboxStatus.ANALYZING);
         item.setStatus(ScanInboxStatus.REJECTED);
         item.setDecidedAt(Instant.now());
+        if (item.isMail()) item.setData(null);
         return ItemResponse.from(item);
     }
 
@@ -96,6 +102,7 @@ public class ScanInboxService {
     public boolean undo(UUID id, User user) {
         ScanInboxItem item = owned(id, user);
         requireStatus(item, ScanInboxStatus.APPROVED, ScanInboxStatus.REJECTED);
+        if (item.getData() == null) throw new ResponseStatusException(HttpStatus.GONE, "Anhang wurde schon verworfen");
         boolean analyze = item.getSuggestedFolder() == null && item.getAnalysisError() == null;
         item.setStatus(analyze ? ScanInboxStatus.ANALYZING : ScanInboxStatus.PENDING);
         item.setDecidedAt(null);
@@ -142,7 +149,7 @@ public class ScanInboxService {
     public UploadResult register(User user, String sha256, String sourceName, String contentType,
                                  long fileSize, byte[] data) {
         String sha = sha256.toLowerCase(Locale.ROOT);
-        Optional<ScanInboxItem> existing = itemRepository.findFirstByOwnerIdAndSha256AndStatusIn(user.getId(), sha, KNOWN);
+        Optional<ScanInboxItem> existing = itemRepository.findFirstByOwnerIdAndSourceAndSha256AndStatusIn(user.getId(), ScanInboxSource.SCAN, sha, KNOWN);
         if (existing.isPresent()) {
             ScanInboxItem item = existing.get();
             item.setSourceName(sourceName);
@@ -164,12 +171,44 @@ public class ScanInboxService {
 
     public record UploadResult(UploadResponse response, boolean analyze) {}
 
+    @Transactional(readOnly = true)
+    public boolean mailKnown(User user, String messageId) {
+        return itemRepository.existsByOwnerIdAndMailMessageId(user.getId(), messageId);
+    }
+
+    /**
+     * Adds an e-mail attachment. An attachment whose content was seen in an earlier mail
+     * (same sha256, whatever was decided then) is skipped, so recurring T&Cs or rejected
+     * files do not come back. Returns the new item id, or null if skipped.
+     */
+    public UUID registerMail(User user, String messageId, String from, String subject, Instant mailDate,
+                             String filename, String contentType, byte[] data) {
+        String sha = sha256Hex(data);
+        if (itemRepository.existsByOwnerIdAndSourceAndSha256(user.getId(), ScanInboxSource.MAIL, sha)) return null;
+        return itemRepository.save(ScanInboxItem.builder()
+                .owner(user).source(ScanInboxSource.MAIL).sha256(sha).sourceName(filename)
+                .contentType(StringUtils.hasText(contentType) ? contentType : "application/octet-stream")
+                .fileSize(data.length).data(data).status(ScanInboxStatus.ANALYZING)
+                .mailMessageId(messageId).mailFrom(from).mailSubject(subject).mailDate(mailDate)
+                .build()).getId();
+    }
+
+    static String sha256Hex(byte[] data) {
+        try {
+            return java.util.HexFormat.of().formatHex(
+                    java.security.MessageDigest.getInstance("SHA-256").digest(data));
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     /** Everything known to lie in _Wohin? but not in {@code present} was removed by hand → GONE. */
     public int markMissing(User user, Collection<String> present) {
         Set<String> hashes = new HashSet<>();
         present.forEach(h -> hashes.add(h.toLowerCase(Locale.ROOT)));
         int gone = 0;
         for (ScanInboxItem item : itemRepository.findByOwnerIdAndStatusInOrderByCreatedAtDesc(user.getId(), IN_FOLDER)) {
+            if (item.isMail()) continue;   // never in _Wohin?
             if (!hashes.contains(item.getSha256())) {
                 item.setStatus(ScanInboxStatus.GONE);
                 gone++;
@@ -207,8 +246,18 @@ public class ScanInboxService {
     public Optional<AnalysisInput> analysisInput(UUID id) {
         return itemRepository.findById(id)
                 .filter(i -> i.getStatus() == ScanInboxStatus.ANALYZING && i.getData() != null)
-                .map(i -> new AnalysisInput(i.getSourceName(), i.getContentType(), i.getData(), i.getUserHint(),
+                .map(i -> new AnalysisInput(i.getSourceName(), i.getContentType(), i.getData(), i.getUserHint(), mailContext(i),
                         catalog(i.getOwner().getId())));
+    }
+
+    /** Sender/date/subject of a mail attachment for the prompt; null for scans. */
+    static String mailContext(ScanInboxItem i) {
+        if (!i.isMail()) return null;
+        StringBuilder sb = new StringBuilder("Anhang einer E-Mail");
+        if (StringUtils.hasText(i.getMailFrom())) sb.append(" von ").append(i.getMailFrom());
+        if (i.getMailDate() != null) sb.append(" vom ").append(MAIL_DATE.format(i.getMailDate()));
+        if (StringUtils.hasText(i.getMailSubject())) sb.append(", Betreff: \"").append(i.getMailSubject()).append('"');
+        return sb.append('.').toString();
     }
 
     public void saveSuggestion(UUID id, ScanFilingSuggestionService.Suggestion s) {
@@ -220,6 +269,7 @@ public class ScanInboxService {
             i.setSuggestionModel(s.model());
             i.setSuggestionCostUsd(s.costUsd());
             i.setAnalysisInput(s.input());
+            i.setWorthKeeping(s.worthKeeping());
             i.setAnalysisError(s.folder() == null ? "Kein brauchbarer Ordner vorgeschlagen" : null);
             i.setStatus(ScanInboxStatus.PENDING);
         });

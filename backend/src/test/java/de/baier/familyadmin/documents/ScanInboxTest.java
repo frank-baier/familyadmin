@@ -91,7 +91,7 @@ class ScanInboxTest {
     void knownHashIsNotAnalysedAgain() {
         User u = user();
         ScanInboxItem existing = item(u, ScanInboxStatus.PENDING);
-        when(items.findFirstByOwnerIdAndSha256AndStatusIn(eq(u.getId()), anyString(), anyCollection()))
+        when(items.findFirstByOwnerIdAndSourceAndSha256AndStatusIn(eq(u.getId()), eq(ScanInboxSource.SCAN), anyString(), anyCollection()))
                 .thenReturn(Optional.of(existing));
         var r = service.register(u, "AB".repeat(32), "renamed.pdf", "application/pdf", 1, new byte[]{1});
         assertThat(r.analyze()).isFalse();
@@ -104,7 +104,7 @@ class ScanInboxTest {
     void reappearingFileGetsOldSuggestionBack() {
         User u = user();
         ScanInboxItem gone = item(u, ScanInboxStatus.GONE);
-        when(items.findFirstByOwnerIdAndSha256AndStatusIn(any(), anyString(), anyCollection()))
+        when(items.findFirstByOwnerIdAndSourceAndSha256AndStatusIn(any(), any(), anyString(), anyCollection()))
                 .thenReturn(Optional.of(gone));
         var r = service.register(u, "ab".repeat(32), "scan.pdf", "application/pdf", 1, new byte[]{1});
         assertThat(r.analyze()).isFalse();
@@ -166,5 +166,79 @@ class ScanInboxTest {
         service.moved(i.getId(), "Auto/2025/Re_ATU_Audi_06.2025.pdf", u);
         assertThat(i.getStatus()).isEqualTo(ScanInboxStatus.DONE);
         assertThat(i.getData()).isNull();
+    }
+
+    // ── Mail attachments ────────────────────────────────────────────────────
+
+    private ScanInboxItem mailItem(User owner, ScanInboxStatus status) {
+        ScanInboxItem i = item(owner, status);
+        i.setSource(ScanInboxSource.MAIL);
+        i.setMailFrom("SoBa <info@soba.ch>");
+        i.setMailSubject("Ihr Kontoauszug");
+        i.setMailDate(java.time.Instant.parse("2026-11-03T08:00:00Z"));
+        return i;
+    }
+
+    @Test
+    void mailAttachmentSeenBeforeIsSkipped() {
+        User u = user();
+        when(items.existsByOwnerIdAndSourceAndSha256(eq(u.getId()), eq(ScanInboxSource.MAIL), anyString())).thenReturn(true);
+        assertThat(service.registerMail(u, "<m1>", "a", "b", null, "agb.pdf", "application/pdf", new byte[]{1})).isNull();
+        verify(items, never()).save(any());
+    }
+
+    @Test
+    void newMailAttachmentIsAnalysed() {
+        User u = user();
+        when(items.save(any())).thenAnswer(inv -> {
+            ScanInboxItem i = inv.getArgument(0);
+            i.setId(UUID.randomUUID());
+            return i;
+        });
+        UUID id = service.registerMail(u, "<m1>", "SoBa", "Auszug", null, "auszug.pdf", "application/pdf", new byte[]{1, 2});
+        assertThat(id).isNotNull();
+        verify(items).save(argThat(i -> i.isMail() && i.getStatus() == ScanInboxStatus.ANALYZING
+                && i.getSha256().equals(ScanInboxService.sha256Hex(new byte[]{1, 2}))
+                && "<m1>".equals(i.getMailMessageId())));
+    }
+
+    @Test
+    void mailItemsAreNeverMarkedGone() {
+        User u = user();
+        ScanInboxItem mail = mailItem(u, ScanInboxStatus.PENDING);
+        when(items.findByOwnerIdAndStatusInOrderByCreatedAtDesc(eq(u.getId()), anyCollection()))
+                .thenReturn(List.of(mail));
+        assertThat(service.markMissing(u, List.of())).isZero();
+        assertThat(mail.getStatus()).isEqualTo(ScanInboxStatus.PENDING);
+    }
+
+    @Test
+    void rejectingMailAttachmentDiscardsIt() {
+        User u = user();
+        ScanInboxItem mail = mailItem(u, ScanInboxStatus.PENDING);
+        when(items.findById(mail.getId())).thenReturn(Optional.of(mail));
+        service.reject(mail.getId(), u);
+        assertThat(mail.getStatus()).isEqualTo(ScanInboxStatus.REJECTED);
+        assertThat(mail.getData()).isNull();
+        assertThatThrownBy(() -> service.undo(mail.getId(), u)).isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void mailMoveJobCarriesDownloadUrl() {
+        User u = user();
+        ScanInboxItem mail = mailItem(u, ScanInboxStatus.APPROVED);
+        mail.setTargetFolder("Finanzen/Banken/SoBa/2026");
+        mail.setTargetFilename("SoBa_Kontoauszug_11.2026.pdf");
+        when(items.findByOwnerIdAndStatusOrderByDecidedAtAsc(u.getId(), ScanInboxStatus.APPROVED)).thenReturn(List.of(mail));
+        var job = service.moveJobs(u).get(0);
+        assertThat(job.source()).isEqualTo(ScanInboxSource.MAIL);
+        assertThat(job.fileUrl()).isEqualTo("/api/documents/scan/" + mail.getId() + "/file");
+    }
+
+    @Test
+    void mailContextNamesSenderDateAndSubject() {
+        assertThat(ScanInboxService.mailContext(mailItem(user(), ScanInboxStatus.ANALYZING)))
+                .isEqualTo("Anhang einer E-Mail von SoBa <info@soba.ch> vom 03.11.2026, Betreff: \"Ihr Kontoauszug\".");
+        assertThat(ScanInboxService.mailContext(item(user(), ScanInboxStatus.ANALYZING))).isNull();
     }
 }

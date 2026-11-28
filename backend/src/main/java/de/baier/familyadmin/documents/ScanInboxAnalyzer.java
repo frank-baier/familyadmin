@@ -43,7 +43,7 @@ public class ScanInboxAnalyzer {
             var in = input.get();
             try {
                 service.saveSuggestion(id, suggestionService.suggest(
-                        in.sourceName(), in.contentType(), in.data(), in.catalog(), in.hint()));
+                        in.sourceName(), in.contentType(), in.data(), in.catalog(), in.hint(), in.mailContext()));
             } catch (Exception e) {
                 log.warn("Scan analysis failed for '{}': {}", in.sourceName(), e.getMessage());
                 service.saveAnalysisError(id, "Analyse fehlgeschlagen: " + e.getMessage());

@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/** A file from iCloud "Dokumente/_Wohin?" with its filing suggestion. */
+/** A file from iCloud "Dokumente/_Wohin?" or an e-mail attachment, with its filing suggestion. */
 @Entity
 @Table(name = "scan_inbox_items")
 @EntityListeners(AuditingEntityListener.class)
@@ -97,7 +97,32 @@ public class ScanInboxItem {
     @Column(name = "moved_at")
     private Instant movedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10)
+    @Builder.Default
+    private ScanInboxSource source = ScanInboxSource.SCAN;
+
+    @Column(name = "mail_message_id", length = 998)
+    private String mailMessageId;
+
+    @Column(name = "mail_from", length = 512)
+    private String mailFrom;
+
+    @Column(name = "mail_subject", length = 998)
+    private String mailSubject;
+
+    @Column(name = "mail_date")
+    private Instant mailDate;
+
+    /** false = AI thinks it is not worth keeping. */
+    @Column(name = "worth_keeping")
+    private Boolean worthKeeping;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    public boolean isMail() {
+        return source == ScanInboxSource.MAIL;
+    }
 }

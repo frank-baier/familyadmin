@@ -899,7 +899,7 @@ export default function DocumentsPage() {
           href="/documents/scan"
           className="px-3 py-2 rounded-xl text-sm font-medium text-amber-700 border border-amber-200 bg-white hover:bg-amber-50 shrink-0 self-center"
         >
-          Scan-Eingang{scanPending > 0 && <span className="ml-1.5 rounded-full bg-amber-600 px-1.5 py-0.5 text-[11px] text-white">{scanPending}</span>}
+          Eingang{scanPending > 0 && <span className="ml-1.5 rounded-full bg-amber-600 px-1.5 py-0.5 text-[11px] text-white">{scanPending}</span>}
         </Link>
         <Link
           href="/documents/ask"

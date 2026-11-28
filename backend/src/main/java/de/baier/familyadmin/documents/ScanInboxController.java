@@ -8,6 +8,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -33,6 +34,7 @@ public class ScanInboxController {
     private final ScanInboxService service;
     private final ScanInboxAnalyzer analyzer;
     private final ScanFilingSuggestionService suggestionService;
+    private final MailInboxPoller mailInboxPoller;
 
     // ── Review page ─────────────────────────────────────────────────────────
 
@@ -47,7 +49,22 @@ public class ScanInboxController {
         m.put("pending", service.countOpen(user));
         m.put("aiConfigured", suggestionService.isConfigured());
         m.put("catalogUpdatedAt", service.catalogUpdatedAt(user).orElse(null));
+        m.put("mailConfigured", mailInboxPoller.isConfigured());
         return m;
+    }
+
+    /** Check the mailbox now instead of waiting for the next scheduled poll. */
+    @PostMapping("/mail/poll")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Map<String, Integer> pollMail() {
+        if (!mailInboxPoller.isConfigured()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Kein Postfach konfiguriert");
+        }
+        try {
+            return Map.of("created", mailInboxPoller.poll());
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Postfach nicht erreichbar: " + e.getMessage());
+        }
     }
 
     @GetMapping("/folders")

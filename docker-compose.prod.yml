@@ -44,6 +44,9 @@ services:
       OLLAMA_CHAT_MODEL: llama3.2:3b
       SYNC_API_KEY: ${SYNC_API_KEY:-}
       SYNC_API_USER: ${SYNC_API_USER:-frank.baier@gmx.ch}
+      MAIL_INBOX_USERNAME: ${MAIL_INBOX_USERNAME:-}
+      MAIL_INBOX_PASSWORD: ${MAIL_INBOX_PASSWORD:-}
+      MAIL_INBOX_HOST: ${MAIL_INBOX_HOST:-imap.gmx.net}
 
   ollama:
     image: ollama/ollama

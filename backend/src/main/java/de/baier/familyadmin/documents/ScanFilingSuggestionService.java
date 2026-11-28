@@ -45,8 +45,8 @@ public class ScanFilingSuggestionService {
     private final BigDecimal cacheReadPrice;
     private final ObjectMapper objectMapper;
 
-    public record Suggestion(String folder, String filename, Boolean taxRelevant, String reason,
-                             String model, String input, BigDecimal costUsd) {}
+    public record Suggestion(String folder, String filename, Boolean taxRelevant, Boolean worthKeeping,
+                             String reason, String model, String input, BigDecimal costUsd) {}
 
     public ScanFilingSuggestionService(@Value("${anthropic.api-key:}") String apiKey,
                                        @Value("${scan-inbox.anthropic-model:claude-opus-5-5}") String model,
@@ -68,6 +68,12 @@ public class ScanFilingSuggestionService {
 
     public Suggestion suggest(String sourceName, String contentType, byte[] data,
                               List<CatalogFolder> catalog, String userHint) {
+        return suggest(sourceName, contentType, data, catalog, userHint, null);
+    }
+
+    /** {@code mailContext}: sender/date/subject when the file is an e-mail attachment, else null. */
+    public Suggestion suggest(String sourceName, String contentType, byte[] data,
+                              List<CatalogFolder> catalog, String userHint, String mailContext) {
         if (client == null) throw new IllegalStateException("ANTHROPIC_API_KEY ist nicht konfiguriert");
 
         List<ContentBlockParam> content = new ArrayList<>();
@@ -92,7 +98,7 @@ public class ScanFilingSuggestionService {
         } else {
             input = "NONE";
         }
-        content.add(textBlock(task(sourceName, userHint, input)));
+        content.add(textBlock(task(sourceName, userHint, mailContext, input)));
 
         Message message = client.messages().create(MessageCreateParams.builder()
                 .model(model)
@@ -130,7 +136,7 @@ public class ScanFilingSuggestionService {
     // ── Prompt ──────────────────────────────────────────────────────────────
 
     private static final String SYSTEM = """
-            Du legst gescannte Dokumente einer Familie in ihre iCloud-Ablage "Dokumente" ab.
+            Du legst gescannte Dokumente und E-Mail-Anhänge einer Familie in ihre iCloud-Ablage "Dokumente" ab.
             Du bekommst den Ordnerbaum (Pfade relativ zu "Dokumente") mit Beispiel-Dateinamen
             je Ordner. Schlage für ein Dokument den Zielordner und einen Dateinamen vor.
 
@@ -163,9 +169,15 @@ public class ScanFilingSuggestionService {
             - Ist der bisherige Dateiname schon korrekt und im Stil der Ablage, behalte ihn.
             - Keine Zeichen / \\ : * ? " < > |.
 
+            Aufbewahren:
+            - "worthKeeping": false für Dinge, die man nicht ablegen muss: Werbung, Newsletter,
+              AGB, Datenschutz- und Widerrufsbelehrungen, Logos, reine Versand- oder
+              Terminbestätigungen ohne Rechnung. Sonst true. Den Ordner trotzdem vorschlagen.
+
             Antworte NUR mit JSON, ohne Text davor oder danach:
             {"folder": "Pfad/relativ/zu/Dokumente", "filename": "Name.ext",
-             "taxRelevant": true|false, "reason": "kurzer deutscher Satz, was das Dokument ist und warum dieser Ordner"}
+             "taxRelevant": true|false, "worthKeeping": true|false,
+             "reason": "kurzer deutscher Satz, was das Dokument ist und warum dieser Ordner"}
             """;
 
     static String renderCatalog(List<CatalogFolder> catalog) {
@@ -183,14 +195,15 @@ public class ScanFilingSuggestionService {
         return sb.toString();
     }
 
-    private static String task(String sourceName, String userHint, String input) {
+    private static String task(String sourceName, String userHint, String mailContext, String input) {
         String today = LocalDate.now(ZoneId.of("Europe/Zurich")).toString();
         return """
                 Heute ist %s.
                 Bisheriger Dateiname: %s
-                %s%s
+                %s%s%s
                 Wohin gehört das Dokument und wie soll es heißen?
                 """.formatted(today, sourceName,
+                StringUtils.hasText(mailContext) ? mailContext.strip() + "\n" : "",
                 "NONE".equals(input) ? "Der Inhalt ist nicht lesbar – entscheide nach dem Dateinamen.\n" : "",
                 StringUtils.hasText(userHint) ? "Hinweis des Benutzers (hat Vorrang): " + userHint.strip() + "\n" : "");
     }
@@ -210,7 +223,8 @@ public class ScanFilingSuggestionService {
         String folder = cleanFolder(text(json, "folder"));
         String filename = cleanFilename(text(json, "filename"), sourceName);
         Boolean tax = json.hasNonNull("taxRelevant") ? json.get("taxRelevant").asBoolean() : null;
-        return new Suggestion(folder, filename, tax, text(json, "reason"), model, input, cost);
+        Boolean keep = json.hasNonNull("worthKeeping") ? json.get("worthKeeping").asBoolean() : null;
+        return new Suggestion(folder, filename, tax, keep, text(json, "reason"), model, input, cost);
     }
 
     /** Relative path below "Dokumente", or null if unusable. */

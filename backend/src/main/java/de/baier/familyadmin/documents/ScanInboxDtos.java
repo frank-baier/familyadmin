@@ -25,10 +25,16 @@ public final class ScanInboxDtos {
 
     public record MoveFailedRequest(String error) {}
 
-    /** What the Mac needs to move one approved file. */
-    public record MoveJob(UUID id, String sha256, String sourceName, String folder, String filename) {
+    /**
+     * What the Mac needs to file one approved item. SCAN: move the file with this sha256
+     * out of _Wohin?. MAIL: download {@code fileUrl} and write it to folder/filename.
+     */
+    public record MoveJob(UUID id, ScanInboxSource source, String sha256, String sourceName,
+                          String folder, String filename, String fileUrl) {
         static MoveJob from(ScanInboxItem i) {
-            return new MoveJob(i.getId(), i.getSha256(), i.getSourceName(), i.getTargetFolder(), i.getTargetFilename());
+            return new MoveJob(i.getId(), i.getSource(), i.getSha256(), i.getSourceName(),
+                    i.getTargetFolder(), i.getTargetFilename(),
+                    i.isMail() ? "/api/documents/scan/" + i.getId() + "/file" : null);
         }
     }
 
@@ -53,7 +59,12 @@ public final class ScanInboxDtos {
             String moveError,
             Instant createdAt,
             Instant movedAt,
-            String previewUrl
+            String previewUrl,
+            ScanInboxSource source,
+            String mailFrom,
+            String mailSubject,
+            Instant mailDate,
+            Boolean worthKeeping
     ) {
         static ItemResponse from(ScanInboxItem i) {
             return new ItemResponse(i.getId(), i.getSourceName(), i.getContentType(), i.getFileSize(), i.getStatus(),
@@ -61,7 +72,8 @@ public final class ScanInboxDtos {
                     i.getTaxRelevant(), i.getSuggestionReason(), i.getSuggestionModel(), i.getSuggestionCostUsd(),
                     i.getAnalysisError(), i.getTargetFolder(), i.getTargetFilename(), i.getFinalPath(),
                     i.getMoveError(), i.getCreatedAt(), i.getMovedAt(),
-                    i.getStatus() == ScanInboxStatus.DONE ? null : "/api/documents/scan/" + i.getId() + "/file");
+                    i.getData() == null ? null : "/api/documents/scan/" + i.getId() + "/file",
+                    i.getSource(), i.getMailFrom(), i.getMailSubject(), i.getMailDate(), i.getWorthKeeping());
         }
     }
 
