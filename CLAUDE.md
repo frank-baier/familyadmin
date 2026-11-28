@@ -43,6 +43,7 @@ One backend, organised by module (`de.baier.familyadmin.<module>`). Each module 
 | `notification/` | WhatsApp/e-mail notifications, WhatsApp webhook, `ModuleLinks` |
 | `ai/` | Ollama and Anthropic clients, credit alerts, portfolio analysis LLM |
 | `tasks/` `recipes/` `travel/` `notes/` `documents/` `finance/` `sport/` | One package per module (documents includes the RAG chat) |
+| `tax/` | Steuer-Assistent of the documents app (`/api/documents/tax`, page `/documents/steuer`): tax-folder listing from the Mac, AI checklist vs. last year, archive hints |
 | `config/` `filter/` `exception/` | Security, async, JWT/API-key filters, global error handling |
 
 Modules may use each other's public classes (e.g. travel uses `ai`), but keep module-specific code in its package. New class → put it in the module it belongs to.

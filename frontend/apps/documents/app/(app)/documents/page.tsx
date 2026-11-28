@@ -902,6 +902,12 @@ export default function DocumentsPage() {
           Eingang{scanPending > 0 && <span className="ml-1.5 rounded-full bg-amber-600 px-1.5 py-0.5 text-[11px] text-white">{scanPending}</span>}
         </Link>
         <Link
+          href="/documents/steuer"
+          className="px-3 py-2 rounded-xl text-sm font-medium text-sky-700 border border-sky-200 bg-white hover:bg-sky-50 shrink-0 self-center"
+        >
+          Steuern
+        </Link>
+        <Link
           href="/documents/ask"
           className="btn-primary shrink-0"
           style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
